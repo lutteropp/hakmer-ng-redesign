@@ -5,10 +5,9 @@
  *      Author: Sarah Lutteropp
  */
 
-#ifndef SRC_OPTIONS_HPP_
-#define SRC_OPTIONS_HPP_
+#pragma once
 
-#include "../DynamicEditDistance/src/dist_config.hpp"
+#include <limits>
 
 class Options {
 public:
@@ -55,8 +54,5 @@ public:
 
 	bool dynamicFlanks = true;
 	size_t flankWidth = 25;
-
-	DistConfig config;
 };
 
-#endif /* SRC_OPTIONS_HPP_ */

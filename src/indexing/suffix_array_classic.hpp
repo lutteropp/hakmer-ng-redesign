@@ -29,7 +29,6 @@ inline size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t 
 class SuffixArrayClassic {
 public:
 	SuffixArrayClassic() {
-		SA = NULL;
 		_nTotalSites = 0;
 	}
 	/**
@@ -60,7 +59,7 @@ public:
 			lcp[i] = longestCommonPrefix(seq, SA[i-1], SA[i], lTop);
 		}
 	}
-	inline size_t& operator[](size_t pos) const {
+	inline size_t operator[](size_t pos) const {
 		return SA[pos];
 	}
 

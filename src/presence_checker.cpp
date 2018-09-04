@@ -7,18 +7,6 @@
 
 #include "presence_checker.hpp"
 
-class PresenceChecker {
-public:
-	PresenceChecker(size_t nSites, size_t nTax);
-	bool isFree(size_t firstCoord, size_t lastCoord);
-	bool isFree(size_t coord);
-	void setTaken(size_t firstCoord, size_t lastCoord);
-	void setTaken(size_t coord);
-private:
-	std::vector<bool> freePos;
-	size_t nTax;
-};
-
 PresenceChecker::PresenceChecker(size_t nSites, size_t nTax) {
 	freePos.resize(nSites);
 	for (size_t i = 0; i < nSites; ++i) {
@@ -53,7 +41,7 @@ void PresenceChecker::setTaken(size_t firstCoord, size_t lastCoord) {
 void PresenceChecker::reserveSeededBlock(const SeededBlock& block) {
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
-			std::pair<size_t, size_t> coords = block.getTaxonCoords()[taxID];
+			std::pair<size_t, size_t> coords = block.getTaxonCoords()[i];
 			setTaken(coords.first, coords.second);
 		}
 	}
