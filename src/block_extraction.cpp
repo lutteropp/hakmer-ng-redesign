@@ -108,6 +108,7 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 	return matchCount;
 }
 
+// TODO: Re-add mismatches and indels in seeds
 SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
@@ -168,6 +169,7 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 	return res;
 }
 
+// TODO: Re-add dynamic extension of flanking regions
 ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
 		const Options& options) {
 	ExtendedBlock block(seededBlock, nTax);

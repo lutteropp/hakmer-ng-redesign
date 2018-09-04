@@ -41,7 +41,7 @@ void PresenceChecker::setTaken(size_t firstCoord, size_t lastCoord) {
 void PresenceChecker::reserveSeededBlock(const SeededBlock& block) {
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
-			std::pair<size_t, size_t> coords = block.getTaxonCoords()[i];
+			std::pair<size_t, size_t> coords = block.getTaxonCoords(i);
 			setTaken(coords.first, coords.second);
 		}
 	}

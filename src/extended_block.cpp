@@ -66,8 +66,8 @@ void ExtendedBlock::decrementAllRightFlanks() {
 }
 
 std::pair<size_t, size_t> ExtendedBlock::getTaxonCoordsWithFlanks(size_t taxID) const {
-	return std::make_pair(mySeededBlock.getTaxonCoords()[taxID].first - leftFlankSizes[taxID],
-			mySeededBlock.getTaxonCoords()[taxID].second + rightFlankSizes[taxID]);
+	return std::make_pair(mySeededBlock.getTaxonCoords(taxID).first - leftFlankSizes[taxID],
+			mySeededBlock.getTaxonCoords(taxID).second + rightFlankSizes[taxID]);
 }
 
 bool ExtendedBlock::hasTaxon(size_t taxID) const {

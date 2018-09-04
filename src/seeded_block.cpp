@@ -26,8 +26,8 @@ size_t SeededBlock::getN() const {
 	return n;
 }
 
-std::vector<std::pair<size_t, size_t> > SeededBlock::getTaxonCoords() const {
-	return taxonCoords;
+std::pair<size_t, size_t> SeededBlock::getTaxonCoords(size_t taxID) const {
+	return taxonCoords[taxID];
 }
 
 bool SeededBlock::hasTaxon(size_t taxID) const {

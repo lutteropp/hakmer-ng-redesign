@@ -5,6 +5,10 @@
  *      Author: Sarah Lutteropp
  */
 
+#include <iostream>
 
+#include "options.hpp"
 
+int main(int argc, char* argv[]) {
 
+}
