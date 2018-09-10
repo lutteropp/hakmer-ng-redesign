@@ -63,8 +63,8 @@ public:
 		return SA[pos];
 	}
 
-	std::vector<size_t> getSA();
-	std::vector<size_t> getLCP();
+	const std::vector<size_t>& getSA() const;
+	const std::vector<size_t>& getLCP() const;
 
 	size_t exactMatches(const std::string& pattern, const std::string& text, size_t firstIdx, std::vector<size_t> &matches);
 	size_t exactMatches(size_t patternStartPos, unsigned int m, const std::string& text, size_t firstIdx, std::vector<size_t> &matches);

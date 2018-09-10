@@ -187,10 +187,10 @@ size_t SuffixArrayClassic::countExactMatches(size_t firstSAIndex, unsigned int m
 	return res;
 }
 
-std::vector<size_t> SuffixArrayClassic::getSA() {
+const std::vector<size_t>& SuffixArrayClassic::getSA() const {
 	return SA;
 }
 
-std::vector<size_t> SuffixArrayClassic::getLCP() {
+const std::vector<size_t>& SuffixArrayClassic::getLCP() const {
 	return lcp;
 }

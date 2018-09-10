@@ -27,6 +27,7 @@ size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t start2,
 	return res;
 }
 
+// TODO: Add reverse-complement support
 size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords) {
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		if (pos >= taxonCoords[i].first && pos <= taxonCoords[i].second) {
@@ -45,6 +46,7 @@ bool canStay(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoo
 	return false;
 }
 
+// Shrink arrays... needed for quartet-based stuff.
 std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const std::string& T, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, const std::vector<std::pair<size_t, size_t> >& taxonCoords, const std::vector<size_t>& wantedTaxa,
 		const Options& options) {

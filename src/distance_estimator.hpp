@@ -18,11 +18,14 @@ public:
 
 class DistanceEstimator { // currently uses simple edit distance
 public:
-	DistanceEstimator(const std::string& s1, const std::string& s2) : a(s1), b(s2), dist(0) {};
+	DistanceEstimator(const std::string& s1, const std::string& s2) : a(s1), b(s2), dist(0), distValid(false) {};
 	double distance();
 	void addChars(char c1, char c2);
+	void addCharA(char c);
+	void addCharB(char c);
 private:
 	std::string a;
 	std::string b;
 	double dist;
+	bool distValid;
 };
