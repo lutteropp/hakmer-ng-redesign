@@ -7,6 +7,7 @@
 
 #include "block_extraction.hpp"
 #include <unordered_set>
+#include <cmath>
 
 size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t start2, unsigned int lTop) {
 	size_t res = 0;
@@ -87,9 +88,16 @@ bool acceptSeed(size_t actSAPos, size_t matchCount, size_t k, size_t nTax, const
 		}
 		takenTaxa.insert(taxID);
 	}
+
+	size_t flankOffset = 0;
+	if (!options.dynamicFlanks) {
+		flankOffset = options.flankWidth;
+	}
+	if (flankOffset)
+
 	// check for presence/absence
 	for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
-		if (!presenceChecker.isFree(SA[i], SA[i] + k - 1)) {
+		if (!presenceChecker.isFree(SA[i] - flankOffset, SA[i] + k - 1 + flankOffset)) {
 			return false;
 		}
 	}
@@ -167,6 +175,60 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 		res.push_back(nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options));
 	}
 	return res;
+}
+
+double jukesCantorCorrection(double dist) {
+	// TODO: Jukes Cantor Correction doesn't work if dist >= 0.75. In this case, it will return infinity.
+	return -0.75 * std::log(1 - (4.0 / 3) * dist);
+}
+
+void swap(std::vector<double>& vec, size_t i, size_t j) {
+	double tmp = vec[i];
+	vec[i] = vec[j];
+	vec[j] = tmp;
+}
+
+double deltaScore(const std::array<double, 6>& pairwiseDist, const Options& options) {
+	// This happens if two sequences are too divergent, this is, relative uncorrected distance > 0.75
+	for (size_t i = 0; i < pairwiseDist.size(); ++i) {
+		if (std::isnan(pairwiseDist[i]) || std::isinf(pairwiseDist[i])) {
+			return 1;
+		}
+	}
+
+	// Check for 3 or more identical sequences, as this leads to star topology
+	if (pairwiseDist[0] == 0 && pairwiseDist[1] == 0) { // d(a,b) and d(a,c) -> a,b,c are equal
+		return 1;
+	} else if (pairwiseDist[0] == 0 && pairwiseDist[2] == 0) { // d(a,b) and d(a,d) -> a,b,d are equal
+		return 1;
+	} else if (pairwiseDist[1] == 0 && pairwiseDist[2] == 0) { // d(a,c) and d(a,d) -> a,c,d are equal
+		return 1;
+	} else if (pairwiseDist[3] == 0 && pairwiseDist[4] == 0) { // d(b,c) and d(b,d) -> b,c,d are equal
+		return 1;
+	}
+
+	double d12_34 = pairwiseDist[0] + pairwiseDist[5];
+	double d13_24 = pairwiseDist[1] + pairwiseDist[4];
+	double d14_23 = pairwiseDist[2] + pairwiseDist[3];
+
+	std::vector<double> distances = { d12_34, d13_24, d14_23 };
+	if (distances[0] > distances[1])
+	    swap(distances, 0, 1);
+	if (distances[0] > distances[2])
+		swap(distances, 0, 2);
+	if (distances[1] > distances[2])
+		swap(distances, 1, 2);
+
+	double score;
+	if (distances[0] == distances[2]) { // star topology
+		score = 1.0;
+	} else {
+		score = (distances[2] - distances[1]) / (distances[2] - distances[0]);
+	}
+	if (std::isnan(score)) {
+		throw std::runtime_error("The delta score is nan!!!\n");
+	}
+	return score;
 }
 
 // TODO: Re-add dynamic extension of flanking regions

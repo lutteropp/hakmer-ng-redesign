@@ -20,6 +20,9 @@ bool PresenceChecker::isFree(size_t coord) {
 }
 
 bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) {
+	if (lastCoord >= freePos.size() || firstCoord >= freePos.size()) {
+		return false;
+	}
 	for (size_t i = firstCoord; i <= lastCoord; ++i) {
 		if (!freePos[i]) {
 			return false;
