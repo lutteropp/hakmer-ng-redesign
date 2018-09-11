@@ -14,12 +14,14 @@ SeededBlock::SeededBlock(size_t nTax) {
 		taxonCoords[i].second = std::string::npos;
 	}
 	n = 0;
+	k = 0;
 }
 
 void SeededBlock::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 	n++;
 	taxonCoords[taxID].first = firstCoord;
 	taxonCoords[taxID].second = lastCoord;
+	k = lastCoord - firstCoord + 1;
 }
 
 size_t SeededBlock::getN() const {
@@ -32,4 +34,8 @@ std::pair<size_t, size_t> SeededBlock::getTaxonCoords(size_t taxID) const {
 
 bool SeededBlock::hasTaxon(size_t taxID) const {
 	return taxonCoords[taxID].first != std::string::npos;
+}
+
+size_t SeededBlock::getSeedSize() const {
+	return k;
 }

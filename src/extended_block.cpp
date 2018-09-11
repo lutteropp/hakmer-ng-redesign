@@ -73,3 +73,27 @@ std::pair<size_t, size_t> ExtendedBlock::getTaxonCoordsWithFlanks(size_t taxID) 
 bool ExtendedBlock::hasTaxon(size_t taxID) const {
 	return mySeededBlock.hasTaxon(taxID);
 }
+
+size_t ExtendedBlock::getSeedSize() const {
+	return mySeededBlock.getSeedSize();
+}
+
+size_t ExtendedBlock::getMaxLeftFlankSize() const {
+	size_t max = 0;
+	for (size_t i = 0; i < leftFlankSizes.size(); ++i) {
+		if (leftFlankSizes[i] > max) {
+			max = leftFlankSizes[i];
+		}
+	}
+	return max;
+}
+
+size_t ExtendedBlock::getMaxRightFlankSize() const {
+	size_t max = 0;
+	for (size_t i = 0; i < rightFlankSizes.size(); ++i) {
+		if (rightFlankSizes[i] > max) {
+			max = rightFlankSizes[i];
+		}
+	}
+	return max;
+}

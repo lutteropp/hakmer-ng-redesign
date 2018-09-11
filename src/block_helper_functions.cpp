@@ -30,7 +30,9 @@ std::string extractTaxonSequence(const ExtendedBlock& block, size_t taxID, const
 	std::string res;
 	if (block.hasTaxon(taxID)) {
 		std::pair<size_t, size_t> coord = block.getTaxonCoordsWithFlanks(taxID);
-		return T.substr(coord.first, coord.second + 1 - coord.first);
+		res = T.substr(coord.first, coord.second + 1 - coord.first);
+	} else {
+		res = createMissingString(block.getMaxLeftFlankSize() + block.getSeedSize() + block.getMaxRightFlankSize());
 	}
 	return res;
 }
@@ -39,7 +41,9 @@ std::string extractTaxonSequence(const SeededBlock& block, size_t taxID, const s
 	std::string res;
 	if (block.hasTaxon(taxID)) {
 		std::pair<size_t, size_t> coord = block.getTaxonCoords(taxID);
-		return T.substr(coord.first, coord.second + 1 - coord.first);
+		res = T.substr(coord.first, coord.second + 1 - coord.first);
+	} else {
+		res = createMissingString(block.getSeedSize());
 	}
 	return res;
 }

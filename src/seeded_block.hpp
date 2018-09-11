@@ -18,7 +18,9 @@ public:
 	size_t getN() const;
 	std::pair<size_t, size_t> getTaxonCoords(size_t taxID) const;
 	bool hasTaxon(size_t taxID) const;
+	size_t getSeedSize() const;
 private:
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
 	size_t n;
+	size_t k;
 };

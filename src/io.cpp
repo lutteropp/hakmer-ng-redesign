@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include "block_helper_functions.hpp"
+
 class FASTARecord {
 public:
 	FASTARecord(const std::string& name, const std::string& seq) :
@@ -310,6 +312,44 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 
 	IndexedConcatenatedSequence res(concat, coords, options);
 	return res;
+}
+
+
+void writeFASTASupermatrix(const std::vector<AlignedBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath) {
+	std::ofstream outfile(filepath);
+	for (size_t i = 0; i < taxonLabels.size(); ++i) {
+		outfile << ">" + taxonLabels[i] << "\n";
+		std::string concat = "";
+		for (size_t j = 0; j < blocks.size(); ++j) {
+			concat += extractTaxonSequence(blocks[j], i);
+		}
+		outfile << concat << "\n";
+	}
+	outfile.close();
+}
+void writeFASTASupermatrix(const std::vector<ExtendedBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath, const std::string& T) {
+	std::ofstream outfile(filepath);
+	for (size_t i = 0; i < taxonLabels.size(); ++i) {
+		outfile << ">" + taxonLabels[i] << "\n";
+		std::string concat = "";
+		for (size_t j = 0; j < blocks.size(); ++j) {
+			concat += extractTaxonSequence(blocks[j], i, T);
+		}
+		outfile << concat << "\n";
+	}
+	outfile.close();
+}
+void writeFASTASupermatrix(const std::vector<SeededBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath, const std::string& T) {
+	std::ofstream outfile(filepath);
+	for (size_t i = 0; i < taxonLabels.size(); ++i) {
+		outfile << ">" + taxonLabels[i] << "\n";
+		std::string concat = "";
+		for (size_t j = 0; j < blocks.size(); ++j) {
+			concat += extractTaxonSequence(blocks[j], i, T);
+		}
+		outfile << concat << "\n";
+	}
+	outfile.close();
 }
 
 
