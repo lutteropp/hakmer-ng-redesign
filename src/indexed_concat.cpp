@@ -77,17 +77,6 @@ size_t IndexedConcatenatedSequence::nTax() const {
 IndexedTaxonCoords IndexedConcatenatedSequence::getTaxonCoords(size_t taxonIdx) const {
 	return taxonCoords[taxonIdx];
 }
-
-// TODO: Is this needed here? And how to deal with reverse-complemented sequence data?
-size_t IndexedConcatenatedSequence::getTaxonIdx(size_t coord) const {
-	for (size_t i = 0; i < taxonCoords.size(); ++i) {
-		if (coord >= taxonCoords[i].getFirstCoord() && coord <= taxonCoords[i].getLastCoord()) {
-			return i;
-		}
-	}
-	throw std::runtime_error("Coordinate does not belong to any taxon: " + std::to_string(coord));
-}
-
 const std::string& IndexedConcatenatedSequence::getConcatenatedSeq() const {
 	return concatenatedSeq;
 }

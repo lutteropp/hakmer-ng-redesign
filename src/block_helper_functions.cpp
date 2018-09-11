@@ -7,10 +7,21 @@
 
 #include "block_helper_functions.hpp"
 
+std::string createMissingString(size_t len) {
+	std::string res;
+	for (size_t i = 0; i < len; ++i) {
+		res += '?';
+	}
+	return res;
+}
+
 std::string extractTaxonSequence(const AlignedBlock& block, size_t taxID) {
 	std::string res;
+	size_t aliWidth = block.getAlignmentWidth();
 	if (block.hasTaxon(taxID)) {
-		return block.getAlignment()[taxID];
+		res = block.getAlignment()[taxID];
+	} else {
+		res = createMissingString(aliWidth);
 	}
 	return res;
 }
@@ -29,14 +40,6 @@ std::string extractTaxonSequence(const SeededBlock& block, size_t taxID, const s
 	if (block.hasTaxon(taxID)) {
 		std::pair<size_t, size_t> coord = block.getTaxonCoords(taxID);
 		return T.substr(coord.first, coord.second + 1 - coord.first);
-	}
-	return res;
-}
-
-std::string createMissingString(size_t len) {
-	std::string res;
-	for (size_t i = 0; i < len; ++i) {
-		res += '?';
 	}
 	return res;
 }

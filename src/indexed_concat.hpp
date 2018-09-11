@@ -44,6 +44,5 @@ public:
 	size_t getConcatSize() const;
 	size_t nTax() const;
 	IndexedTaxonCoords getTaxonCoords(size_t taxonIdx) const;
-	size_t getTaxonIdx(size_t coord) const;
 	const std::string& getConcatenatedSeq() const;
 };

@@ -35,8 +35,10 @@ size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t start2,
 	return res;
 }
 
-// TODO: Add reverse-complement support
-size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords) {
+size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, bool revComp) {
+	if (pos >= concatSize && revComp) {
+		pos = concatSize - 1 - pos;
+	}
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		if (pos >= taxonCoords[i].first && pos <= taxonCoords[i].second) {
 			return i;
@@ -82,7 +84,7 @@ std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const std::str
 }
 
 bool acceptSeed(size_t actSAPos, size_t matchCount, size_t k, size_t nTax, const std::vector<size_t>& SA, PresenceChecker& presenceChecker,
-		const std::vector<std::pair<size_t, size_t> >& taxonCoords, const Options& options) {
+		const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, const Options& options) {
 	if (matchCount > nTax) { // easy test for paralogy
 		return false;
 	}
@@ -92,7 +94,7 @@ bool acceptSeed(size_t actSAPos, size_t matchCount, size_t k, size_t nTax, const
 	// more complicated check for paralogy
 	std::unordered_set<size_t> takenTaxa;
 	for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
-		size_t taxID = posToTaxon(SA[i], taxonCoords);
+		size_t taxID = posToTaxon(SA[i], taxonCoords, concatSize, options.reverseComplement);
 		if (takenTaxa.find(taxID) != takenTaxa.end()) { // multiple match in taxon
 			return false;
 		}
@@ -105,12 +107,12 @@ bool acceptSeed(size_t actSAPos, size_t matchCount, size_t k, size_t nTax, const
 	}
 	if (flankOffset)
 
-	// check for presence/absence
-	for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
-		if (!presenceChecker.isFree(SA[i] - flankOffset, SA[i] + k - 1 + flankOffset)) {
-			return false;
+		// check for presence/absence
+		for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
+			if (!presenceChecker.isFree(SA[i] - flankOffset, SA[i] + k - 1 + flankOffset)) {
+				return false;
+			}
 		}
-	}
 	return true;
 }
 
@@ -147,10 +149,10 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 	size_t matchCount = countMatches(actSAPos, lcp, k);
 
 	while (matchCount >= options.minTaxaPerBlock) {
-		if (acceptSeed(actSAPos, matchCount, k, nTax, SA, presenceChecker, taxonCoords, options)) {
+		if (acceptSeed(actSAPos, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T.size(), options)) {
 			foundBlock = true;
 			for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
-				block.addTaxon(posToTaxon(SA[i], taxonCoords), SA[i], SA[i] + k - 1);
+				block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
 			}
 			//presenceChecker.reserveSeededBlock(block);
 			break;
@@ -223,7 +225,7 @@ double deltaScore(const std::array<double, 6>& pairwiseDist, const Options& opti
 
 	std::vector<double> distances = { d12_34, d13_24, d14_23 };
 	if (distances[0] > distances[1])
-	    swap(distances, 0, 1);
+		swap(distances, 0, 1);
 	if (distances[0] > distances[2])
 		swap(distances, 0, 2);
 	if (distances[1] > distances[2])
@@ -272,6 +274,22 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 			presenceChecker.reserveExtendedBlock(extendedBlock);
 			res.push_back(extendedBlock);
 		}
+	}
+	return res;
+}
+
+std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
+		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
+		const Options& options) {
+	std::vector<AlignedBlock> res;
+	std::vector<ExtendedBlock> extBlocks = extractExtendedBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+	for (size_t i = 0; i < extBlocks.size(); ++i) {
+		AlignedBlock bl(extBlocks[i], nTax);
+		res.push_back(bl);
+	}
+#pragma omp parallel for
+	for (size_t i = 0; i < res.size(); ++i) {
+		res[i].align();
 	}
 	return res;
 }
