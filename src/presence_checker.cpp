@@ -7,24 +7,32 @@
 
 #include "presence_checker.hpp"
 
-PresenceChecker::PresenceChecker(size_t nSites, size_t nTax) {
+PresenceChecker::PresenceChecker(size_t nSites, size_t nTax, bool revComp) {
+	if (revComp) {
+		nSites /= 2;
+	}
 	freePos.resize(nSites);
 	for (size_t i = 0; i < nSites; ++i) {
 		freePos[i] = true;
 	}
 	this->nTax = nTax;
+	this->revComp = revComp;
 }
 
 bool PresenceChecker::isFree(size_t coord) {
-	return freePos[coord];
+	if (coord >= freePos.size() && revComp) {
+		coord = 2 * freePos.size() - 1 - coord;
+	}
+	if (coord >= freePos.size()) {
+		return false;
+	} else {
+		return freePos[coord];
+	}
 }
 
 bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) {
-	if (lastCoord >= freePos.size() || firstCoord >= freePos.size()) {
-		return false;
-	}
 	for (size_t i = firstCoord; i <= lastCoord; ++i) {
-		if (!freePos[i]) {
+		if (!isFree(i)) {
 			return false;
 		}
 	}
@@ -32,12 +40,15 @@ bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) {
 }
 
 void PresenceChecker::setTaken(size_t coord) {
+	if (coord >= freePos.size() && revComp) {
+		coord = 2 * freePos.size() - 1 - coord;
+	}
 	freePos[coord] = false;
 }
 
 void PresenceChecker::setTaken(size_t firstCoord, size_t lastCoord) {
 	for (size_t i = firstCoord; i <= lastCoord; ++i) {
-		freePos[i] = false;
+		setTaken(i);
 	}
 }
 

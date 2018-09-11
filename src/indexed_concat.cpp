@@ -61,7 +61,7 @@ IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq,
 		const Options& options) {
 	concatenatedSeq = seq;
 	taxonCoords = coords;
-	// TODO: Build suffix array and lcp array.
+	sa.buildSuffixArray(seq, seq.size(), options);
 }
 
 const std::vector<size_t>& IndexedConcatenatedSequence::getSuffixArray() const {

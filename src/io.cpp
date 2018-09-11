@@ -96,11 +96,11 @@ FASTARecord readNextFASTA(std::ifstream& infile) {
 		seq += line;
 	}
 	std::transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
-	for (size_t i = 0; i < seq.size(); ++i) {
-		/*if (seq[i] != 'A' && seq[i] != 'C' && seq[i] != 'G' && seq[i] != 'T') {
-		 seq[i] = 'N';
-		 }*/
-	}
+	/*for (size_t i = 0; i < seq.size(); ++i) {
+	 if (seq[i] != 'A' && seq[i] != 'C' && seq[i] != 'G' && seq[i] != 'T') {
+	 seq[i] = 'N';
+	 }
+	 }*/
 	return FASTARecord(name, seq);
 }
 
@@ -262,7 +262,6 @@ std::string revComp(const std::string& str) {
 	return res;
 }
 
-
 IndexedConcatenatedSequence readConcat(const Options& options) {
 	std::vector<IndexedTaxonCoords> coords;
 
@@ -295,11 +294,17 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 		for (size_t i = 0; i < contigs.size(); ++i) {
 			concat += contigs[i];
 			concat += "$";
-			if (options.reverseComplement) { // TODO: Is this where we want our reverse-complemented contigs to be? Might be better to add them at the end or so.
+		}
+
+		if (options.reverseComplement) {
+			concat += "$";
+			for (size_t i = contigs.size() - 1; i >= 1; --i) {
 				concat += revComp(contigs[i]);
 				concat += "$";
 			}
+			concat += revComp(contigs[0]);
 		}
+
 	}
 
 	IndexedConcatenatedSequence res(concat, coords, options);

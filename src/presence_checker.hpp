@@ -17,7 +17,7 @@
 
 class PresenceChecker {
 public:
-	PresenceChecker(size_t nSites, size_t nTax);
+	PresenceChecker(size_t nSites, size_t nTax, bool revComp);
 	bool isFree(size_t firstCoord, size_t lastCoord);
 	bool isFree(size_t coord);
 	void setTaken(size_t firstCoord, size_t lastCoord);
@@ -29,4 +29,5 @@ public:
 private:
 	std::vector<bool> freePos;
 	size_t nTax;
+	bool revComp;
 };

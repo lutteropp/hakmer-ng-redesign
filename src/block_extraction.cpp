@@ -9,6 +9,14 @@
 #include <unordered_set>
 #include <cmath>
 
+void disableContigEnds(const std::string& seq, PresenceChecker& checker) {
+	for (size_t i = 0; i < seq.size(); ++i) {
+		if (seq[i] == '$') {
+			checker.setTaken(i);
+		}
+	}
+}
+
 size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t start2, unsigned int lTop) {
 	size_t res = 0;
 	for (size_t i = 0; i < seq.size(); ++i) {
