@@ -10,6 +10,7 @@
 #include <string>
 #include "options.hpp"
 #include "indexed_concat.hpp"
+#include "quartet_lookup_table.hpp"
 
 // read FASTA sequences
 // read files containing FASTA contigs
@@ -24,5 +25,7 @@ void printInputStatistics(const std::string& filepath, bool contigs);
 
 // read quartet topologies
 // write quartet topologies
+QuartetLookupTable<size_t> readQuartets(const std::string& filepath);
+void writeQuartets(const QuartetLookupTable<size_t>& table, const std::vector<std::string>& taxonLabels, const std::string& filepath);
 
 // that's probably all...

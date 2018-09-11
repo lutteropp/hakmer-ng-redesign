@@ -9,6 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 #include <algorithm>
 #include <unordered_map>
 
@@ -309,4 +310,86 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 
 	IndexedConcatenatedSequence res(concat, coords, options);
 	return res;
+}
+
+
+std::string makeHeader(const std::vector<std::string>& taxonLabels) {
+	std::string res;
+	res += std::to_string(taxonLabels.size());
+	res += "\n";
+	for (size_t i = 0; i < taxonLabels.size(); ++i) {
+		res += taxonLabels[i];
+		res += "\n";
+	}
+	return res;
+}
+std::string makeTopologyString(size_t idx1, size_t idx2, size_t idx3, size_t idx4,
+		const std::array<size_t, 3>& counts) {
+	std::stringstream ss;
+	ss << idx1 << "," << idx2 << "|" << idx3 << "," << idx4 << ":" << counts[0] << "\n";
+	ss << idx1 << "," << idx3 << "|" << idx2 << "," << idx4 << ":" << counts[1] << "\n";
+	ss << idx1 << "," << idx4 << "|" << idx2 << "," << idx3 << ":" << counts[2] << "\n";
+	return ss.str();
+}
+
+void parseTopologyString(QuartetLookupTable<size_t>& table, const std::string& line) {
+	size_t firstCommaPos = line.find(',', 1);
+	size_t idx1 = std::stoul(line.substr(1, firstCommaPos - 1));
+	size_t delimPos = line.find('|', firstCommaPos + 1);
+	size_t idx2 = std::stoul(line.substr(firstCommaPos + 1, delimPos - 1 - (firstCommaPos + 1) + 1));
+	size_t secondCommaPos = line.find(',', delimPos + 1);
+	size_t idx3 = std::stoul(line.substr(delimPos + 1, secondCommaPos - 1 - delimPos));
+	size_t colonBracketPos = line.find(':', secondCommaPos + 1);
+	size_t idx4 = std::stoul(line.substr(secondCommaPos + 1, colonBracketPos - 1 - secondCommaPos));
+	size_t count = std::stoul(line.substr(colonBracketPos + 1, line.size()));
+	auto& tuple = table.get_tuple(idx1, idx2, idx3, idx4);
+	size_t tupIndex = table.tuple_index(idx1, idx2, idx3, idx4);
+	tuple[tupIndex] = count;
+}
+
+QuartetLookupTable<size_t> readQuartets(const std::string& filepath) {
+	QuartetLookupTable<size_t> table;
+	std::ifstream infile(filepath);
+	if (!infile.good()) {
+		throw std::runtime_error("Error reading file: " + filepath);
+	}
+	size_t n;
+	infile >> n;
+	table.init(n);
+	std::string line;
+	for (size_t i = 0; i < n; ++i) { // ignore the taxon labels
+		infile >> line;
+	}
+	while (infile.good()) {
+		infile >> line;
+		parseTopologyString(table, line);
+	}
+	return table;
+}
+
+void writeQuartets(const QuartetLookupTable<size_t>& table, const std::vector<std::string>& taxonLabels,
+		const std::string& filepath) {
+	std::ofstream outfile(filepath);
+	if (!outfile.good()) {
+		throw std::runtime_error("Error writing file: " + filepath);
+	}
+	outfile << makeHeader(taxonLabels);
+	for (size_t t1 = 0; t1 < taxonLabels.size() - 3; t1++) {
+		for (size_t t2 = t1 + 1; t2 < taxonLabels.size() - 2; t2++) {
+			for (size_t t3 = t2 + 1; t3 < taxonLabels.size() - 1; t3++) {
+				for (size_t t4 = t3 + 1; t4 < taxonLabels.size(); t4++) {
+					std::array < size_t, 3 > counts;
+					auto& tuple = table.get_tuple(t1, t2, t3, t4);
+					size_t t1t2t3t4 = table.tuple_index(t1, t2, t3, t4);
+					size_t t1t3t2t4 = table.tuple_index(t1, t3, t2, t4);
+					size_t t1t4t2t3 = table.tuple_index(t1, t4, t2, t3);
+					counts[0] = tuple[t1t2t3t4];
+					counts[1] = tuple[t1t3t2t4];
+					counts[2] = tuple[t1t4t2t3];
+					outfile << makeTopologyString(t1, t2, t3, t4, counts);
+				}
+			}
+		}
+	}
+	outfile.close();
 }
