@@ -18,8 +18,8 @@
 class PresenceChecker {
 public:
 	PresenceChecker(size_t nSites, size_t nTax, bool revComp);
-	bool isFree(size_t firstCoord, size_t lastCoord);
-	bool isFree(size_t coord);
+	bool isFree(size_t firstCoord, size_t lastCoord) const;
+	bool isFree(size_t coord) const;
 	void setTaken(size_t firstCoord, size_t lastCoord);
 	void setTaken(size_t coord);
 	void reserveSeededBlock(const SeededBlock& block);

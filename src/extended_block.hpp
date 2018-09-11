@@ -21,10 +21,13 @@ public:
 	void decrementAllLeftFlanks();
 	void decrementAllRightFlanks();
 	std::pair<size_t, size_t> getTaxonCoordsWithFlanks(size_t taxID) const;
+	std::pair<size_t, size_t> getTaxonCoordsWithoutFlanks(size_t taxID) const;
 	bool hasTaxon(size_t taxID) const;
 	size_t getSeedSize() const;
 	size_t getMaxLeftFlankSize() const;
 	size_t getMaxRightFlankSize() const;
+	size_t getNTaxInBlock() const;
+	std::vector<size_t> getTaxonIDsInBlock() const;
 private:
 	SeededBlock mySeededBlock;
 	std::vector<size_t> leftFlankSizes;

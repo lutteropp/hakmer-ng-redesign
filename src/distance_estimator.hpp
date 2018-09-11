@@ -16,10 +16,10 @@ public:
 	size_t substitutionPenalty = 1;
 };
 
-class DistanceEstimator { // currently uses simple edit distance
+class DistanceEstimator {
 public:
-	DistanceEstimator(const std::string& s1, const std::string& s2) : a(s1), b(s2), dist(0), distValid(false) {};
-	double distance();
+	DistanceEstimator() : a(""), b(""), dist(0), distValid(false) {};
+	double distance(); // TODO: dist has to be between 0 (identical) and 1.
 	void addChars(char c1, char c2);
 	void addCharA(char c);
 	void addCharB(char c);

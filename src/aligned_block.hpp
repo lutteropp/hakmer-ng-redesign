@@ -21,6 +21,7 @@ public:
 	std::vector<std::string> getAlignment() const;
 	size_t getAlignmentWidth() const;
 	std::pair<size_t, size_t> getTaxonCoordsWithFlanks(size_t taxID) const;
+	std::vector<size_t> getTaxonIDsInBlock() const;
 private:
 	bool aligned;
 	ExtendedBlock myBlock;

@@ -15,10 +15,11 @@ class SeededBlock {
 public:
 	SeededBlock(size_t nTax);
 	void addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord);
-	size_t getN() const;
+	size_t getNTaxInBlock() const;
 	std::pair<size_t, size_t> getTaxonCoords(size_t taxID) const;
 	bool hasTaxon(size_t taxID) const;
 	size_t getSeedSize() const;
+	std::vector<size_t> getTaxonIDsInBlock() const;
 private:
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
 	size_t n;

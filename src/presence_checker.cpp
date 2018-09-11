@@ -19,7 +19,7 @@ PresenceChecker::PresenceChecker(size_t nSites, size_t nTax, bool revComp) {
 	this->revComp = revComp;
 }
 
-bool PresenceChecker::isFree(size_t coord) {
+bool PresenceChecker::isFree(size_t coord) const {
 	if (coord >= freePos.size() && revComp) {
 		coord = 2 * freePos.size() - 1 - coord;
 	}
@@ -30,7 +30,7 @@ bool PresenceChecker::isFree(size_t coord) {
 	}
 }
 
-bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) {
+bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) const {
 	for (size_t i = firstCoord; i <= lastCoord; ++i) {
 		if (!isFree(i)) {
 			return false;

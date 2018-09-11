@@ -24,7 +24,7 @@ void SeededBlock::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 	k = lastCoord - firstCoord + 1;
 }
 
-size_t SeededBlock::getN() const {
+size_t SeededBlock::getNTaxInBlock() const {
 	return n;
 }
 
@@ -38,4 +38,14 @@ bool SeededBlock::hasTaxon(size_t taxID) const {
 
 size_t SeededBlock::getSeedSize() const {
 	return k;
+}
+
+std::vector<size_t> SeededBlock::getTaxonIDsInBlock() const {
+	std::vector<size_t> res;
+	for (size_t i = 0; i < taxonCoords.size(); ++i) {
+		if (hasTaxon(i)) {
+			res.push_back(i);
+		}
+	}
+	return res;
 }

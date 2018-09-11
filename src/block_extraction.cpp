@@ -6,8 +6,11 @@
  */
 
 #include "block_extraction.hpp"
+
 #include <unordered_set>
 #include <cmath>
+
+#include "distance_estimator.hpp"
 
 void disableContigEnds(const std::string& seq, PresenceChecker& checker) {
 	for (size_t i = 0; i < seq.size(); ++i) {
@@ -243,7 +246,109 @@ double deltaScore(const std::array<double, 6>& pairwiseDist, const Options& opti
 	return score;
 }
 
-// TODO: Re-add dynamic extension of flanking regions
+double averageDeltaScore(std::vector<std::vector<DistanceEstimator> >& pairwiseDistanceEstimators, size_t nTaxBlock,
+		const Options& options) {
+	double sum = 0.0;
+	size_t numQuartets = nTaxBlock * (nTaxBlock - 1) * (nTaxBlock - 2) * (nTaxBlock - 3) / 24;
+	for (size_t i = 0; i < nTaxBlock - 3; ++i) {
+		for (size_t j = i + 1; j < nTaxBlock - 2; ++j) {
+			for (size_t k = j + 1; k < nTaxBlock - 1; ++k) {
+				for (size_t l = k + 1; l < nTaxBlock; ++l) {
+					std::array<double, 6> pairwiseDist = { pairwiseDistanceEstimators[i][j].distance(),
+							pairwiseDistanceEstimators[i][k].distance(), pairwiseDistanceEstimators[i][l].distance(),
+							pairwiseDistanceEstimators[j][k].distance(), pairwiseDistanceEstimators[j][l].distance(),
+							pairwiseDistanceEstimators[k][l].distance() };
+					sum += deltaScore(pairwiseDist, options);
+				}
+			}
+		}
+	}
+	return sum / numQuartets;
+}
+
+bool canGoLeftAll(const ExtendedBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
+	bool canGo = true;
+	for (size_t i = 0; i < nTax; ++i) {
+		if (block.hasTaxon(i)) {
+			if (!presenceChecker.isFree(block.getTaxonCoordsWithoutFlanks(i).first - offset)) {
+				canGo = false;
+				break;
+			}
+		}
+	}
+	return canGo;
+}
+
+bool canGoRightAll(const ExtendedBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
+	bool canGo = true;
+	for (size_t i = 0; i < nTax; ++i) {
+		if (block.hasTaxon(i)) {
+			if (!presenceChecker.isFree(block.getTaxonCoordsWithoutFlanks(i).second + offset)) {
+				canGo = false;
+				break;
+			}
+		}
+	}
+	return canGo;
+}
+
+std::pair<size_t, double> findPerfectFlankSize(const ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
+		const std::string& T, const Options& options, bool directionRight) {
+	size_t bestSize = 0;
+	double bestScore = 1;
+
+	// for the pairwise distances:
+	size_t nTaxBlock = block.getNTaxInBlock();
+	std::vector<std::vector<DistanceEstimator> > est;
+	est.resize(nTaxBlock - 1);
+	for (size_t i = 0; i < nTaxBlock - 1; ++i) {
+		est[i].resize(nTaxBlock - i - 1);
+	}
+
+	for (size_t i = 1; i <= options.maximumExtensionWidth; ++i) {
+		if (bestScore == 0) {
+			break;
+		}
+		if (directionRight) {
+			if (!canGoRightAll(block, presenceChecker, nTax, i)) {
+				break;
+			}
+		} else {
+			if (!canGoLeftAll(block, presenceChecker, nTax, i)) {
+				break;
+			}
+		}
+
+		// Update sequences in est
+		for (size_t j = 0; j < est.size(); ++j) {
+			for (size_t k = 0; k < est[i].size(); ++k) {
+				size_t coordA;
+				if (directionRight) {
+					coordA = block.getTaxonCoordsWithoutFlanks(j).second + i;
+				} else {
+					coordA = block.getTaxonCoordsWithoutFlanks(j).first - i;
+				}
+				size_t idB = j + 1 + k;
+				size_t coordB;
+				if (directionRight) {
+					coordB = block.getTaxonCoordsWithoutFlanks(idB).second + i;
+				} else {
+					coordB = block.getTaxonCoordsWithoutFlanks(idB).first - i;
+				}
+				est[j][k].addChars(T[coordA], T[coordB]);
+			}
+		}
+
+		double score = averageDeltaScore(est, nTaxBlock, options);
+		if (score < bestScore) {
+			bestScore = score;
+			bestSize = i;
+		}
+	}
+
+	return std::make_pair(bestSize, bestScore);
+}
+
 ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
 		const Options& options) {
 	ExtendedBlock block(seededBlock, nTax);
@@ -255,8 +360,15 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 				block.setRightFlankSize(i, flankWidth);
 			}
 		}
-	} else { // TODO: Implement me.
-
+	} else {
+		std::pair<size_t, double> bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
+		std::pair<size_t, double> bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
+		for (size_t i = 0; i < nTax; ++i) {
+			if (block.hasTaxon(i)) {
+				block.setLeftFlankSize(i, bestLeft.first);
+				block.setRightFlankSize(i, bestRight.first);
+			}
+		}
 	}
 	return block;
 }

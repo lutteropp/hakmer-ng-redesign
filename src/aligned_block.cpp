@@ -7,7 +7,9 @@
 
 #include "aligned_block.hpp"
 
-AlignedBlock::AlignedBlock(const ExtendedBlock& extendedBlock, size_t nTax) : aligned(false), myBlock(extendedBlock), nTax(nTax) {}
+AlignedBlock::AlignedBlock(const ExtendedBlock& extendedBlock, size_t nTax) :
+		aligned(false), myBlock(extendedBlock), nTax(nTax) {
+}
 
 bool AlignedBlock::isAligned() const {
 	return aligned;
@@ -18,7 +20,8 @@ bool AlignedBlock::hasTaxon(size_t taxID) const {
 }
 
 void AlignedBlock::align() {
-	if (aligned) return;
+	if (aligned)
+		return;
 	// TODO: Implement the actual alignment
 	aligned = true;
 }
@@ -38,4 +41,8 @@ size_t AlignedBlock::getAlignmentWidth() const {
 
 std::pair<size_t, size_t> AlignedBlock::getTaxonCoordsWithFlanks(size_t taxID) const {
 	return myBlock.getTaxonCoordsWithFlanks(taxID);
+}
+
+std::vector<size_t> AlignedBlock::getTaxonIDsInBlock() const {
+	return myBlock.getTaxonIDsInBlock();
 }
