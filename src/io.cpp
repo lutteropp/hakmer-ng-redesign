@@ -287,7 +287,7 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 			contigs[i] = seq;
 		}
 
-		IndexedTaxonCoords itc(record.name.substr(0, record.name.find(" ")), contigs, coordOffset, options);
+		IndexedTaxonCoords itc(record.name.substr(0, record.name.find(" ")), contigs, coordOffset);
 		coords.push_back(itc);
 		coordOffset = itc.getLastCoord() + 2;
 
