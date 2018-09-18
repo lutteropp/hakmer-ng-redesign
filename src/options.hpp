@@ -11,31 +11,30 @@
 
 class Options {
 public:
-	std::string filepath;
-	std::string outpath;
-	bool contigs;
-	bool reportAndExit;
-	bool noIndels;
-	bool verbose;
-	bool reverseComplement;
-	bool proteinData;
-	double maxDelta;
+	std::string filepath = "";
+	std::string outpath = "";
+	bool contigs = false;
+	bool reportAndExit = false;
+	bool noIndels = false;
+	bool verbose = false;
+	bool reverseComplement = false;
+	bool proteinData = false;
+	double maxDelta = 0;
 
-	bool noQuartets;
-	bool redo;
+	bool noQuartets = true;
+	bool redo = false;
 
 	// quartet-flavor-only parameters
-	std::string speciesTreePath;
-	std::string geneTreesPath;
-	std::string multiSPAMPath;
-	size_t minBlocksPerQuartet;
-	size_t maxBlocksPerQuartet;
-	bool sampleQuartetBlocks;
-	bool concatenatedDistance;
-	bool concatenatedMSA;
-	bool noFinalMSA;
-	bool noPartitions;
-	bool quickRaxml;
+	std::string speciesTreePath = "";
+	std::string geneTreesPath = "";
+	std::string multiSPAMPath = "";
+	size_t minBlocksPerQuartet = 100;
+	size_t maxBlocksPerQuartet = std::numeric_limits<size_t>::max();
+	bool sampleQuartetBlocks = false;
+	bool concatenatedDistance = false;
+	bool concatenatedMSA = true;
+	bool noFinalMSA = false;
+	bool noPartitions = true;
 
 	// internal parameters
 	bool verboseDebug = false;
