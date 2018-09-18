@@ -7,10 +7,7 @@
 
 #include "quartet_topology.hpp"
 
-QuartetTopology topologyFromDistances(const std::array<double, 6>& pairwiseDist) {
-	double ab_cd = pairwiseDist[0] + pairwiseDist[5];
-	double ac_bd = pairwiseDist[1] + pairwiseDist[4];
-	double ad_bc = pairwiseDist[2] + pairwiseDist[3];
+QuartetTopology topologyFromDistances(double ab_cd, double ac_bd, double ad_bc) {
 	if (ab_cd < ac_bd && ab_cd < ad_bc) {
 		return QuartetTopology::AB_CD;
 	} else if (ac_bd < ab_cd && ac_bd < ad_bc) {
@@ -20,4 +17,11 @@ QuartetTopology topologyFromDistances(const std::array<double, 6>& pairwiseDist)
 	} else {
 		return QuartetTopology::STAR;
 	}
+}
+
+QuartetTopology topologyFromDistances(const std::array<double, 6>& pairwiseDist) {
+	double ab_cd = pairwiseDist[0] + pairwiseDist[5];
+	double ac_bd = pairwiseDist[1] + pairwiseDist[4];
+	double ad_bc = pairwiseDist[2] + pairwiseDist[3];
+	return topologyFromDistances(ab_cd, ac_bd, ad_bc);
 }

@@ -13,4 +13,5 @@ enum class QuartetTopology {
 	AB_CD, AC_BD, AD_BC, STAR
 };
 
+QuartetTopology topologyFromDistances(double ab_cd, double ac_bd, double ad_bc);
 QuartetTopology topologyFromDistances(const std::array<double, 6>& pairwiseDist);
