@@ -5,27 +5,22 @@
  *      Author: Sarah Lutteropp
  */
 
+#include <cmath>
 #include "distance_estimator.hpp"
 
-double DistanceEstimator::distance() {
-	if (distValid) {
-		return dist;
-	} else {
-		// TODO: Recompute distance
-		distValid = true;
-		return dist;
+inline double jukesCantorCorrection(double dist) {
+	// TODO: Jukes Cantor Correction doesn't work if dist >= 0.75. In this case, it will return infinity.
+	return -0.75 * std::log(1 - (4.0 / 3) * dist);
+}
+
+void HammingDistanceEstimator::addChars(char c1, char c2) {
+	a += c1;
+	b += c2;
+	if (c1 != c2) {
+		dist++;
 	}
 }
 
-void DistanceEstimator::addChars(char c1, char c2) {
-	a += c1;
-	b += c2;
-}
-
-void DistanceEstimator::addCharA(char c) {
-	a += c;
-}
-
-void DistanceEstimator::addCharB(char c) {
-	b += c;
+double HammingDistanceEstimator::distance() {
+	return dist / a.size();
 }

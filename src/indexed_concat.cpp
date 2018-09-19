@@ -46,6 +46,9 @@ IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq,
 	concatenatedSeq = seq;
 	taxonCoords = coords;
 	sa.buildSuffixArray(seq, seq.size(), options);
+	for (size_t i = 0; i < taxonCoords.size(); ++i) {
+		taxonLabels.push_back(taxonCoords[i].getLabel());
+	}
 }
 
 const std::vector<size_t>& IndexedConcatenatedSequence::getSuffixArray() const {
@@ -63,4 +66,12 @@ IndexedTaxonCoords IndexedConcatenatedSequence::getTaxonCoords(size_t taxonIdx) 
 }
 const std::string& IndexedConcatenatedSequence::getConcatenatedSeq() const {
 	return concatenatedSeq;
+}
+
+size_t IndexedConcatenatedSequence::getConcatSize() const {
+	return concatenatedSeq.size();
+}
+
+const std::vector<std::string>& IndexedConcatenatedSequence::getTaxonLabels() const {
+	return taxonLabels;
 }

@@ -37,6 +37,7 @@ class IndexedConcatenatedSequence {
 	SuffixArrayClassic sa;
 	std::string concatenatedSeq;
 	std::vector<IndexedTaxonCoords> taxonCoords;
+	std::vector<std::string> taxonLabels;
 public:
 	IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords, const Options& options); // internal-indexing variant
 	const std::vector<size_t>& getSuffixArray() const;
@@ -45,4 +46,5 @@ public:
 	size_t nTax() const;
 	IndexedTaxonCoords getTaxonCoords(size_t taxonIdx) const;
 	const std::string& getConcatenatedSeq() const;
+	const std::vector<std::string>& getTaxonLabels() const;
 };

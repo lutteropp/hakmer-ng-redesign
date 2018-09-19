@@ -11,6 +11,7 @@
 #include <cmath>
 
 #include "distance_estimator.hpp"
+#include "indexing/suffix_array_classic.hpp"
 
 void disableContigEnds(const std::string& seq, PresenceChecker& checker) {
 	for (size_t i = 0; i < seq.size(); ++i) {
@@ -18,24 +19,6 @@ void disableContigEnds(const std::string& seq, PresenceChecker& checker) {
 			checker.setTaken(i);
 		}
 	}
-}
-
-size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t start2, unsigned int lTop) {
-	size_t res = 0;
-	for (size_t i = 0; i < seq.size(); ++i) {
-		if (start1 + i >= seq.size() || start2 + i >= seq.size()) {
-			break;
-		}
-		if (seq[start1 + i] == seq[start2 + i]) {
-			res++;
-			if (res >= lTop) {
-				return res; // bail because lTop is largest k-mer size we're gonna search
-			}
-		} else {
-			break;
-		}
-	}
-	return res;
 }
 
 size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, bool revComp) {
@@ -60,22 +43,21 @@ bool canStay(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoo
 }
 
 // Shrink arrays... needed for quartet-based stuff.
-std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const std::string& T, const std::vector<size_t>& SA,
-		const std::vector<size_t>& lcp, const std::vector<std::pair<size_t, size_t> >& taxonCoords, const std::vector<size_t>& wantedTaxa,
-		const Options& options) {
+std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const IndexedConcatenatedSequence& concat, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
+		const std::vector<size_t>& wantedTaxa, const Options& options) {
 	std::vector<size_t> resSA;
 	std::vector<size_t> resLCP;
 
 	bool recomputeNeeded = false;
 
-	for (size_t i = 0; i < SA.size(); ++i) {
+	for (size_t i = 0; i < concat.getSuffixArray().size(); ++i) {
 		if (canStay(i, taxonCoords, wantedTaxa)) {
-			resSA.push_back(SA[i]);
-			size_t lcpVal = lcp[i];
+			resSA.push_back(concat.getSuffixArray()[i]);
+			size_t lcpVal = concat.getLcpArray()[i];
 			if (recomputeNeeded) {
 				// recompute lcpVal
-				size_t lTop = std::min(T.size(), options.maxK);
-				lcpVal = longestCommonPrefix(T, SA[i - 1], SA[i], lTop);
+				size_t lTop = std::min(concat.getConcatenatedSeq().size(), options.maxK);
+				lcpVal = longestCommonPrefix(concat.getConcatenatedSeq(), concat.getSuffixArray()[i - 1], concat.getSuffixArray()[i], lTop);
 				recomputeNeeded = false;
 			}
 			resLCP.push_back(lcpVal);
@@ -192,11 +174,6 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 	return res;
 }
 
-double jukesCantorCorrection(double dist) {
-	// TODO: Jukes Cantor Correction doesn't work if dist >= 0.75. In this case, it will return infinity.
-	return -0.75 * std::log(1 - (4.0 / 3) * dist);
-}
-
 void swap(std::vector<double>& vec, size_t i, size_t j) {
 	double tmp = vec[i];
 	vec[i] = vec[j];
@@ -246,7 +223,7 @@ double deltaScore(const std::array<double, 6>& pairwiseDist, const Options& opti
 	return score;
 }
 
-double averageDeltaScore(std::vector<std::vector<DistanceEstimator> >& pairwiseDistanceEstimators, size_t nTaxBlock,
+double averageDeltaScore(std::vector<std::vector<HammingDistanceEstimator> >& pairwiseDistanceEstimators, size_t nTaxBlock,
 		const Options& options) {
 	double sum = 0.0;
 	size_t numQuartets = nTaxBlock * (nTaxBlock - 1) * (nTaxBlock - 2) * (nTaxBlock - 3) / 24;
@@ -299,7 +276,7 @@ std::pair<size_t, double> findPerfectFlankSize(const ExtendedBlock& block, size_
 
 	// for the pairwise distances:
 	size_t nTaxBlock = block.getNTaxInBlock();
-	std::vector<std::vector<DistanceEstimator> > est;
+	std::vector<std::vector<HammingDistanceEstimator> > est;
 	est.resize(nTaxBlock - 1);
 	for (size_t i = 0; i < nTaxBlock - 1; ++i) {
 		est[i].resize(nTaxBlock - i - 1);
@@ -401,7 +378,7 @@ std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax
 	}
 #pragma omp parallel for
 	for (size_t i = 0; i < res.size(); ++i) {
-		res[i].align();
+		res[i].align(T);
 	}
 	return res;
 }

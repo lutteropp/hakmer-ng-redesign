@@ -6,6 +6,7 @@
  */
 
 #include "block_helper_functions.hpp"
+#include "distance_estimator.hpp"
 
 std::string createMissingString(size_t len) {
 	std::string res;
@@ -44,6 +45,18 @@ std::string extractTaxonSequence(const SeededBlock& block, size_t taxID, const s
 		res = T.substr(coord.first, coord.second + 1 - coord.first);
 	} else {
 		res = createMissingString(block.getSeedSize());
+	}
+	return res;
+}
+
+std::vector<double> computePairwiseDistances(const AlignedBlock& block) {
+	std::vector<double> res;
+	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
+	for (size_t i = 0; i < taxIDs.size(); ++i) {
+		for (size_t j = i + 1; j < taxIDs.size(); ++j) {
+			HammingDistanceEstimator hamm(extractTaxonSequence(block, taxIDs[i]), extractTaxonSequence(block, taxIDs[j]));
+			res.push_back(hamm.distance());
+		}
 	}
 	return res;
 }
