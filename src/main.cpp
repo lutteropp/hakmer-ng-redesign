@@ -26,7 +26,7 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 		taxCoords.push_back(std::make_pair(concat.getTaxonCoords(i).getFirstCoord(), concat.getTaxonCoords(i).getLastCoord()));
 	}
 	std::pair<std::vector<size_t>, std::vector<size_t> > shrunk = shrinkArrays(concat, taxCoords, wantedTaxa, options);
-	PresenceChecker presenceChecker(concat.getConcatSize(), concat.nTax(), options.reverseComplement);
+	PresenceChecker presenceChecker(concat, options.reverseComplement);
 
 	std::vector<AlignedBlock> alignedBlocks = extractAlignedBlocks(concat.getConcatenatedSeq(), concat.nTax(), shrunk.first, shrunk.second,
 			presenceChecker, taxCoords, options);
@@ -78,14 +78,6 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 	return QuartetTopology::STAR;
 }
 
-void reportCallback(const Options& options) {
-
-}
-
-void evalQuartetsCallback(const Options& options) {
-
-}
-
 void quartetsCallback(const Options& options) {
 	IndexedConcatenatedSequence concat = readConcat(options);
 	size_t n = concat.nTax();
@@ -117,6 +109,10 @@ void quartetsCallback(const Options& options) {
 
 void matrixCallback(const Options& options) {
 
+}
+
+void reportCallback(const Options& options) {
+	printInputStatistics(options.filepath, options.contigs);
 }
 
 int main(int argc, char* argv[]) {
@@ -152,12 +148,6 @@ int main(int argc, char* argv[]) {
 	app.add_option("--maxdelta", options.maxDelta, "Maximum delta-score to be still considered tree-like.", true)->needs(
 			dynamicFlanksOption)->check(CLI::Range(0, 1));
 
-	auto evalMode = app.add_subcommand("evaluateQuartets", "Quartet evaluation mode");
-	evalMode->add_option("--speciesTree", options.speciesTreePath, "Path to the trusted species tree topology.")->check(CLI::ExistingFile);
-	evalMode->add_option("--geneTrees", options.geneTreesPath, "Path to the gene trees.")->check(CLI::ExistingFile);
-	evalMode->add_option("--multispam", options.multiSPAMPath, "Path to the quartet topologies file from multi-SpaM.")->check(
-			CLI::ExistingFile);
-
 	auto quartetsMode = app.add_subcommand("quartets", "Quartets mode");
 	quartetsMode->add_option("--minblocks", options.minBlocksPerQuartet, "Minimum number of blocks to be sampled for each quartet.", true);
 	quartetsMode->add_option("--maxblocks", options.maxBlocksPerQuartet, "Maximum number of blocks to be sampled for each quartet.");
@@ -167,6 +157,13 @@ int main(int argc, char* argv[]) {
 	quartetsMode->add_flag("--concatMSA", options.concatenatedMSA,
 			"Concatenate quartet blocks and then infer the quartet topology via RAxML.");
 	quartetsMode->add_flag("--noPartitions", options.noPartitions, "Do not build a partitioned MSA, use a single partition instead.");
+	auto evalOption = quartetsMode->add_option("--speciesTree", options.speciesTreePath,
+			"Path to the trusted species tree topology. Activates quartet evaluation mode.")->check(CLI::ExistingFile);
+	quartetsMode->add_option("--geneTrees", options.geneTreesPath, "Path to the gene trees. Only used in quartet evaluation mode.")->check(
+			CLI::ExistingFile)->needs(evalOption);
+	quartetsMode->add_option("--multispam", options.multiSPAMPath,
+			"Path to the quartet topologies file from multi-SpaM. Only used in quartet evaluation mode.")->check(CLI::ExistingFile)->needs(
+			evalOption);
 
 	auto supermatrixMode = app.add_subcommand("matrix", "Supermatrix mode");
 
@@ -176,9 +173,7 @@ int main(int argc, char* argv[]) {
 	if (nThreads > 0) {
 		omp_set_num_threads(nThreads);
 	}
-	if (app.got_subcommand(evalMode)) {
-		evalQuartetsCallback(options);
-	} else if (app.got_subcommand(quartetsMode)) {
+	if (app.got_subcommand(quartetsMode)) {
 		quartetsCallback(options);
 	} else if (app.got_subcommand(supermatrixMode)) {
 		matrixCallback(options);

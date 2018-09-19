@@ -5,6 +5,8 @@
  *      Author: Sarah Lutteropp
  */
 
+#include <stdexcept>
+
 #include "aligned_block.hpp"
 #include "block_helper_functions.hpp"
 
@@ -20,15 +22,17 @@ bool AlignedBlock::hasTaxon(size_t taxID) const {
 	return myBlock.hasTaxon(taxID);
 }
 
-void AlignedBlock::align(const std::string& T) {
+void AlignedBlock::align(const std::string& T, const Options& options) {
 	if (aligned)
 		return;
-	// TODO: Implement the actual alignment
 	std::vector<size_t> taxIDs = getTaxonIDsInBlock();
 	for (size_t i = 0; i < taxIDs.size(); ++i) {
 		alignment.push_back(extractTaxonSequence(myBlock, taxIDs[i], T));
 	}
-
+	if (!options.noIndels) {
+		throw std::runtime_error("Actual alignment is not implemented yet.");
+		// TODO: Implement the actual alignment, this is, insert gaps into the sequences just stored in the alignment variable
+	}
 	aligned = true;
 }
 

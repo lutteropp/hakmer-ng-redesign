@@ -22,5 +22,5 @@ void HammingDistanceEstimator::addChars(char c1, char c2) {
 }
 
 double HammingDistanceEstimator::distance() {
-	return dist / a.size();
+	return jukesCantorCorrection(dist / a.size());
 }

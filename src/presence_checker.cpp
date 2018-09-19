@@ -7,7 +7,8 @@
 
 #include "presence_checker.hpp"
 
-PresenceChecker::PresenceChecker(size_t nSites, size_t nTax, bool revComp) {
+PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool revComp) {
+	size_t nSites = concat.getConcatSize();
 	if (revComp) {
 		nSites /= 2;
 	}
@@ -15,8 +16,15 @@ PresenceChecker::PresenceChecker(size_t nSites, size_t nTax, bool revComp) {
 	for (size_t i = 0; i < nSites; ++i) {
 		freePos[i] = true;
 	}
-	this->nTax = nTax;
+	this->nTax = concat.nTax();
 	this->revComp = revComp;
+
+	for (size_t i = 0; i < nSites; ++i) {
+		if (concat.getConcatenatedSeq()[i] == '$') {
+			setTaken(i);
+		}
+	}
+
 }
 
 bool PresenceChecker::isFree(size_t coord) const {

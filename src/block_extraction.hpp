@@ -18,7 +18,6 @@
 #include "aligned_block.hpp"
 #include "indexed_concat.hpp"
 
-void disableContigEnds(const std::string& seq, PresenceChecker& checker);
 std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const IndexedConcatenatedSequence& concat, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const std::vector<size_t>& wantedTaxa, const Options& options);
 

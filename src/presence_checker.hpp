@@ -12,12 +12,13 @@
 
 #include "seeded_block.hpp"
 #include "extended_block.hpp"
+#include "indexed_concat.hpp"
 
 // TODO: Make this thing thread-safe
 
 class PresenceChecker {
 public:
-	PresenceChecker(size_t nSites, size_t nTax, bool revComp);
+	PresenceChecker(const IndexedConcatenatedSequence& concat, bool revComp);
 	bool isFree(size_t firstCoord, size_t lastCoord) const;
 	bool isFree(size_t coord) const;
 	void setTaken(size_t firstCoord, size_t lastCoord);

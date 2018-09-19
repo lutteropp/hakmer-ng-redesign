@@ -13,14 +13,6 @@
 #include "distance_estimator.hpp"
 #include "indexing/suffix_array_classic.hpp"
 
-void disableContigEnds(const std::string& seq, PresenceChecker& checker) {
-	for (size_t i = 0; i < seq.size(); ++i) {
-		if (seq[i] == '$') {
-			checker.setTaken(i);
-		}
-	}
-}
-
 size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, bool revComp) {
 	if (pos >= concatSize && revComp) {
 		pos = concatSize - 1 - pos;
@@ -378,7 +370,7 @@ std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax
 	}
 #pragma omp parallel for
 	for (size_t i = 0; i < res.size(); ++i) {
-		res[i].align(T);
+		res[i].align(T, options);
 	}
 	return res;
 }
