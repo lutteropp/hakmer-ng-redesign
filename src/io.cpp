@@ -15,45 +15,6 @@
 
 #include "block_helper_functions.hpp"
 
-class FASTARecord {
-public:
-	FASTARecord(const std::string& name, const std::string& seq) :
-			name(name), seq(seq) {
-	}
-	std::string name;
-	std::string seq;
-};
-
-class ContigRecord {
-public:
-	ContigRecord() = default;
-	ContigRecord(const FASTARecord& fastaRecord);
-	std::string name;
-	std::vector<FASTARecord> contigs;
-};
-
-class InputReader {
-public:
-	InputReader(bool contigs);
-	void openFile(const std::string& filepath);
-	ContigRecord readNext();
-	std::vector<ContigRecord> readAll();
-	bool hasNext();
-private:
-	std::ifstream infile;
-	bool contigs;
-};
-
-class ContigStats {
-public:
-	size_t length;
-	size_t nContig;
-	size_t Ns;
-	size_t runs; // number of 'N' runs
-	size_t maxRunLength;
-	std::string name;
-};
-
 /**
  * Check if the file contains more records.
  */

@@ -18,6 +18,7 @@
 #include "quartet_topology.hpp"
 #include "block_helper_functions.hpp"
 #include "quartet_lookup_table.hpp"
+#include "mafft_raxml_wrapper.hpp"
 
 QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const IndexedConcatenatedSequence& concat, const Options& options) {
 	std::vector<size_t> wantedTaxa = { a, b, c, d };
@@ -30,8 +31,16 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 
 	std::vector<AlignedBlock> alignedBlocks = extractAlignedBlocks(concat.getConcatenatedSeq(), concat.nTax(), shrunk.first, shrunk.second,
 			presenceChecker, taxCoords, options);
-	if (options.concatenatedMSA) { // TODO: implement me... this is the one that uses raxml-ng for quartet inference
-
+	if (options.concatenatedMSA) { // this is the one that uses raxml-ng for quartet inference
+		std::array<std::string, 4> concatMSA = { "", "", "", "" };
+		for (size_t i = 0; i < alignedBlocks.size(); ++i) {
+			for (size_t j = 0; j < 4; ++j) {
+				concatMSA[j] += extractTaxonSequence(alignedBlocks[i], j);
+			}
+		}
+		std::string prefix = concat.getTaxonLabels()[a] + "_" + concat.getTaxonLabels()[b] + "_" + concat.getTaxonLabels()[c] + "_"
+				+ concat.getTaxonLabels()[d];
+		return inferTopology(prefix, concatMSA, options);
 	} else if (options.concatenatedDistance) { // concatenated distances
 		std::array<double, 6> concatDist = { 0, 0, 0, 0, 0, 0 };
 		for (size_t i = 0; i < alignedBlocks.size(); ++i) {
@@ -108,7 +117,17 @@ void quartetsCallback(const Options& options) {
 }
 
 void matrixCallback(const Options& options) {
+	IndexedConcatenatedSequence concat = readConcat(options);
+	std::vector<std::pair<size_t, size_t> > taxCoords;
+	for (size_t i = 0; i < concat.nTax(); ++i) {
+		taxCoords.push_back(std::make_pair(concat.getTaxonCoords(i).getFirstCoord(), concat.getTaxonCoords(i).getLastCoord()));
+	}
+	PresenceChecker presenceChecker(concat, options.reverseComplement);
 
+	std::vector<AlignedBlock> alignedBlocks = extractAlignedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
+			concat.getLcpArray(), presenceChecker, taxCoords, options);
+
+	writeFASTASupermatrix(alignedBlocks, concat.getTaxonLabels(), options.filepath);
 }
 
 void reportCallback(const Options& options) {
@@ -138,15 +157,15 @@ int main(int argc, char* argv[]) {
 	size_t nThreads = 0;
 	app.add_option("-t,--threads", nThreads, "Maximum number of threads to use.");
 
-	app.add_option("--redo", options.redo, "Redo the run, overwrite old result files.");
+	app.add_flag("--redo", options.redo, "Redo the run, overwrite old result files.");
 	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written.")->required();
 
-	auto dynamicFlanksOption = app.add_flag("-d,--dynamic", options.dynamicFlanks, "Optional description");
+	auto dynamicFlanksOption = app.add_flag("-d,--dynamic", options.dynamicFlanks, "Dynamically extend the sequence regions flanking a kmer seed.");
 
-	app.add_option("--flankwidth", options.flankWidth, "Optional description", true)->excludes(dynamicFlanksOption)->check(
+	app.add_option("--flankwidth", options.flankWidth,"Length of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is 2*flankwidth+k.", true)->excludes(dynamicFlanksOption)->check(
 			CLI::Range(0, std::numeric_limits<int>::max()));
 	app.add_option("--maxdelta", options.maxDelta, "Maximum delta-score to be still considered tree-like.", true)->needs(
-			dynamicFlanksOption)->check(CLI::Range(0, 1));
+			dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
 
 	auto quartetsMode = app.add_subcommand("quartets", "Quartets mode");
 	quartetsMode->add_option("--minblocks", options.minBlocksPerQuartet, "Minimum number of blocks to be sampled for each quartet.", true);
