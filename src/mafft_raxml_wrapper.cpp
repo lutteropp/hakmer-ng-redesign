@@ -16,6 +16,48 @@ size_t countUniqueSequences(const std::array<std::string, 4>& sequences) {
 	return s.size();
 }
 
+std::vector<std::string> mafftAlign(const std::string& prefix, const std::vector<std::string>& sequences, const std::vector<std::string>& taxNames) {
+	if (sequences[0].empty()) {
+		return sequences;
+	}
+
+	std::vector<std::string> res;
+	std::string filename = prefix + "_alignment.fasta";
+
+	// write all sequences into a file
+	std::ofstream outfile(filename);
+	for (size_t i = 0; i < sequences.size(); ++i) {
+		outfile << ">" << taxNames[i] << "\n";
+		outfile << sequences[i] << "\n";
+	}
+	outfile.close();
+
+	std::string alignedFilename = filename + ".aligned";
+
+	// run mafft for aligning the sequences
+	std::string mafftCall = "mafft-ginsi --quiet " + filename + " > " + alignedFilename;
+	//std::string mafftCall = "mafft --retree 1 --quiet " + filename + " > " + alignedFilename;
+
+	int status = std::system(mafftCall.c_str());
+	if (!WIFEXITED(status)) {
+		throw std::runtime_error("Something went wrong while running MAFFT!");
+	}
+
+	// read back the sequences
+	std::ifstream infile(alignedFilename);
+	for (size_t i = 0; i < sequences.size(); ++i) {
+		FASTARecord rec = readNextFASTA(infile);
+		res[i] = rec.seq;
+		//std::transform(res[i].begin(), res[i].end(), res[i].begin(), ::toupper);
+	}
+
+	// remove the temporary files again
+	std::remove(filename.c_str());
+	std::remove(alignedFilename.c_str());
+
+	return res;
+}
+
 std::array<std::string, 4> mafftAlign(const std::string& prefix, const std::array<std::string, 4>& sequences) {
 	if (sequences[0].empty()) {
 		return sequences;

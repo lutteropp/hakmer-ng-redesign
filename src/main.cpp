@@ -162,10 +162,8 @@ int main(int argc, char* argv[]) {
 
 	auto dynamicFlanksOption = app.add_flag("-d,--dynamic", options.dynamicFlanks, "Dynamically extend the sequence regions flanking a kmer seed.");
 
-	app.add_option("--flankwidth", options.flankWidth,"Length of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is 2*flankwidth+k.", true)->excludes(dynamicFlanksOption)->check(
-			CLI::Range(0, std::numeric_limits<int>::max()));
-	app.add_option("--maxdelta", options.maxDelta, "Maximum delta-score to be still considered tree-like.", true)->needs(
-			dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
+	app.add_option("--flankwidth", options.flankWidth,"Length of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is 2*flankwidth+k.", true)->excludes(dynamicFlanksOption);
+	app.add_option("--maxdelta", options.maxDelta, "Maximum delta-score to be still considered tree-like.", true)->needs(dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
 
 	auto quartetsMode = app.add_subcommand("quartets", "Quartets mode");
 	quartetsMode->add_option("--minblocks", options.minBlocksPerQuartet, "Minimum number of blocks to be sampled for each quartet.", true);
@@ -185,6 +183,7 @@ int main(int argc, char* argv[]) {
 			evalOption);
 
 	auto supermatrixMode = app.add_subcommand("matrix", "Supermatrix mode");
+	supermatrixMode->add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
 
 	app.require_subcommand(1);
 	CLI11_PARSE(app, argc, argv);

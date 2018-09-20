@@ -9,6 +9,7 @@
 
 #include "aligned_block.hpp"
 #include "block_helper_functions.hpp"
+#include "mafft_raxml_wrapper.hpp"
 
 AlignedBlock::AlignedBlock(const ExtendedBlock& extendedBlock, size_t nTax) :
 		aligned(false), myBlock(extendedBlock), nTax(nTax) {
@@ -29,9 +30,14 @@ void AlignedBlock::align(const std::string& T, const Options& options) {
 	for (size_t i = 0; i < taxIDs.size(); ++i) {
 		alignment.push_back(extractTaxonSequence(myBlock, taxIDs[i], T));
 	}
-	if (!options.noIndels) {
-		throw std::runtime_error("Actual alignment is not implemented yet.");
-		// TODO: Implement the actual alignment, this is, insert gaps into the sequences just stored in the alignment variable
+	if (!options.noIndels) { // insert gaps into the sequences just stored in the alignment variable
+		std::vector<std::string> labels;
+		std::string prefix;
+		for (size_t i = 0; i < taxIDs.size(); ++i) {
+			labels.push_back("t" + taxIDs[i]);
+			prefix += "t" + taxIDs[i];
+		}
+		alignment = mafftAlign(prefix, alignment, labels);
 	}
 	aligned = true;
 }
