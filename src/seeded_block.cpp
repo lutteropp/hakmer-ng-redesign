@@ -6,6 +6,8 @@
  */
 
 #include "seeded_block.hpp"
+#include <stdexcept>
+#include <iostream>
 
 SeededBlock::SeededBlock(size_t nTax) {
 	taxonCoords.resize(nTax);
@@ -18,6 +20,15 @@ SeededBlock::SeededBlock(size_t nTax) {
 }
 
 void SeededBlock::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
+	if (taxonCoords[taxID].first != std::string::npos) {
+		std::cout << "taxID: " << taxID << "\n";
+		std::cout << "firstCoord: " << firstCoord << "\n";
+		std::cout << "lastCoord: " << lastCoord << "\n";
+		std::cout << "old taxonCoords[taxID].first: " << taxonCoords[taxID].first << "\n";
+		std::cout << "old taxonCoords[taxID].second: " << taxonCoords[taxID].second << "\n";
+		throw std::runtime_error("This taxon is already present in the block");
+	}
+	std::cout << "Adding match in taxon with ID: " << taxID << "\n";
 	n++;
 	taxonCoords[taxID].first = firstCoord;
 	taxonCoords[taxID].second = lastCoord;

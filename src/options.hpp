@@ -49,9 +49,10 @@ public:
 	bool discardNs = true;
 	bool sameBlockCountAsMultiSPAM = false;
 	size_t minTaxaPerBlock = 4;
+	size_t maxTaxaPerBlock = std::numeric_limits<size_t>::max();
 	size_t maximumExtensionWidth = 300;
 
-	bool dynamicFlanks = true;
+	bool dynamicFlanks = false;
 	size_t flankWidth = 25;
 };
 

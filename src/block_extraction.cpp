@@ -27,7 +27,7 @@ size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& tax
 
 bool canStay(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords, const std::vector<size_t>& wantedTaxa) {
 	for (size_t i = 0; i < wantedTaxa.size(); ++i) {
-		if (pos >= taxonCoords[i].first && pos <= taxonCoords[i].second) {
+		if (pos >= taxonCoords[wantedTaxa[i]].first && pos <= taxonCoords[wantedTaxa[i]].second) {
 			return true;
 		}
 	}
@@ -35,21 +35,21 @@ bool canStay(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoo
 }
 
 // Shrink arrays... needed for quartet-based stuff.
-std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const IndexedConcatenatedSequence& concat, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
-		const std::vector<size_t>& wantedTaxa, const Options& options) {
+std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const IndexedConcatenatedSequence& concat,
+		const std::vector<std::pair<size_t, size_t> >& taxonCoords, const std::vector<size_t>& wantedTaxa, const Options& options) {
 	std::vector<size_t> resSA;
 	std::vector<size_t> resLCP;
 
 	bool recomputeNeeded = false;
 
 	for (size_t i = 0; i < concat.getSuffixArray().size(); ++i) {
-		if (canStay(i, taxonCoords, wantedTaxa)) {
+		if (canStay(concat.getSuffixArray()[i], taxonCoords, wantedTaxa)) {
 			resSA.push_back(concat.getSuffixArray()[i]);
 			size_t lcpVal = concat.getLcpArray()[i];
 			if (recomputeNeeded) {
 				// recompute lcpVal
-				size_t lTop = std::min(concat.getConcatenatedSeq().size(), options.maxK);
-				lcpVal = longestCommonPrefix(concat.getConcatenatedSeq(), concat.getSuffixArray()[i - 1], concat.getSuffixArray()[i], lTop);
+				size_t lTop = std::min(concat.getConcatSize(), options.maxK);
+				lcpVal = longestCommonPrefix(concat.getConcatenatedSeq(), resSA[resSA.size() - 2], resSA[resSA.size() - 1], lTop);
 				recomputeNeeded = false;
 			}
 			resLCP.push_back(lcpVal);
@@ -62,7 +62,7 @@ std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const IndexedC
 
 bool acceptSeed(size_t actSAPos, size_t matchCount, size_t k, size_t nTax, const std::vector<size_t>& SA, PresenceChecker& presenceChecker,
 		const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, const Options& options) {
-	if (matchCount > nTax) { // easy test for paralogy
+	if (matchCount > nTax /*|| matchCount > options.maxTaxaPerBlock*/) { // easy test for paralogy
 		return false;
 	}
 	if (matchCount < options.minTaxaPerBlock) { // easy test for not enough taxa
@@ -120,6 +120,7 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 	if (startPos + k >= T.size() || !presenceChecker.isFree(startPos, startPos + k - 1)) { // early stop
 		actSAPos++;
 		block = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+		return block;
 	}
 
 	k = options.minK;
@@ -128,6 +129,7 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 	while (matchCount >= options.minTaxaPerBlock) {
 		if (acceptSeed(actSAPos, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T.size(), options)) {
 			foundBlock = true;
+
 			for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
 				block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
 			}
@@ -151,7 +153,6 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 	} else {
 		actSAPos++;
 	}
-
 	return block;
 }
 
@@ -342,12 +343,26 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 	return block;
 }
 
+ExtendedBlock nextExtendedBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
+		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
+		const Options& options) {
+	SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+	ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
+	// check if the extended block can still be accepted.
+	if (presenceChecker.isFine(extendedBlock)) {
+		return extendedBlock;
+	} else {
+		throw std::runtime_error("The extended block could not be accepted");
+	}
+}
+
 std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
 	std::vector<ExtendedBlock> res;
 	size_t actSAPos = 0;
 	while (actSAPos < SA.size()) {
+		std::cout << "actSAPos: " << actSAPos << "\n";
 		SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 		// check if the extended block can still be accepted.
@@ -357,6 +372,15 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		}
 	}
 	return res;
+}
+
+AlignedBlock nextAlignedBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
+		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
+		const Options& options) {
+	ExtendedBlock extBlock = nextExtendedBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+	AlignedBlock bl(extBlock, nTax);
+	bl.align(T, options);
+	return bl;
 }
 
 std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,

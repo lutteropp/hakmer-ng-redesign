@@ -7,6 +7,7 @@
 
 #include "block_helper_functions.hpp"
 #include "distance_estimator.hpp"
+#include <iostream>
 
 std::string createMissingString(size_t len) {
 	std::string res;
@@ -19,8 +20,14 @@ std::string createMissingString(size_t len) {
 std::string extractTaxonSequence(const AlignedBlock& block, size_t taxID) {
 	std::string res;
 	size_t aliWidth = block.getAlignmentWidth();
+	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 	if (block.hasTaxon(taxID)) {
-		res = block.getAlignment()[taxID];
+		for (size_t i = 0; i < taxIDs.size(); ++i) {
+			if (taxIDs[i] == taxID) {
+				res = block.getAlignment()[i];
+				break;
+			}
+		}
 	} else {
 		res = createMissingString(aliWidth);
 	}
@@ -54,6 +61,8 @@ std::vector<double> computePairwiseDistances(const AlignedBlock& block) {
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 	for (size_t i = 0; i < taxIDs.size(); ++i) {
 		for (size_t j = i + 1; j < taxIDs.size(); ++j) {
+			std::cout << "a: " << extractTaxonSequence(block, taxIDs[i]) << "\n";
+			std::cout << "b: " << extractTaxonSequence(block, taxIDs[j]) << "\n";
 			HammingDistanceEstimator hamm(extractTaxonSequence(block, taxIDs[i]), extractTaxonSequence(block, taxIDs[j]));
 			res.push_back(hamm.distance());
 		}

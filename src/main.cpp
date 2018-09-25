@@ -189,9 +189,10 @@ int main(int argc, char* argv[]) {
 	CLI11_PARSE(app, argc, argv);
 
 	if (nThreads > 0) {
-		omp_set_num_threads(nThreads);
+		//omp_set_num_threads(nThreads);
 	}
 	if (app.got_subcommand(quartetsMode)) {
+		options.maxTaxaPerBlock = 4;
 		quartetsCallback(options);
 	} else if (app.got_subcommand(supermatrixMode)) {
 		matrixCallback(options);
