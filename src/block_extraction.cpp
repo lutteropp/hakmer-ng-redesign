@@ -162,7 +162,12 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 	std::vector<SeededBlock> res;
 	size_t actSAPos = 0;
 	while (actSAPos < SA.size()) {
-		res.push_back(nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options));
+		SeededBlock bl = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+		if (bl.getSeedSize() > 0) {
+			res.push_back(nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options));
+		} else {
+			break;
+		}
 	}
 	return res;
 }
@@ -361,9 +366,12 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		const Options& options) {
 	std::vector<ExtendedBlock> res;
 	size_t actSAPos = 0;
+
 	while (actSAPos < SA.size()) {
-		std::cout << "actSAPos: " << actSAPos << "\n";
 		SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+		if (seededBlock.getSeedSize() == 0) { // no more seeded blocks found
+			return res;
+		}
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 		// check if the extended block can still be accepted.
 		if (presenceChecker.isFine(extendedBlock)) {
@@ -379,7 +387,9 @@ AlignedBlock nextAlignedBlock(size_t& actSAPos, const std::string& T, size_t nTa
 		const Options& options) {
 	ExtendedBlock extBlock = nextExtendedBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
 	AlignedBlock bl(extBlock, nTax);
-	bl.align(T, options);
+	if (bl.getSeedSize() != 0) {
+		bl.align(T, options);
+	}
 	return bl;
 }
 
@@ -388,7 +398,11 @@ std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax
 		const Options& options) {
 	std::vector<AlignedBlock> res;
 	std::vector<ExtendedBlock> extBlocks = extractExtendedBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+
 	for (size_t i = 0; i < extBlocks.size(); ++i) {
+		if (extBlocks[i].getSeedSize() == 0) {
+			break;
+		}
 		AlignedBlock bl(extBlocks[i], nTax);
 		res.push_back(bl);
 	}

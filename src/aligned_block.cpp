@@ -62,3 +62,7 @@ std::pair<size_t, size_t> AlignedBlock::getTaxonCoordsWithFlanks(size_t taxID) c
 std::vector<size_t> AlignedBlock::getTaxonIDsInBlock() const {
 	return myBlock.getTaxonIDsInBlock();
 }
+
+size_t AlignedBlock::getSeedSize() const {
+	return myBlock.getSeedSize();
+}

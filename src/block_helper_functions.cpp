@@ -61,8 +61,6 @@ std::vector<double> computePairwiseDistances(const AlignedBlock& block) {
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 	for (size_t i = 0; i < taxIDs.size(); ++i) {
 		for (size_t j = i + 1; j < taxIDs.size(); ++j) {
-			std::cout << "a: " << extractTaxonSequence(block, taxIDs[i]) << "\n";
-			std::cout << "b: " << extractTaxonSequence(block, taxIDs[j]) << "\n";
 			HammingDistanceEstimator hamm(extractTaxonSequence(block, taxIDs[i]), extractTaxonSequence(block, taxIDs[j]));
 			res.push_back(hamm.distance());
 		}

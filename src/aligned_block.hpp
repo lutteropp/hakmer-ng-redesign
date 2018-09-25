@@ -23,6 +23,7 @@ public:
 	size_t getAlignmentWidth() const;
 	std::pair<size_t, size_t> getTaxonCoordsWithFlanks(size_t taxID) const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
+	size_t getSeedSize() const;
 private:
 	bool aligned;
 	ExtendedBlock myBlock;
