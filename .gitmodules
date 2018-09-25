@@ -1,0 +1,4 @@
+[submodule "genesis"]
+	path = genesis
+	url = https://github.com/lczech/genesis.git
+	branch = master

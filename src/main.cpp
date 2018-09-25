@@ -20,6 +20,10 @@
 #include "quartet_lookup_table.hpp"
 #include "mafft_raxml_wrapper.hpp"
 
+#ifdef WITH_GENESIS
+#include "quartet_topology_checker.hpp"
+#endif
+
 QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const IndexedConcatenatedSequence& concat, const Options& options) {
 	std::vector<size_t> wantedTaxa = { a, b, c, d };
 	std::vector<std::pair<size_t, size_t> > taxCoords;
@@ -88,6 +92,12 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 }
 
 void quartetsCallback(const Options& options) {
+#ifndef WITH_GENESIS
+	if (!options.speciesTreePath.empty()) {
+		throw std::runtime_error("Quartet evaluation mode requires genesis integration.");
+	}
+#endif
+
 	IndexedConcatenatedSequence concat = readConcat(options);
 	size_t n = concat.nTax();
 	QuartetLookupTable<size_t> quartetTable(n);
@@ -95,6 +105,7 @@ void quartetsCallback(const Options& options) {
 		for (size_t j = i + 1; j < n - 2; ++j) {
 			for (size_t k = j + 1; k < n - 1; ++k) {
 				for (size_t l = k + 1; l < n; ++l) {
+					std::cout << "Processing quartet " << i << ", " << j << ", " << k << ", " << l << "\n";
 					QuartetTopology topo = inferQuartet(i, j, k, l, concat, options);
 					switch (topo) {
 					case QuartetTopology::AB_CD:

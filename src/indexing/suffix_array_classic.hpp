@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "../indexing/suffix_array_construction/radix.hpp"
 #include "../options.hpp"
@@ -11,10 +12,10 @@
 inline size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t start2, unsigned int lTop) {
 	size_t res = 0;
 	for (size_t i = 0; i < seq.size(); ++i) {
-		if (start1+i >= seq.size() || start2+i >= seq.size()) {
+		if (start1 + i >= seq.size() || start2 + i >= seq.size()) {
 			break;
 		}
-		if (seq[start1+i] == seq[start2+i]) {
+		if (seq[start1 + i] == seq[start2 + i]) {
 			res++;
 			if (res >= lTop) {
 				return res; // bail because lTop is largest k-mer size we're gonna search
@@ -56,9 +57,16 @@ public:
 		lcp.resize(nTotalSites);
 		lcp[0] = 0;
 		for (size_t i = 1; i < nTotalSites; ++i) {
-			lcp[i] = longestCommonPrefix(seq, SA[i-1], SA[i], lTop);
+			lcp[i] = longestCommonPrefix(seq, SA[i - 1], SA[i], lTop);
 		}
 	}
+
+	void buildSuffixArrayFromFile(const std::string& filepath, const Options& options) {
+		std::ifstream infile(filepath);
+		std::string text { istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
+		buildSuffixArray(text, text.size(), options);
+	}
+
 	inline size_t operator[](size_t pos) const {
 		return SA[pos];
 	}
@@ -71,6 +79,7 @@ public:
 	size_t exactMatches(const std::string& pattern, const std::string& text, std::vector<size_t> &matches);
 	size_t exactMatches(size_t patternStartPos, unsigned int m, const std::string& text, std::vector<size_t> &matches);
 	size_t countExactMatches(size_t firstSAIndex, unsigned int m);
+	size_t countExactMatches(const std::string& pattern, const std::string& text);
 private:
 	bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& res, const std::string& text);
 	bool binarySearch3Prime(size_t patternSeqStartPos, unsigned int m, std::pair<size_t, size_t>& res, const std::string& text);

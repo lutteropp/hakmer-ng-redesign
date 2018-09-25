@@ -82,14 +82,17 @@ bool acceptSeed(size_t actSAPos, size_t matchCount, size_t k, size_t nTax, const
 	if (!options.dynamicFlanks) {
 		flankOffset = options.flankWidth;
 	}
-	if (flankOffset)
 
-		// check for presence/absence
-		for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
-			if (!presenceChecker.isFree(SA[i] - flankOffset, SA[i] + k - 1 + flankOffset)) {
-				return false;
-			}
+	// check for presence/absence
+	for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
+		if (flankOffset > SA[i] || SA[i] + k - 1 + flankOffset >= concatSize) {
+			return false;
 		}
+
+		if (!presenceChecker.isFree(SA[i] - flankOffset, SA[i] + k - 1 + flankOffset)) {
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -106,6 +109,7 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 }
 
 // TODO: Re-add mismatches and indels in seeds
+// TODO: Something here is going wrong. Maybe get rid of all these performance-killing recursive calls?
 SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
@@ -117,15 +121,12 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 
 	size_t startPos = SA[actSAPos];
 	size_t k = options.minK;
-	if (startPos + k >= T.size() || !presenceChecker.isFree(startPos, startPos + k - 1)) { // early stop
+	// find the next suitable SA pos
+	while ((startPos + k >= T.size() || !presenceChecker.isFree(startPos, startPos + k - 1)) && actSAPos < SA.size()) {
 		actSAPos++;
-		block = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
-		return block;
+		startPos = SA[actSAPos];
 	}
-
-	k = options.minK;
 	size_t matchCount = countMatches(actSAPos, lcp, k);
-
 	while (matchCount >= options.minTaxaPerBlock) {
 		if (acceptSeed(actSAPos, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T.size(), options)) {
 			foundBlock = true;
@@ -147,11 +148,9 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 		}
 	}
 
+	actSAPos++;
 	if (!foundBlock) {
-		actSAPos++;
 		block = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
-	} else {
-		actSAPos++;
 	}
 	return block;
 }
@@ -368,6 +367,10 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	size_t actSAPos = 0;
 
 	while (actSAPos < SA.size()) {
+		if (actSAPos == 474898) {
+			std::cout << "'well hello, nice little world' said the rabbit.\n";
+		}
+
 		SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
 		if (seededBlock.getSeedSize() == 0) { // no more seeded blocks found
 			return res;

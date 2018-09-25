@@ -139,6 +139,13 @@ size_t SuffixArrayClassic::exactMatches(const std::string& pattern, const std::s
 	}
 	return matches.size();
 }
+
+size_t SuffixArrayClassic::countExactMatches(const std::string& pattern, const std::string& text) {
+	std::pair<size_t, size_t> bl;
+	binarySearch3Prime(pattern, bl, text);
+	return bl.second - bl.first + 1;
+}
+
 size_t SuffixArrayClassic::exactMatches(size_t patternStartPos, unsigned int m, const std::string& text,
 		std::vector<size_t> &matches) {
 	std::pair<size_t, size_t> bl;
