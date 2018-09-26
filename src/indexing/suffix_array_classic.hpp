@@ -38,11 +38,9 @@ public:
 	 * @param nTotalSites
 	 * @param ltop Maximum kmer size to consider.
 	 */
-	void buildSuffixArray(const std::string& seq, size_t nTotalSites, const Options& options) {
+	void buildSuffixArray(const std::string& seq, size_t nTotalSites, unsigned int lTop) {
 		// First heavy lifting: build the suffix array according to Marius's code
 		std::cout << "Building suffix array...\n";
-
-		unsigned int lTop = std::min(seq.size(), options.maxK);
 
 		size_t* SA_radix = Radix<size_t>(seq, nTotalSites, lTop).build();
 		for (size_t i = 0; i < nTotalSites; ++i) {
@@ -59,6 +57,15 @@ public:
 		for (size_t i = 1; i < nTotalSites; ++i) {
 			lcp[i] = longestCommonPrefix(seq, SA[i - 1], SA[i], lTop);
 		}
+	}
+
+	void buildSuffixArray(const std::string& seq, size_t nTotalSites, const Options& options) {
+		unsigned int lTop = std::min(seq.size(), options.maxK);
+		buildSuffixArray(seq, nTotalSites, lTop);
+	}
+
+	void buildSuffixArray(const std::string& seq) {
+		buildSuffixArray(seq, seq.size(), seq.size());
 	}
 
 	void buildSuffixArrayFromFile(const std::string& filepath, const Options& options) {

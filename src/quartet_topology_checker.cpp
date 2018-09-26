@@ -7,7 +7,7 @@ TopologyChecker::TopologyChecker(const IndexedConcatenatedSequence& concat, cons
 		const std::string& geneTreesPath, const std::string& multiSPAMPath) {
 	// read the species tree; including Sebastians quickfix
 	genesis::tree::Tree speciesTree = genesis::tree::DefaultTreeNewickReader().from_file(speciesTreePath);
-	if (speciesTree.root_node().rank() == 1) {
+	if (speciesTree.root_node().degree() == 1) {
 		std::string newick = genesis::tree::DefaultTreeNewickWriter().to_string(speciesTree);
 
 		int c = 0;
@@ -86,7 +86,7 @@ TopologyChecker::TopologyChecker(const IndexedConcatenatedSequence& concat, cons
 		std::ifstream infile(multiSPAMPath);
 		std::string text {istreambuf_iterator<char>(infile), istreambuf_iterator<char>()};
 		textMultiSPAM = text;
-		saMultiSPAM.buildSuffixArray(textMultiSPAM, textMultiSPAM.size(), options);
+		saMultiSPAM.buildSuffixArray(textMultiSPAM);
 	}
 }
 
