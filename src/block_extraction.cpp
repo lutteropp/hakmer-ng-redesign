@@ -109,7 +109,7 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 }
 
 // TODO: Re-add mismatches and indels in seeds
-// TODO: Something here is going wrong. Maybe get rid of all these performance-killing recursive calls?
+// TODO: Something here is going wrong.
 SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
@@ -119,39 +119,40 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 		return block;
 	}
 
-	size_t startPos = SA[actSAPos];
-	size_t k = options.minK;
-	// find the next suitable SA pos
-	while ((startPos + k >= T.size() || !presenceChecker.isFree(startPos, startPos + k - 1)) && actSAPos < SA.size()) {
-		actSAPos++;
-		startPos = SA[actSAPos];
-	}
-	size_t matchCount = countMatches(actSAPos, lcp, k);
-	while (matchCount >= options.minTaxaPerBlock) {
-		if (acceptSeed(actSAPos, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T.size(), options)) {
-			foundBlock = true;
+	size_t lastPos = SA.size() - 1;
+	for (size_t sIdx = actSAPos; sIdx < SA.size(); ++sIdx) {
+		size_t startPos = SA[sIdx];
+		size_t k = options.minK;
+		if ((startPos + k >= T.size() || !presenceChecker.isFree(startPos, startPos + k - 1))) {
+			continue;
+		}
+		size_t matchCount = countMatches(sIdx, lcp, k);
+		while (matchCount >= options.minTaxaPerBlock) {
+			if (acceptSeed(sIdx, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T.size(), options)) {
+				foundBlock = true;
 
-			for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
-				block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
+				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
+					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
+				}
+				//presenceChecker.reserveSeededBlock(block);
+				break;
+			} else {
+				if (k == options.maxK) { // no further extension of seed length
+					break;
+				}
+				if (startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // newly added character would be already taken anyway
+					break;
+				}
+				k++;
+				matchCount = countMatches(sIdx, lcp, k);
 			}
-			//presenceChecker.reserveSeededBlock(block);
+		}
+		if (foundBlock) {
+			lastPos = sIdx;
 			break;
-		} else {
-			if (k == options.maxK) { // no further extension of seed length
-				break;
-			}
-			if (startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // newly added character would be already taken anyway
-				break;
-			}
-			k++;
-			matchCount = countMatches(actSAPos, lcp, k);
 		}
 	}
-
-	actSAPos++;
-	if (!foundBlock) {
-		block = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
-	}
+	actSAPos = lastPos + 1;
 	return block;
 }
 

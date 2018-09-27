@@ -217,6 +217,8 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--debug", options.verboseDebug, "Print debug output.");
 	auto revCompOption = app.add_flag("--revcomp,-r", options.reverseComplement, "Also consider reverse-complement matches of DNA data.");
 	app.add_flag("--protein", options.proteinData, "The sequences are protein data instead of DNA data.")->excludes(revCompOption);
+	app.add_option("--kmin", options.minK, "Minimum kmer seed size.");
+	app.add_option("--kmax", options.maxK, "Maximum kmer seed size.");
 
 	size_t nThreads = 0;
 	app.add_option("-t,--threads", nThreads, "Maximum number of threads to use.");
