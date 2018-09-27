@@ -14,13 +14,6 @@ file(GLOB_RECURSE HDRS src/*.hpp)
 
 add_compile_options(-std=c++14)
 
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-endif()
-
 #add boost dependencies
 #set(Boost_USE_STATIC_LIBS OFF) 
 #set(Boost_USE_MULTITHREADED ON)  
@@ -34,6 +27,13 @@ endif()
 #include_directories( "tclap/include" )
 
 if (NOT (CMAKE_BUILD_TYPE MATCHES Debug))
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 # Add Genesis as dependency.
 add_subdirectory(${PROJECT_SOURCE_DIR}/genesis)
 # Use everything that Genesis exports, just to be sure that we use the same setup.
@@ -42,7 +42,8 @@ include_directories( ${GENESIS_INCLUDE_DIR} )
 set( CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${GENESIS_C_FLAGS}")
 set( CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${GENESIS_CXX_FLAGS}" )
 set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GENESIS_EXE_LINKER_FLAGS}" )
-add_compile_options( -D WITH_GENESIS)
+#add_compile_options( -D WITH_GENESIS)
+add_definitions(-DWITH_GENESIS -DWITH_OPENMP)
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)

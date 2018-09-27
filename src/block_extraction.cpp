@@ -409,7 +409,6 @@ std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax
 		AlignedBlock bl(extBlocks[i], nTax);
 		res.push_back(bl);
 	}
-#pragma omp parallel for
 	for (size_t i = 0; i < res.size(); ++i) {
 		res[i].align(T, options);
 	}

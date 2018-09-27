@@ -7,7 +7,11 @@
 
 #include <iostream>
 #include <limits>
+#include <cassert>
+
+#ifdef WITH_OPENMP
 #include <omp.h>
+#endif
 
 #include "external/CLI11.hpp"
 #include "options.hpp"
@@ -20,6 +24,8 @@
 #include "quartet_lookup_table.hpp"
 #include "mafft_raxml_wrapper.hpp"
 #include "quartet_topology_checker.hpp"
+
+#include "quartet_indexer.hpp"
 
 QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const IndexedConcatenatedSequence& concat, const Options& options) {
 	std::vector<size_t> wantedTaxa = { a, b, c, d };
@@ -97,6 +103,11 @@ void quartetsCallback(const Options& options) {
 	IndexedConcatenatedSequence concat = readConcat(options);
 	TopologyChecker topoChecker;
 
+	QuartetIndexer quartetIndexer;
+#ifdef WITH_OPENMP
+	quartetIndexer.init(concat.nTax());
+#endif
+
 	if (!options.speciesTreePath.empty()) {
 		topoChecker.init(concat, options.speciesTreePath, options.geneTreesPath, options.multiSPAMPath);
 	}
@@ -106,28 +117,40 @@ void quartetsCallback(const Options& options) {
 	size_t nStar = 0;
 	size_t n = concat.nTax();
 	QuartetLookupTable<size_t> quartetTable(n);
-	for (size_t i = 0; i < n - 3; ++i) {
-		for (size_t j = i + 1; j < n - 2; ++j) {
-			for (size_t k = j + 1; k < n - 1; ++k) {
-				for (size_t l = k + 1; l < n; ++l) {
-					std::cout << "Processing quartet " << i << ", " << j << ", " << k << ", " << l << "\n";
-					QuartetTopology topo = inferQuartet(i, j, k, l, concat, options);
+
+#ifdef WITH_OPENMP
+	size_t nQuartets = n * (n - 1) * (n - 2) * (n - 3) / 24;
+#pragma omp parallel for reduction(+:nCorrect,nWrong,nStar)
+	for (size_t idx = 0; idx < nQuartets; ++idx) {
+		std::array<size_t, 4> vals = quartetIndexer.numberToQuartet(idx);
+		size_t a = vals[0];
+		size_t b = vals[1];
+		size_t c = vals[2];
+		size_t d = vals[3];
+#else
+	for (size_t a = 0; a < n - 3; ++a) {
+		for (size_t b = a + 1; b < n - 2; ++b) {
+			for (size_t c = b + 1; c < n - 1; ++c) {
+				for (size_t d = c + 1; d < n; ++d) {
+#endif
+					std::cout << "Processing quartet " << a << ", " << b << ", " << c << ", " << d << "\n";
+					QuartetTopology topo = inferQuartet(a, b, c, d, concat, options);
 					switch (topo) {
 					case QuartetTopology::AB_CD:
-						quartetTable.get_tuple(i, j, k, l)[quartetTable.tuple_index(i, j, k, l)]++;
+						quartetTable.get_tuple(a, b, c, d)[quartetTable.tuple_index(a, b, c, d)]++;
 						break;
 					case QuartetTopology::AC_BD:
-						quartetTable.get_tuple(i, j, k, l)[quartetTable.tuple_index(i, k, j, l)]++;
+						quartetTable.get_tuple(a, c, b, d)[quartetTable.tuple_index(a, c, b, d)]++;
 						break;
 					case QuartetTopology::AD_BC:
-						quartetTable.get_tuple(i, j, k, l)[quartetTable.tuple_index(i, l, j, k)]++;
+						quartetTable.get_tuple(a, d, b, c)[quartetTable.tuple_index(a, d, b, c)]++;
 						break;
 					default:
 						break;
 					}
 
 					if (!options.speciesTreePath.empty()) { // evaluation stuff
-						bool correct = topoChecker.sameTopologyAsReference(i, j, k, l, topo);
+						bool correct = topoChecker.sameTopologyAsReference(a, b, c, d, topo);
 						if (correct) {
 							nCorrect++;
 						} else if (topo == QuartetTopology::STAR) {
@@ -135,9 +158,11 @@ void quartetsCallback(const Options& options) {
 						} else {
 							nWrong++;
 						}
+#ifndef WITH_OPENMP
 					}
 				}
 			}
+#endif
 		}
 	}
 	if (!options.speciesTreePath.empty()) {
@@ -192,10 +217,14 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--redo", options.redo, "Redo the run, overwrite old result files.");
 	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written.")->required();
 
-	auto dynamicFlanksOption = app.add_flag("-d,--dynamic", options.dynamicFlanks, "Dynamically extend the sequence regions flanking a kmer seed.");
+	auto dynamicFlanksOption = app.add_flag("-d,--dynamic", options.dynamicFlanks,
+			"Dynamically extend the sequence regions flanking a kmer seed.");
 
-	app.add_option("--flankwidth", options.flankWidth,"Length of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is 2*flankwidth+k.", true)->excludes(dynamicFlanksOption);
-	app.add_option("--maxdelta", options.maxDelta, "Maximum delta-score to be still considered tree-like.", true)->needs(dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
+	app.add_option("--flankwidth", options.flankWidth,
+			"Length of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is 2*flankwidth+k.", true)->excludes(
+			dynamicFlanksOption);
+	app.add_option("--maxdelta", options.maxDelta, "Maximum delta-score to be still considered tree-like.", true)->needs(
+			dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
 
 	auto quartetsMode = app.add_subcommand("quartets", "Quartets mode");
 	quartetsMode->add_option("--minblocks", options.minBlocksPerQuartet, "Minimum number of blocks to be sampled for each quartet.", true);
@@ -220,9 +249,11 @@ int main(int argc, char* argv[]) {
 	app.require_subcommand(1);
 	CLI11_PARSE(app, argc, argv);
 
+#ifdef WITH_OPENMP
 	if (nThreads > 0) {
-		//omp_set_num_threads(nThreads);
+		omp_set_num_threads(nThreads);
 	}
+#endif
 	if (app.got_subcommand(quartetsMode)) {
 		options.maxTaxaPerBlock = 4;
 		quartetsCallback(options);
