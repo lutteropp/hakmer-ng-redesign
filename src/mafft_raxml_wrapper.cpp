@@ -47,7 +47,7 @@ std::vector<std::string> mafftAlign(const std::string& prefix, const std::vector
 	std::ifstream infile(alignedFilename);
 	for (size_t i = 0; i < sequences.size(); ++i) {
 		FASTARecord rec = readNextFASTA(infile);
-		res[i] = rec.seq;
+		res.push_back(rec.seq);
 		//std::transform(res[i].begin(), res[i].end(), res[i].begin(), ::toupper);
 	}
 

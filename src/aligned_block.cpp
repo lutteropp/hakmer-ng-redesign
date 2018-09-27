@@ -34,8 +34,8 @@ void AlignedBlock::align(const std::string& T, const Options& options) {
 		std::vector<std::string> labels;
 		std::string prefix;
 		for (size_t i = 0; i < taxIDs.size(); ++i) {
-			labels.push_back("t" + taxIDs[i]);
-			prefix += "t" + taxIDs[i];
+			labels.push_back("t" + std::to_string(taxIDs[i]));
+			prefix += "t" + std::to_string(taxIDs[i]);
 		}
 		alignment = mafftAlign(prefix, alignment, labels);
 	}
