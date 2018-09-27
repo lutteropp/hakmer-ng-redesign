@@ -14,6 +14,8 @@
 #endif
 
 #include "external/CLI11.hpp"
+#include "external/ProgressBar.hpp"
+
 #include "options.hpp"
 #include "block_extraction.hpp"
 #include "io.hpp"
@@ -117,9 +119,10 @@ void quartetsCallback(const Options& options) {
 	size_t nStar = 0;
 	size_t n = concat.nTax();
 	QuartetLookupTable<size_t> quartetTable(n);
+	size_t nQuartets = n * (n - 1) * (n - 2) * (n - 3) / 24;
+	ProgressBar progressBar(nQuartets);
 
 #ifdef WITH_OPENMP
-	size_t nQuartets = n * (n - 1) * (n - 2) * (n - 3) / 24;
 #pragma omp parallel for reduction(+:nCorrect,nWrong,nStar)
 	for (size_t idx = 0; idx < nQuartets; ++idx) {
 		std::array<size_t, 4> vals = quartetIndexer.numberToQuartet(idx);
@@ -133,7 +136,6 @@ void quartetsCallback(const Options& options) {
 			for (size_t c = b + 1; c < n - 1; ++c) {
 				for (size_t d = c + 1; d < n; ++d) {
 #endif
-					std::cout << "Processing quartet " << a << ", " << b << ", " << c << ", " << d << "\n";
 					QuartetTopology topo = inferQuartet(a, b, c, d, concat, options);
 					switch (topo) {
 					case QuartetTopology::AB_CD:
@@ -158,13 +160,18 @@ void quartetsCallback(const Options& options) {
 						} else {
 							nWrong++;
 						}
+					}
+#ifdef WITH_OPENMP
+#pragma omp critical
+#endif
+					progressBar.Update();
 #ifndef WITH_OPENMP
 					}
 				}
 			}
 #endif
-		}
 	}
+	std::cout << "\n";
 	if (!options.speciesTreePath.empty()) {
 		std::cout << "nCorrect: " << nCorrect << "\n";
 		std::cout << "nWrong: " << nWrong << "\n";

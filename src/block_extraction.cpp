@@ -367,10 +367,6 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	size_t actSAPos = 0;
 
 	while (actSAPos < SA.size()) {
-		if (actSAPos == 474898) {
-			std::cout << "'well hello, nice little world' said the rabbit.\n";
-		}
-
 		SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
 		if (seededBlock.getSeedSize() == 0) { // no more seeded blocks found
 			return res;

@@ -14,18 +14,6 @@ file(GLOB_RECURSE HDRS src/*.hpp)
 
 add_compile_options(-std=c++14)
 
-#add boost dependencies
-#set(Boost_USE_STATIC_LIBS OFF) 
-#set(Boost_USE_MULTITHREADED ON)  
-#set(Boost_USE_STATIC_RUNTIME OFF) 
-#find_package(Boost 1.45.0 COMPONENTS iostreams system filesystem) 
-#if(Boost_FOUND)
-#    include_directories(${Boost_INCLUDE_DIRS})
-#endif()
-
-# Add Tclap as dependency. It's header-only, so this is easy.
-#include_directories( "tclap/include" )
-
 if (NOT (CMAKE_BUILD_TYPE MATCHES Debug))
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -42,7 +30,6 @@ include_directories( ${GENESIS_INCLUDE_DIR} )
 set( CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${GENESIS_C_FLAGS}")
 set( CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${GENESIS_CXX_FLAGS}" )
 set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GENESIS_EXE_LINKER_FLAGS}" )
-#add_compile_options( -D WITH_GENESIS)
 add_definitions(-DWITH_GENESIS -DWITH_OPENMP)
 endif()
 
@@ -62,6 +49,3 @@ if (NOT (CMAKE_BUILD_TYPE MATCHES Debug))
 # Link it against Genesis, and against all dependencies of Genesis.
 target_link_libraries ( hakmer-ng-redesign ${GENESIS_LINK_LIBRARIES} )
 endif()
-
-# link against boost
-#target_link_libraries( hakmer-ng-redesign ${Boost_LIBRARIES} )
