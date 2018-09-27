@@ -19,10 +19,7 @@
 #include "block_helper_functions.hpp"
 #include "quartet_lookup_table.hpp"
 #include "mafft_raxml_wrapper.hpp"
-
-#ifdef WITH_GENESIS
 #include "quartet_topology_checker.hpp"
-#endif
 
 QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const IndexedConcatenatedSequence& concat, const Options& options) {
 	std::vector<size_t> wantedTaxa = { a, b, c, d };
@@ -97,8 +94,16 @@ void quartetsCallback(const Options& options) {
 		throw std::runtime_error("Quartet evaluation mode requires genesis integration.");
 	}
 #endif
-
 	IndexedConcatenatedSequence concat = readConcat(options);
+	TopologyChecker topoChecker;
+
+	if (!options.speciesTreePath.empty()) {
+		topoChecker.init(concat, options.speciesTreePath, options.geneTreesPath, options.multiSPAMPath);
+	}
+
+	size_t nCorrect = 0;
+	size_t nWrong = 0;
+	size_t nStar = 0;
 	size_t n = concat.nTax();
 	QuartetLookupTable<size_t> quartetTable(n);
 	for (size_t i = 0; i < n - 3; ++i) {
@@ -120,9 +125,25 @@ void quartetsCallback(const Options& options) {
 					default:
 						break;
 					}
+
+					if (!options.speciesTreePath.empty()) { // evaluation stuff
+						bool correct = topoChecker.sameTopologyAsReference(i, j, k, l, topo);
+						if (correct) {
+							nCorrect++;
+						} else if (topo == QuartetTopology::STAR) {
+							nStar++;
+						} else {
+							nWrong++;
+						}
+					}
 				}
 			}
 		}
+	}
+	if (!options.speciesTreePath.empty()) {
+		std::cout << "nCorrect: " << nCorrect << "\n";
+		std::cout << "nWrong: " << nWrong << "\n";
+		std::cout << "nStar: " << nStar << "\n";
 	}
 	writeQuartets(quartetTable, concat.getTaxonLabels(), options.outpath);
 }

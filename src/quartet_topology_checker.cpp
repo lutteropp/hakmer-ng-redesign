@@ -3,7 +3,10 @@
 #include "quartet_topology_checker.hpp"
 #include <fstream>
 
-TopologyChecker::TopologyChecker(const IndexedConcatenatedSequence& concat, const std::string& speciesTreePath,
+TopologyChecker::TopologyChecker() {
+}
+
+void TopologyChecker::init(const IndexedConcatenatedSequence& concat, const std::string& speciesTreePath,
 		const std::string& geneTreesPath, const std::string& multiSPAMPath) {
 	// read the species tree; including Sebastians quickfix
 	genesis::tree::Tree speciesTree = genesis::tree::DefaultTreeNewickReader().from_file(speciesTreePath);
@@ -110,19 +113,19 @@ bool TopologyChecker::longBranchAttractionIssue(size_t uIdx, size_t vIdx, size_t
 	size_t bIdx = fastaIdxToRefIdx[vIdx];
 	size_t cIdx = fastaIdxToRefIdx[wIdx];
 	size_t dIdx = fastaIdxToRefIdx[zIdx];
-	size_t refTopo = findReferenceTopology(uIdx, vIdx, wIdx, zIdx);
+	QuartetTopology refTopo = findReferenceTopology(uIdx, vIdx, wIdx, zIdx);
 	size_t a, b, c, d;
-	if (refTopo == 0) { // topology ab|cd
+	if (refTopo == QuartetTopology::AB_CD) {
 		a = aIdx;
 		b = bIdx;
 		c = cIdx;
 		d = dIdx;
-	} else if (refTopo == 1) { // topology ac|bd
+	} else if (refTopo == QuartetTopology::AC_BD) {
 		a = aIdx;
 		b = cIdx;
 		c = bIdx;
 		d = dIdx;
-	} else if (refTopo == 2) { // topology ad|bc
+	} else if (refTopo == QuartetTopology::AD_BC) {
 		a = aIdx;
 		b = dIdx;
 		c = bIdx;
@@ -157,20 +160,20 @@ double TopologyChecker::quartetDifficulty(size_t uIdx, size_t vIdx, size_t wIdx,
 	size_t cIdx = fastaIdxToRefIdx[wIdx];
 	size_t dIdx = fastaIdxToRefIdx[zIdx];
 
-	size_t refTopo = findReferenceTopology(uIdx, vIdx, wIdx, zIdx);
+	QuartetTopology refTopo = findReferenceTopology(uIdx, vIdx, wIdx, zIdx);
 
 	size_t a, b, c, d;
-	if (refTopo == 0) { // topology ab|cd
+	if (refTopo == QuartetTopology::AB_CD) { // topology ab|cd
 		a = aIdx;
 		b = bIdx;
 		c = cIdx;
 		d = dIdx;
-	} else if (refTopo == 1) { // topology ac|bd
+	} else if (refTopo == QuartetTopology::AC_BD) { // topology ac|bd
 		a = aIdx;
 		b = cIdx;
 		c = bIdx;
 		d = dIdx;
-	} else if (refTopo == 2) { // topology ad|bc
+	} else if (refTopo == QuartetTopology::AD_BC) { // topology ad|bc
 		a = aIdx;
 		b = dIdx;
 		c = bIdx;
@@ -187,7 +190,7 @@ double TopologyChecker::quartetDifficulty(size_t uIdx, size_t vIdx, size_t wIdx,
 	return informationReferenceTree.connectingQuartetPathDistance(a, b, c, d) / minDist;
 }
 
-size_t TopologyChecker::findReferenceTopology(size_t aIdx, size_t bIdx, size_t cIdx, size_t dIdx) {
+QuartetTopology TopologyChecker::findReferenceTopology(size_t aIdx, size_t bIdx, size_t cIdx, size_t dIdx) {
 	size_t uIdx = fastaIdxToRefIdx[aIdx];
 	size_t vIdx = fastaIdxToRefIdx[bIdx];
 	size_t wIdx = fastaIdxToRefIdx[cIdx];
@@ -204,23 +207,23 @@ size_t TopologyChecker::findReferenceTopology(size_t aIdx, size_t bIdx, size_t c
 			> informationReferenceTree.distanceInEdges(lca_uw, lca_vz)
 			&& informationReferenceTree.distanceInEdges(lca_uv, lca_wz)
 			> informationReferenceTree.distanceInEdges(lca_uz, lca_vw)) {
-		return 0; // ab|cd
+		return QuartetTopology::AB_CD;
 	} else if (informationReferenceTree.distanceInEdges(lca_uw, lca_vz)
 			> informationReferenceTree.distanceInEdges(lca_uv, lca_wz)
 			&& informationReferenceTree.distanceInEdges(lca_uw, lca_vz)
 			> informationReferenceTree.distanceInEdges(lca_uz, lca_vw)) {
-		return 1; // ac|bd
+		return QuartetTopology::AC_BD;
 	} else if (informationReferenceTree.distanceInEdges(lca_uz, lca_vw)
 			> informationReferenceTree.distanceInEdges(lca_uv, lca_wz)
 			&& informationReferenceTree.distanceInEdges(lca_uz, lca_vw)
 			> informationReferenceTree.distanceInEdges(lca_uw, lca_vz)) {
-		return 2; // ad|bc
+		return QuartetTopology::AD_BC;
 	} else {
-		return 3; // star topology
+		return QuartetTopology::STAR;
 	}
 }
 
-size_t TopologyChecker::findGeneTopology(size_t uIdx, size_t vIdx, size_t wIdx, size_t zIdx, TreeInformation& info) {
+QuartetTopology TopologyChecker::findGeneTopology(size_t uIdx, size_t vIdx, size_t wIdx, size_t zIdx, TreeInformation& info) {
 	size_t lca_uv = info.lowestCommonAncestorIdx(uIdx, vIdx, rootIdx);
 	size_t lca_uw = info.lowestCommonAncestorIdx(uIdx, wIdx, rootIdx);
 	size_t lca_uz = info.lowestCommonAncestorIdx(uIdx, zIdx, rootIdx);
@@ -230,42 +233,22 @@ size_t TopologyChecker::findGeneTopology(size_t uIdx, size_t vIdx, size_t wIdx, 
 
 	if (info.distanceInEdges(lca_uv, lca_wz) > info.distanceInEdges(lca_uw, lca_vz)
 			&& info.distanceInEdges(lca_uv, lca_wz) > info.distanceInEdges(lca_uz, lca_vw)) {
-		return 0; // ab|cd
+		return QuartetTopology::AB_CD;
 	} else if (info.distanceInEdges(lca_uw, lca_vz) > info.distanceInEdges(lca_uv, lca_wz)
 			&& info.distanceInEdges(lca_uw, lca_vz) > info.distanceInEdges(lca_uz, lca_vw)) {
-		return 1; // ac|bd
+		return QuartetTopology::AC_BD;
 	} else if (info.distanceInEdges(lca_uz, lca_vw) > info.distanceInEdges(lca_uv, lca_wz)
 			&& info.distanceInEdges(lca_uz, lca_vw) > info.distanceInEdges(lca_uw, lca_vz)) {
-		return 2; // ad|bc
+		return QuartetTopology::AD_BC;
 	} else {
-		return 3; // star topology
+		return QuartetTopology::STAR;
 	}
 }
 
 bool TopologyChecker::sameTopologyAsReference(size_t aIdx, size_t bIdx, size_t cIdx, size_t dIdx,
-		const std::array<size_t, 3>& counts) {
-	size_t refTopology = findReferenceTopology(aIdx, bIdx, cIdx, dIdx);
-	size_t q1, q2, q3;
-	if (refTopology == 0) { // ab|cd
-		q1 = 0;
-		q2 = 1;
-		q3 = 2;
-	} else if (refTopology == 1) { // ac|bd
-		q1 = 1;
-		q2 = 0;
-		q3 = 2;
-	} else if (refTopology == 2) { // ad|bc
-		q1 = 2;
-		q2 = 1;
-		q3 = 0;
-	} else {
-		throw std::runtime_error("The quartet has star-topology in the reference tree");
-	}
-	if (counts[q1] < counts[q2] || counts[q1] < counts[q3]) {
-		return false;
-	} else {
-		return true;
-	}
+		QuartetTopology topo) {
+	QuartetTopology refTopology = findReferenceTopology(aIdx, bIdx, cIdx, dIdx);
+	return (topo == refTopology);
 }
 
 double TopologyChecker::getQICScore(size_t aIdx, size_t bIdx, size_t cIdx, size_t dIdx,
@@ -274,17 +257,17 @@ double TopologyChecker::getQICScore(size_t aIdx, size_t bIdx, size_t cIdx, size_
 		return 0.0;
 	}
 
-	size_t refTopology = findReferenceTopology(aIdx, bIdx, cIdx, dIdx);
+	QuartetTopology refTopology = findReferenceTopology(aIdx, bIdx, cIdx, dIdx);
 	size_t q1, q2, q3;
-	if (refTopology == 0) { // ab|cd
+	if (refTopology == QuartetTopology::AB_CD) { // ab|cd
 		q1 = 0;
 		q2 = 1;
 		q3 = 2;
-	} else if (refTopology == 1) { // ac|bd
+	} else if (refTopology == QuartetTopology::AC_BD) { // ac|bd
 		q1 = 1;
 		q2 = 0;
 		q3 = 2;
-	} else if (refTopology == 2) { // ad|bc
+	} else if (refTopology == QuartetTopology::AD_BC) { // ad|bc
 		q1 = 2;
 		q2 = 1;
 		q3 = 0;
@@ -326,12 +309,12 @@ std::array<size_t, 3> TopologyChecker::findGeneTopologyCounts(size_t aIdx, size_
 		size_t wIdx = refIDToGeneID[i][fastaIdxToRefIdx[cIdx]];
 		size_t zIdx = refIDToGeneID[i][fastaIdxToRefIdx[dIdx]];
 
-		size_t topo = findGeneTopology(uIdx, vIdx, wIdx, zIdx, informationGeneTrees[i]);
-		if (topo == 0) {
+		QuartetTopology topo = findGeneTopology(uIdx, vIdx, wIdx, zIdx, informationGeneTrees[i]);
+		if (topo == QuartetTopology::AB_CD) {
 			counts[0]++;
-		} else if (topo == 1) {
+		} else if (topo == QuartetTopology::AC_BD) {
 			counts[1]++;
-		} else if (topo == 2) {
+		} else if (topo == QuartetTopology::AD_BC) {
 			counts[2]++;
 		}
 	}
