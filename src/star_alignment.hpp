@@ -68,7 +68,7 @@ private:
 class PairwiseAlignment {
 public:
 	PairwiseAlignment() :
-			s1(""), s2("") {
+			s1(""), s2(""), matrix(0,0) {
 		matrix.addRow();
 		matrix.addColumn();
 		// now we have a 1x1 matrix
@@ -91,7 +91,6 @@ public:
 		matrix.addColumn();
 		s1 += a;
 		s2 += b;
-		// TODO: Update the matrix entries
 		// update the new row (except for last column)
 		for (size_t j = 0; j < matrix.getM() - 1; ++j) {
 			update(matrix.getN() - 1, j);
@@ -306,8 +305,26 @@ private:
 			msa[centerSequenceIdx] += aliSeqCenter;
 			msa[taxonToAdd] += aliSeqNewTaxon;
 		} else {
-			// TODO: Do the progressive MSA thing
-			// ...
+			size_t i = 0;
+			while (true) {
+				if (msa[centerSequenceIdx][i] == aliSeqCenter[i]) {
+					msa[taxonToAdd] += aliSeqNewTaxon[i];
+				} else if (msa[centerSequenceIdx][i] == '-') {
+					msa[taxonToAdd] += "-";
+					msa[taxonToAdd] += aliSeqNewTaxon[i];
+				} else if (aliSeqCenter[i] == '-') {
+					// add gap to all sequences already added to the msa, at position i
+					for (size_t j = 0; j < msa.size(); ++j) {
+						if (msa[j].empty())
+							continue;
+						std::string left = msa[j].substr(0, i);
+						std::string right = msa[j].substr(i, std::string::npos);
+						msa[j] = left + "-" + right;
+					}
+					msa[taxonToAdd] += aliSeqNewTaxon[i];
+				}
+				++i;
+			}
 		}
 	}
 

@@ -6,6 +6,7 @@
  */
 
 #include "block_extraction.hpp"
+#include "star_alignment.hpp"
 
 #include <unordered_set>
 #include <cmath>
