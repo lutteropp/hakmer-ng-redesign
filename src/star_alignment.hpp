@@ -32,8 +32,12 @@ const int MISMATCH_PENALTY = 1;
 template<typename T>
 class TwoDimMatrix {
 public:
-	TwoDimMatrix(size_t n, size_t m) :
-			n(n), m(m) {
+	TwoDimMatrix() :
+			n(0), m(0) {
+	}
+	void init(size_t n, size_t m) {
+		this->n = n;
+		this->m = m;
 		entries.resize(n);
 		for (size_t i = 0; i < m; ++i) {
 			entries[i].resize(m);
@@ -68,7 +72,7 @@ private:
 class PairwiseAlignment {
 public:
 	PairwiseAlignment() :
-			s1(""), s2(""), matrix(0,0) {
+			s1(""), s2(""), aliValid(false) {
 		matrix.addRow();
 		matrix.addColumn();
 		// now we have a 1x1 matrix
@@ -81,10 +85,15 @@ public:
 		return s2;
 	}
 	std::pair<std::string, std::string> extractAlignment() {
+		if (aliValid) {
+			return ali;
+		}
 		std::string s1Aligned;
 		std::string s2Aligned;
 		backtrack(s1.size(), s2.size(), s1Aligned, s2Aligned);
-		return std::make_pair(s1Aligned, s2Aligned);
+		ali = std::make_pair(s1Aligned, s2Aligned);
+		aliValid = true;
+		return ali;
 	}
 	void addChars(char a, char b) {
 		matrix.addRow();
@@ -101,9 +110,14 @@ public:
 		}
 		// update entry at (last row, last column)
 		update(matrix.getN() - 1, matrix.getM() - 1);
+		aliValid = false;
 	}
 	double pairwiseDistance() {
 		return matrix.entryAt(s1.size(), s2.size());
+	}
+	size_t getAlignmentWidth() {
+		std::pair<std::string, std::string> ali = extractAlignment();
+		return ali.first.size();
 	}
 private:
 	void backtrack(size_t i, size_t j, std::string& s1Aligned, std::string& s2Aligned) {
@@ -164,6 +178,8 @@ private:
 	std::string s1;
 	std::string s2;
 	TwoDimMatrix<int> matrix;
+	std::pair<std::string, std::string> ali;
+	bool aliValid;
 };
 
 class SplitPairwiseAlignment {
@@ -200,6 +216,9 @@ public:
 		s2Aligned += rightFlankAlignment.second;
 		return std::make_pair(s1Aligned, s2Aligned);
 	}
+	size_t getAlignmentWidth() {
+		return leftFlank.getAlignmentWidth() + seed.getAlignmentWidth() + rightFlank.getAlignmentWidth();
+	}
 	std::string getS1() const {
 		std::string s1Left = leftFlank.getS1();
 		std::reverse(s1Left.begin(), s1Left.end());
@@ -221,8 +240,12 @@ private:
 
 class StarMSA {
 public:
-	StarMSA(size_t nTax) :
-			nTax(nTax), pairwiseAlignments(nTax, nTax) {
+	StarMSA() :
+			nTax(0) {
+	}
+	void init(size_t nTax) {
+		this->nTax = nTax;
+		pairwiseAlignments.init(nTax, nTax);
 	}
 	std::vector<std::string> assembleMSA() {
 		std::vector<std::string> msa;
@@ -258,6 +281,16 @@ public:
 		size_t secondIdx = std::max(idx1, idx2);
 		return pairwiseAlignments.entryAt(firstIdx, secondIdx).pairwiseDistance();
 	}
+	double normalizedPairwiseDistance(size_t idx1, size_t idx2) {
+		size_t firstIdx = std::min(idx1, idx2);
+		size_t secondIdx = std::max(idx1, idx2);
+		double editDist = pairwiseAlignments.entryAt(firstIdx, secondIdx).pairwiseDistance();
+		size_t s1Size = pairwiseAlignments.entryAt(firstIdx, secondIdx).getS1().size();
+		size_t s2Size = pairwiseAlignments.entryAt(firstIdx, secondIdx).getS2().size();
+		double normEditDist = (2.0 * editDist) / (GAP_PENALTY * (s1Size + s2Size) + editDist);
+		return normEditDist;
+	}
+
 	void addCharsLeft(const std::vector<char>& chars) {
 		for (size_t i = 0; i < nTax - 1; ++i) {
 			for (size_t j = i + 1; j < nTax; ++j) {
@@ -330,4 +363,107 @@ private:
 
 	size_t nTax;
 	TwoDimMatrix<SplitPairwiseAlignment> pairwiseAlignments;
+};
+
+class NoGapsMSA {
+public:
+	NoGapsMSA() :
+			nTax(0), width(0) {
+	}
+
+	void init(size_t nTax) {
+		this->nTax = nTax;
+		pairwiseHammingDistances.init(nTax, nTax);
+		sequencesLeft.resize(nTax);
+		sequencesMiddle.resize(nTax);
+		sequencesRight.resize(nTax);
+		width = 0;
+
+		for (size_t i = 0; i < nTax; ++i) {
+			for (size_t j = i + 1; j < nTax; ++j) {
+				pairwiseHammingDistances.entryAt(i, j) = 0;
+			}
+		}
+	}
+	std::vector<std::string> assembleMSA() {
+		std::vector<std::string> msa(nTax, "");
+		for (size_t i = 0; i < nTax; ++i) {
+			std::string reversedLeft = sequencesLeft[i];
+			std::reverse(reversedLeft.begin(), reversedLeft.end());
+			msa[i] = reversedLeft + sequencesMiddle[i] + sequencesRight[i];
+		}
+		return msa;
+	}
+	double pairwiseDistance(size_t idx1, size_t idx2) {
+		size_t firstIdx = std::min(idx1, idx2);
+		size_t secondIdx = std::max(idx1, idx2);
+		return pairwiseHammingDistances.entryAt(firstIdx, secondIdx);
+	}
+
+	double normalizedPairwiseDistance(size_t idx1, size_t idx2) {
+		size_t firstIdx = std::min(idx1, idx2);
+		size_t secondIdx = std::max(idx1, idx2);
+		return (double) pairwiseHammingDistances.entryAt(firstIdx, secondIdx) / width;
+	}
+
+	void addCharsLeft(const std::vector<char>& chars) {
+		for (size_t i = 0; i < nTax; ++i) {
+			sequencesLeft[i] += chars[i];
+		}
+		for (size_t i = 0; i < nTax; ++i) {
+			for (size_t j = i + 1; j < nTax; ++j) {
+				if (!isGapCharacter(chars[i]) && !isGapCharacter(chars[j]) && chars[i] != chars[j]) {
+					pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) + 1;
+				}
+			}
+		}
+		width++;
+	}
+	void addCharsRight(const std::vector<char>& chars) {
+		for (size_t i = 0; i < nTax; ++i) {
+			sequencesRight[i] += chars[i];
+		}
+		for (size_t i = 0; i < nTax; ++i) {
+			for (size_t j = i + 1; j < nTax; ++j) {
+				if (!isGapCharacter(chars[i]) && !isGapCharacter(chars[j]) && chars[i] != chars[j]) {
+					pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) + 1;
+				}
+			}
+		}
+		width++;
+	}
+	void setSeeds(const std::vector<std::string>& seeds) {
+		for (size_t i = 0; i < nTax; ++i) {
+			sequencesMiddle[i] = seeds[i];
+		}
+
+		for (size_t i = 0; i < nTax - 1; ++i) {
+			for (size_t j = i + 1; j < nTax; ++j) {
+				for (size_t k = 0; k < seeds[i].size(); ++k) {
+					if ((!isGapCharacter(seeds[i][k])) && (!isGapCharacter(seeds[j][k])) && (seeds[i][k] != seeds[j][k])) {
+						pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) + 1;
+					}
+				}
+			}
+		}
+		width += seeds[0].size();
+	}
+	void setSeeds(const std::string& seed) {
+		for (size_t i = 0; i < nTax; ++i) {
+			sequencesMiddle[i] = seed;
+		}
+		width += seed.size();
+	}
+private:
+	bool isGapCharacter(char c) {
+		if (c == 'N' || c == 'n' || c == '-' || c == '?') {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	size_t nTax;
+	TwoDimMatrix<size_t> pairwiseHammingDistances;
+	std::vector<std::string> sequencesLeft, sequencesMiddle, sequencesRight;
+	size_t width;
 };
