@@ -63,6 +63,16 @@ public:
 	size_t getM() const {
 		return m;
 	}
+	void shrinkDownTo(size_t newN, size_t newM) {
+		entries.resize(newN);
+		for (size_t i = 0; i < newN; ++i) {
+			entries[i].resize(newM);
+			entries[i].shrink_to_fit();
+		}
+		entries.shrink_to_fit();
+		n = newN;
+		m = newM;
+	}
 private:
 	size_t n;
 	size_t m;
@@ -118,6 +128,14 @@ public:
 	size_t getAlignmentWidth() {
 		std::pair<std::string, std::string> ali = extractAlignment();
 		return ali.first.size();
+	}
+	void shrinkDownTo(size_t newS1Size, size_t newS2Size) {
+		s1.resize(newS1Size);
+		s1.shrink_to_fit();
+		s2.resize(newS2Size);
+		s2.shrink_to_fit();
+		matrix.shrinkDownTo(newS1Size + 1, newS2Size + 1);
+		aliValid = false;
 	}
 private:
 	void backtrack(size_t i, size_t j, std::string& s1Aligned, std::string& s2Aligned) {
@@ -185,12 +203,15 @@ private:
 class SplitPairwiseAlignment {
 public:
 	SplitPairwiseAlignment() {
+		aliValid = false;
 	}
 	void addCharsLeft(char a, char b) {
 		leftFlank.addChars(a, b);
+		aliValid = false;
 	}
 	void addCharsRight(char a, char b) {
 		rightFlank.addChars(a, b);
+		aliValid = false;
 	}
 	void setSeed(const std::string& seed1, const std::string& seed2) {
 		if (seed1.size() != seed2.size()) {
@@ -199,8 +220,12 @@ public:
 		for (size_t i = 0; i < seed1.size(); ++i) {
 			seed.addChars(seed1[i], seed2[i]);
 		}
+		aliValid = false;
 	}
 	std::pair<std::string, std::string> extractAlignment() {
+		if (aliValid) {
+			return ali;
+		}
 		std::string s1Aligned;
 		std::string s2Aligned;
 		std::pair<std::string, std::string> leftFlankAlignment = leftFlank.extractAlignment();
@@ -214,7 +239,9 @@ public:
 		std::pair<std::string, std::string> rightFlankAlignment = rightFlank.extractAlignment();
 		s1Aligned += rightFlankAlignment.first;
 		s2Aligned += rightFlankAlignment.second;
-		return std::make_pair(s1Aligned, s2Aligned);
+		ali = std::make_pair(s1Aligned, s2Aligned);
+		aliValid = true;
+		return ali;
 	}
 	size_t getAlignmentWidth() {
 		return leftFlank.getAlignmentWidth() + seed.getAlignmentWidth() + rightFlank.getAlignmentWidth();
@@ -232,10 +259,20 @@ public:
 	double pairwiseDistance() {
 		return leftFlank.pairwiseDistance() + seed.pairwiseDistance() + rightFlank.pairwiseDistance();
 	}
+	void shrinkDownToLeftFlank(size_t newLeftFlankSize) {
+		leftFlank.shrinkDownTo(newLeftFlankSize, newLeftFlankSize);
+		aliValid = false;
+	}
+	void shrinkDownToRightFlank(size_t newRightFlankSize) {
+		rightFlank.shrinkDownTo(newRightFlankSize, newRightFlankSize);
+		aliValid = false;
+	}
 private:
 	PairwiseAlignment leftFlank;
 	PairwiseAlignment seed;
 	PairwiseAlignment rightFlank;
+	std::pair<std::string, std::string> ali;
+	bool aliValid;
 };
 
 class StarMSA {
@@ -316,6 +353,20 @@ public:
 		for (size_t i = 0; i < nTax - 1; ++i) {
 			for (size_t j = i + 1; j < nTax; ++j) {
 				pairwiseAlignments.entryAt(i, j).setSeed(seed, seed);
+			}
+		}
+	}
+	void shrinkDownToLeftFlank(size_t newLeftFlankSize) {
+		for (size_t i = 0; i < nTax - 1; ++i) {
+			for (size_t j = i + 1; j < nTax; ++j) {
+				pairwiseAlignments.entryAt(i, j).shrinkDownToLeftFlank(newLeftFlankSize);
+			}
+		}
+	}
+	void shrinkDownToRightFlank(size_t newRightFlankSize) {
+		for (size_t i = 0; i < nTax - 1; ++i) {
+			for (size_t j = i + 1; j < nTax; ++j) {
+				pairwiseAlignments.entryAt(i, j).shrinkDownToRightFlank(newRightFlankSize);
 			}
 		}
 	}
@@ -454,6 +505,43 @@ public:
 		}
 		width += seed.size();
 	}
+
+	void shrinkDownToLeftFlank(size_t newLeftFlankSize) {
+		for (size_t i = 0; i < nTax - 1; ++i) {
+			for (size_t j = i + 1; j < nTax; ++j) {
+				for (size_t k = newLeftFlankSize - 1; k < sequencesLeft[0].size(); ++k) {
+					if (!isGapCharacter(sequencesLeft[i][k]) && !isGapCharacter(sequencesLeft[j][k])
+							&& sequencesLeft[i][k] != sequencesLeft[j][k]) {
+						pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) - 1; // because this position will be deleted
+					}
+				}
+			}
+		}
+		width -= sequencesLeft[0].size() - newLeftFlankSize;
+		for (size_t i = 0; i < nTax; ++i) {
+			sequencesLeft.resize(newLeftFlankSize);
+			sequencesLeft.shrink_to_fit();
+		}
+	}
+
+	void shrinkDownToRightFlank(size_t newRightFlankSize) {
+		for (size_t i = 0; i < nTax - 1; ++i) {
+			for (size_t j = i + 1; j < nTax; ++j) {
+				for (size_t k = newRightFlankSize - 1; k < sequencesRight[0].size(); ++k) {
+					if (!isGapCharacter(sequencesRight[i][k]) && !isGapCharacter(sequencesRight[j][k])
+							&& sequencesRight[i][k] != sequencesRight[j][k]) {
+						pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) - 1; // because this position will be deleted
+					}
+				}
+			}
+		}
+		width -= sequencesRight[0].size() - newRightFlankSize;
+		for (size_t i = 0; i < nTax; ++i) {
+			sequencesRight.resize(newRightFlankSize);
+			sequencesRight.shrink_to_fit();
+		}
+	}
+
 private:
 	bool isGapCharacter(char c) {
 		if (c == 'N' || c == 'n' || c == '-' || c == '?') {
