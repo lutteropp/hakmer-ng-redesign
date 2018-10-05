@@ -109,7 +109,6 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 }
 
 // TODO: Re-add mismatches and indels in seeds
-// TODO: Something here is going wrong.
 SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
@@ -130,11 +129,9 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 		while (matchCount >= options.minTaxaPerBlock) {
 			if (acceptSeed(sIdx, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T.size(), options)) {
 				foundBlock = true;
-
 				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
 					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
 				}
-				//presenceChecker.reserveSeededBlock(block);
 				break;
 			} else {
 				if (k == options.maxK) { // no further extension of seed length
@@ -280,6 +277,8 @@ std::pair<size_t, double> findPerfectFlankSize(const ExtendedBlock& block, size_
 		est[i].resize(nTaxBlock - i - 1);
 	}
 
+	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
+
 	for (size_t i = 1; i <= options.maximumExtensionWidth; ++i) {
 		if (bestScore == 0) {
 			break;
@@ -294,22 +293,44 @@ std::pair<size_t, double> findPerfectFlankSize(const ExtendedBlock& block, size_
 			}
 		}
 
-		// Update sequences in est
+		// Update sequences in pairwise distance estimators
 		for (size_t j = 0; j < est.size(); ++j) {
-			for (size_t k = 0; k < est[i].size(); ++k) {
+			for (size_t k = 0; k < est[j].size(); ++k) {
+				// est[j][k] corresponds to the estimated distance between the j-th sequence and the k-th sequence (indexing from zero)
 				size_t coordA;
 				if (directionRight) {
-					coordA = block.getTaxonCoordsWithoutFlanks(j).second + i;
+					coordA = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second + i;
 				} else {
-					coordA = block.getTaxonCoordsWithoutFlanks(j).first - i;
+					coordA = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first - i;
 				}
 				size_t idB = j + 1 + k;
 				size_t coordB;
 				if (directionRight) {
-					coordB = block.getTaxonCoordsWithoutFlanks(idB).second + i;
+					coordB = block.getTaxonCoordsWithoutFlanks(taxIDs[idB]).second + i;
 				} else {
-					coordB = block.getTaxonCoordsWithoutFlanks(idB).first - i;
+					coordB = block.getTaxonCoordsWithoutFlanks(taxIDs[idB]).first - i;
 				}
+
+				if (coordA >= T.size()) {
+					std::cout << "taxIDs in block: ";
+					for (size_t tid = 0; tid < taxIDs.size(); ++tid) {
+						std::cout << taxIDs[tid] << " ";
+					}
+					std::cout << "\n";
+					std::cout << block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first << ", " << block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second << "\n";
+					throw std::runtime_error("coordA is too large");
+				}
+				if (coordB >= T.size()) {
+					std::cout << "taxIDs in block: ";
+					for (size_t tid = 0; tid < taxIDs.size(); ++tid) {
+						std::cout << taxIDs[tid] << " ";
+					}
+					std::cout << "\n";
+					std::cout << block.getTaxonCoordsWithoutFlanks(taxIDs[idB]).first << ", " << block.getTaxonCoordsWithoutFlanks(taxIDs[idB]).second
+							<< "\n";
+					throw std::runtime_error("coordB is too large");
+				}
+
 				est[j][k].addChars(T[coordA], T[coordB]);
 			}
 		}
