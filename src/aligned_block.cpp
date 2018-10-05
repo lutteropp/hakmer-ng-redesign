@@ -23,7 +23,7 @@ bool AlignedBlock::hasTaxon(size_t taxID) const {
 	return myBlock.hasTaxon(taxID);
 }
 
-void AlignedBlock::align(const std::string& T, const Options& options) {
+void AlignedBlock::alignMAFFT(const std::string& T, const Options& options) {
 	if (aligned)
 		return;
 	std::vector<size_t> taxIDs = getTaxonIDsInBlock();
@@ -39,6 +39,14 @@ void AlignedBlock::align(const std::string& T, const Options& options) {
 		}
 		alignment = mafftAlign(prefix, alignment, labels);
 	}
+	aligned = true;
+}
+
+void AlignedBlock::setAlignment(const std::vector<std::string>& alignmentOfPresentTaxaInBlock) {
+	if (aligned) {
+		return;
+	}
+	alignment = alignmentOfPresentTaxaInBlock;
 	aligned = true;
 }
 
@@ -65,4 +73,14 @@ std::vector<size_t> AlignedBlock::getTaxonIDsInBlock() const {
 
 size_t AlignedBlock::getSeedSize() const {
 	return myBlock.getSeedSize();
+}
+
+std::vector<double> AlignedBlock::getPairwiseNormalizedDistances(const Options& options) {
+	std::vector<double> res;
+	for (size_t i = 0; i < myBlock.getNTaxInBlock(); ++i) {
+		for (size_t j = i + 1; j < myBlock.getNTaxInBlock(); ++j) {
+			res.push_back(myBlock.getPairwiseNormalizedDistance(i, j, options));
+		}
+	}
+	return res;
 }

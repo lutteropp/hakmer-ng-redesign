@@ -53,7 +53,7 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 	} else if (options.concatenatedDistance) { // concatenated distances
 		std::array<double, 6> concatDist = { 0, 0, 0, 0, 0, 0 };
 		for (size_t i = 0; i < alignedBlocks.size(); ++i) {
-			std::vector<double> pwdist = computePairwiseDistances(alignedBlocks[i]);
+			std::vector<double> pwdist = alignedBlocks[i].getPairwiseNormalizedDistances(options);
 			for (size_t j = 0; j < 6; ++j) {
 				concatDist[j] += pwdist[j];
 			}
@@ -64,7 +64,7 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 	} else { // inferring distance-based topologies for each block separately, then doing a majority vote
 		std::array<size_t, 3> counts = { 0, 0, 0 }; // ab|cd, ac|bd, ad|bc
 		for (size_t i = 0; i < alignedBlocks.size(); ++i) {
-			std::vector<double> pwdist = computePairwiseDistances(alignedBlocks[i]);
+			std::vector<double> pwdist = alignedBlocks[i].getPairwiseNormalizedDistances(options);
 			std::array<double, 6> pairwiseDistances = { pwdist[0], pwdist[1], pwdist[2], pwdist[3], pwdist[4], pwdist[5] };
 			QuartetTopology topo = topologyFromDistances(pairwiseDistances);
 			switch (topo) {

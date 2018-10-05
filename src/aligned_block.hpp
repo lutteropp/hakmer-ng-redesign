@@ -18,12 +18,14 @@ public:
 	AlignedBlock(const ExtendedBlock& extendedBlock, size_t nTax);
 	bool isAligned() const;
 	bool hasTaxon(size_t taxID) const;
-	void align(const std::string& T, const Options& options);
+	void alignMAFFT(const std::string& T, const Options& options);
 	std::vector<std::string> getAlignment() const;
+	void setAlignment(const std::vector<std::string>& alignmentOfPresentTaxa);
 	size_t getAlignmentWidth() const;
 	std::pair<size_t, size_t> getTaxonCoordsWithFlanks(size_t taxID) const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	size_t getSeedSize() const;
+	std::vector<double> getPairwiseNormalizedDistances(const Options& options);
 private:
 	bool aligned;
 	ExtendedBlock myBlock;

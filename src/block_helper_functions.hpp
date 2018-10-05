@@ -15,5 +15,3 @@ std::string createMissingString(size_t len);
 std::string extractTaxonSequence(const AlignedBlock& block, size_t taxID);
 std::string extractTaxonSequence(const ExtendedBlock& block, size_t taxID, const std::string& T);
 std::string extractTaxonSequence(const SeededBlock& block, size_t taxID, const std::string& T);
-
-std::vector<double> computePairwiseDistances(const AlignedBlock& block);

@@ -7,7 +7,17 @@
 
 #pragma once
 
+#include <cmath>
+
 #include "seeded_block.hpp"
+#include "star_alignment.hpp"
+
+inline double jukesCantorCorrection(double dist) {
+	if (dist >= 0.75) { // Jukes Cantor Correction doesn't work if dist >= 0.75. In this case, it would return infinity. We change it to 1 here.
+		return 1;
+	}
+	return -0.75 * std::log(1 - (4.0 / 3) * dist);
+}
 
 class ExtendedBlock {
 public:
@@ -28,6 +38,9 @@ public:
 	size_t getMaxRightFlankSize() const;
 	size_t getNTaxInBlock() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
+	NoGapsMSA noGapsMSA;
+	StarMSA starMSA;
+	double getPairwiseNormalizedDistance(size_t idxInBlock1, size_t idxInBlock2, const Options& options);
 private:
 	SeededBlock mySeededBlock;
 	std::vector<size_t> leftFlankSizes;

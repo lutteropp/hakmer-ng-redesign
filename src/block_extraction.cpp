@@ -7,11 +7,11 @@
 
 #include "block_extraction.hpp"
 #include "star_alignment.hpp"
+#include "block_helper_functions.hpp"
 
 #include <unordered_set>
 #include <cmath>
 
-#include "distance_estimator.hpp"
 #include "indexing/suffix_array_classic.hpp"
 
 size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, bool revComp) {
@@ -176,7 +176,7 @@ void swap(std::vector<double>& vec, size_t i, size_t j) {
 	vec[j] = tmp;
 }
 
-double deltaScore(const std::array<double, 6>& pairwiseDist, const Options& options) {
+double deltaScore(const std::array<double, 6>& pairwiseDist) {
 	// This happens if two sequences are too divergent, this is, relative uncorrected distance > 0.75
 	for (size_t i = 0; i < pairwiseDist.size(); ++i) {
 		if (std::isnan(pairwiseDist[i]) || std::isinf(pairwiseDist[i])) {
@@ -219,19 +219,18 @@ double deltaScore(const std::array<double, 6>& pairwiseDist, const Options& opti
 	return score;
 }
 
-double averageDeltaScore(std::vector<std::vector<HammingDistanceEstimator> >& pairwiseDistanceEstimators, size_t nTaxBlock,
-		const Options& options) {
+double averageDeltaScore(ExtendedBlock& block, size_t nTaxBlock, const Options& options) {
 	double sum = 0.0;
 	size_t numQuartets = nTaxBlock * (nTaxBlock - 1) * (nTaxBlock - 2) * (nTaxBlock - 3) / 24;
 	for (size_t i = 0; i < nTaxBlock - 3; ++i) {
 		for (size_t j = i + 1; j < nTaxBlock - 2; ++j) {
 			for (size_t k = j + 1; k < nTaxBlock - 1; ++k) {
 				for (size_t l = k + 1; l < nTaxBlock; ++l) {
-					std::array<double, 6> pairwiseDist = { pairwiseDistanceEstimators[i][j].distance(),
-							pairwiseDistanceEstimators[i][k].distance(), pairwiseDistanceEstimators[i][l].distance(),
-							pairwiseDistanceEstimators[j][k].distance(), pairwiseDistanceEstimators[j][l].distance(),
-							pairwiseDistanceEstimators[k][l].distance() };
-					sum += deltaScore(pairwiseDist, options);
+					std::array<double, 6> pairwiseDist = { block.getPairwiseNormalizedDistance(i, j, options),
+							block.getPairwiseNormalizedDistance(i, k, options), block.getPairwiseNormalizedDistance(i, l, options),
+							block.getPairwiseNormalizedDistance(j, k, options), block.getPairwiseNormalizedDistance(j, l, options),
+							block.getPairwiseNormalizedDistance(k, l, options) };
+					sum += deltaScore(pairwiseDist);
 				}
 			}
 		}
@@ -265,19 +264,11 @@ bool canGoRightAll(const ExtendedBlock& block, const PresenceChecker& presenceCh
 	return canGo;
 }
 
-std::pair<size_t, double> findPerfectFlankSize(const ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
+std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
 		const std::string& T, const Options& options, bool directionRight) {
 	size_t bestSize = 0;
 	double bestScore = 1;
-
-	// for the pairwise distances:
 	size_t nTaxBlock = block.getNTaxInBlock();
-	std::vector<std::vector<HammingDistanceEstimator> > est;
-	est.resize(nTaxBlock - 1);
-	for (size_t i = 0; i < nTaxBlock - 1; ++i) {
-		est[i].resize(nTaxBlock - i - 1);
-	}
-
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 
 	for (size_t i = 1; i <= options.maximumExtensionWidth; ++i) {
@@ -294,49 +285,31 @@ std::pair<size_t, double> findPerfectFlankSize(const ExtendedBlock& block, size_
 			}
 		}
 
-		// Update sequences in pairwise distance estimators
-		for (size_t j = 0; j < est.size(); ++j) {
-			for (size_t k = 0; k < est[j].size(); ++k) {
-				// est[j][k] corresponds to the estimated distance between the j-th sequence and the k-th sequence (indexing from zero)
-				size_t coordA;
-				if (directionRight) {
-					coordA = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second + i;
-				} else {
-					coordA = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first - i;
-				}
-				size_t idB = j + 1 + k;
-				size_t coordB;
-				if (directionRight) {
-					coordB = block.getTaxonCoordsWithoutFlanks(taxIDs[idB]).second + i;
-				} else {
-					coordB = block.getTaxonCoordsWithoutFlanks(taxIDs[idB]).first - i;
-				}
-
-				if (coordA >= T.size()) {
-					std::cout << "taxIDs in block: ";
-					for (size_t tid = 0; tid < taxIDs.size(); ++tid) {
-						std::cout << taxIDs[tid] << " ";
-					}
-					std::cout << "\n";
-					std::cout << block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first << ", " << block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second << "\n";
-					throw std::runtime_error("coordA is too large");
-				}
-				if (coordB >= T.size()) {
-					std::cout << "taxIDs in block: ";
-					for (size_t tid = 0; tid < taxIDs.size(); ++tid) {
-						std::cout << taxIDs[tid] << " ";
-					}
-					std::cout << "\n";
-					std::cout << block.getTaxonCoordsWithoutFlanks(taxIDs[idB]).first << ", " << block.getTaxonCoordsWithoutFlanks(taxIDs[idB]).second
-							<< "\n";
-					throw std::runtime_error("coordB is too large");
-				}
-
-				est[j][k].addChars(T[coordA], T[coordB]);
+		std::vector<char> charsToAdd(taxIDs.size());
+		for (size_t j = 0; j < taxIDs.size(); ++j) {
+			size_t coord;
+			if (directionRight) {
+				coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second + i;
+			} else {
+				coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first - i;
+			}
+			charsToAdd[j] = T[coord];
+		}
+		if (options.noIndels) {
+			if (directionRight) {
+				block.noGapsMSA.addCharsRight(charsToAdd);
+			} else {
+				block.noGapsMSA.addCharsLeft(charsToAdd);
+			}
+		} else {
+			if (directionRight) {
+				block.starMSA.addCharsRight(charsToAdd);
+			} else {
+				block.starMSA.addCharsLeft(charsToAdd);
 			}
 		}
 
-		double score = averageDeltaScore(est, nTaxBlock, options);
+		double score = averageDeltaScore(block, nTaxBlock, options);
 		if (score < bestScore) {
 			bestScore = score;
 			bestSize = i;
@@ -358,6 +331,15 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 			}
 		}
 	} else {
+		std::string seedSequence = extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[0], T);
+		if (options.noIndels) {
+			block.noGapsMSA.init(nTax);
+			block.noGapsMSA.setSeeds(seedSequence);
+		} else {
+			block.starMSA.init(nTax);
+			block.starMSA.setSeeds(seedSequence);
+		}
+
 		std::pair<size_t, double> bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
 		std::pair<size_t, double> bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
 		for (size_t i = 0; i < nTax; ++i) {
@@ -365,6 +347,13 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 				block.setLeftFlankSize(i, bestLeft.first);
 				block.setRightFlankSize(i, bestRight.first);
 			}
+		}
+		if (options.noIndels) {
+			block.noGapsMSA.shrinkDownToLeftFlank(bestLeft.first);
+			block.noGapsMSA.shrinkDownToRightFlank(bestRight.first);
+		} else {
+			block.starMSA.shrinkDownToLeftFlank(bestLeft.first);
+			block.starMSA.shrinkDownToRightFlank(bestRight.first);
 		}
 	}
 	return block;
@@ -410,7 +399,7 @@ AlignedBlock nextAlignedBlock(size_t& actSAPos, const std::string& T, size_t nTa
 	ExtendedBlock extBlock = nextExtendedBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
 	AlignedBlock bl(extBlock, nTax);
 	if (bl.getSeedSize() != 0) {
-		bl.align(T, options);
+		bl.alignMAFFT(T, options);
 	}
 	return bl;
 }
@@ -429,7 +418,7 @@ std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax
 		res.push_back(bl);
 	}
 	for (size_t i = 0; i < res.size(); ++i) {
-		res[i].align(T, options);
+		res[i].alignMAFFT(T, options);
 	}
 	return res;
 }

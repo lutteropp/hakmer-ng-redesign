@@ -109,3 +109,16 @@ size_t ExtendedBlock::getNTaxInBlock() const {
 std::vector<size_t> ExtendedBlock::getTaxonIDsInBlock() const {
 	return mySeededBlock.getTaxonIDsInBlock();
 }
+
+double ExtendedBlock::getPairwiseNormalizedDistance(size_t idxInBlock1, size_t idxInBlock2, const Options& options) {
+	double dist = 1;
+	if (options.noIndels) {
+		dist = noGapsMSA.normalizedPairwiseDistance(idxInBlock1, idxInBlock2);
+	} else {
+		dist = starMSA.normalizedPairwiseDistance(idxInBlock1, idxInBlock2);
+	}
+	if (options.jukesCantor) {
+		dist = jukesCantorCorrection(dist);
+	}
+	return dist;
+}
