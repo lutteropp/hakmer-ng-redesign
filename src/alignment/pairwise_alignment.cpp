@@ -27,10 +27,6 @@ std::pair<std::string, std::string> PairwiseAlignment::extractAlignment() {
 	}
 	std::string s1Aligned;
 	std::string s2Aligned;
-
-	std::cout << "s1: " << s1 << "\n";
-	std::cout << "s2: " << s2 << "\n";
-
 	backtrack(s1.size(), s2.size(), s1Aligned, s2Aligned);
 	ali = std::make_pair(s1Aligned, s2Aligned);
 	aliValid = true;

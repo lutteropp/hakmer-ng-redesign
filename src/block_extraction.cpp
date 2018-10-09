@@ -461,6 +461,9 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 			} else {
 				coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first - i;
 			}
+			if (coord >= T.size()) {
+				throw std::runtime_error("This should not happen! Coord is too large.");
+			}
 			charsToAdd[j] = T[coord];
 		}
 		if (options.noIndels) {
@@ -482,17 +485,17 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 			bestScore = score;
 			bestSize = i;
 
-			std::cout << "found a better score: " << score << "\n" << " with flank size: " << i << "\n";
+			//std::cout << "found a better score: " << score << "\n" << " with flank size: " << i << "\n";
 			std::vector<std::string> msa;
 			if (options.noIndels) {
 				msa = block.noGapsMSA.assembleMSA();
 			} else {
 				msa = block.starMSA.assembleMSA();
 			}
-			std::cout << "with MSA:\n";
+			/*std::cout << "with MSA:\n";
 			for (size_t msaIdx = 0; msaIdx < msa.size(); msaIdx++) {
 				std::cout << msa[msaIdx] << "\n";
-			}
+			}*/
 			std::cout << "\n";
 		}
 	}
@@ -515,10 +518,10 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 	} else {
 		std::string seedSequence = extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[0], T);
 		if (options.noIndels) {
-			block.noGapsMSA.init(nTax);
+			block.noGapsMSA.init(block.getNTaxInBlock());
 			block.noGapsMSA.setSeeds(seedSequence);
 		} else {
-			block.starMSA.init(nTax);
+			block.starMSA.init(block.getNTaxInBlock());
 			block.starMSA.setSeeds(seedSequence);
 		}
 

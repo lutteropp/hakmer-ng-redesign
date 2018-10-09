@@ -22,12 +22,9 @@ std::vector<std::string> StarMSA::assembleMSA() {
 	// first, find the sequence with the smallest distance sum to the others
 	std::vector<int> distanceSums(nTax, 0);
 	for (size_t i = 0; i < nTax; ++i) {
-		for (size_t j = 0; j < nTax; ++j) {
-			if (i == j)
-				continue;
-			size_t firstIdx = std::min(i, j);
-			size_t secondIdx = std::max(i, j);
-			distanceSums[i] += pairwiseAlignments.entryAt(firstIdx, secondIdx).pairwiseDistance();
+		for (size_t j = i + 1; j < nTax; ++j) {
+			distanceSums[i] += pairwiseAlignments.entryAt(i, j).pairwiseDistance();
+			distanceSums[j] += pairwiseAlignments.entryAt(i, j).pairwiseDistance();
 		}
 	}
 	size_t smallestIdx = 0;
