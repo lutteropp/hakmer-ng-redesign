@@ -9,8 +9,10 @@
 
 #include <cmath>
 
+#include "alignment/nogaps_msa.hpp"
+#include "alignment/star_msa.hpp"
 #include "seeded_block.hpp"
-#include "star_alignment.hpp"
+#include "options.hpp"
 
 inline double jukesCantorCorrection(double dist) {
 	if (dist >= 0.75) { // Jukes Cantor Correction doesn't work if dist >= 0.75. In this case, it would return infinity. We change it to 1 here.

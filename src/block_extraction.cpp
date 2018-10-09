@@ -6,7 +6,6 @@
  */
 
 #include "block_extraction.hpp"
-#include "star_alignment.hpp"
 #include "block_helper_functions.hpp"
 
 #include <unordered_set>
@@ -436,7 +435,7 @@ bool canGoRightAll(const ExtendedBlock& block, const PresenceChecker& presenceCh
 std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
 		const std::string& T, const Options& options, bool directionRight) {
 	size_t bestSize = 0;
-	double bestScore = 1;
+	double bestScore = 1.0;
 	size_t nTaxBlock = block.getNTaxInBlock();
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 
@@ -479,12 +478,17 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 		}
 
 		double score = averageDeltaScore(block, nTaxBlock, options);
-		if (score <= bestScore) {
+		if (score < bestScore) {
 			bestScore = score;
 			bestSize = i;
 
 			std::cout << "found a better score: " << score << "\n" << " with flank size: " << i << "\n";
-			std::vector<std::string> msa = block.starMSA.assembleMSA();
+			std::vector<std::string> msa;
+			if (options.noIndels) {
+				msa = block.noGapsMSA.assembleMSA();
+			} else {
+				msa = block.starMSA.assembleMSA();
+			}
 			std::cout << "with MSA:\n";
 			for (size_t msaIdx = 0; msaIdx < msa.size(); msaIdx++) {
 				std::cout << msa[msaIdx] << "\n";
