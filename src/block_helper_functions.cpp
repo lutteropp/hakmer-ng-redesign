@@ -23,7 +23,7 @@ std::string extractTaxonSequence(const AlignedBlock& block, size_t taxID) {
 	if (block.hasTaxon(taxID)) {
 		for (size_t i = 0; i < taxIDs.size(); ++i) {
 			if (taxIDs[i] == taxID) {
-				res = block.getAlignment()[taxIDs[i]];
+				res = block.getAlignment()[i];
 				break;
 			}
 		}
