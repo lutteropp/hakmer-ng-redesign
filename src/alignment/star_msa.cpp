@@ -42,6 +42,35 @@ std::vector<std::string> StarMSA::assembleMSA() {
 			continue;
 		addToMSA(i, msa, smallestIdx);
 	}
+
+	// perform a sanity check for the MSA
+	size_t w = 0;
+	for (size_t i = 0; i < msa.size(); ++i) {
+		if (msa[i].empty())
+			continue;
+		if (w == 0) {
+			w = msa[i].size();
+		}
+		if (msa[i].size() != w) {
+			std::cout << "w: " << w << "\n";
+			std::cout << "msa[i].size(): " << msa[i].size() << "\n";
+			std::cout << "i: " << i << "\n";
+
+			std::cout << "The entire MSA:\n";
+			for (size_t j = 0; j < msa.size(); ++j) {
+				std::cout << msa[j] << "\n";
+			}
+			std::cout << "\n";
+			std::cout << "The pairwise MSAs:\n";
+			for (size_t j = 0; j < pairwiseAlignments.size(); ++j) {
+				for (size_t k = j + 1; k < pairwiseAlignments.size(); ++k) {
+					pairwiseAlignments.entryAt(j, k).printAlignment();
+				}
+			}
+			throw std::runtime_error("THIS SHOULD NOT HAPPEN! ALIGNMENT WIDTH IS NOT EQUAL");
+		}
+	}
+
 	return msa;
 }
 double StarMSA::pairwiseDistance(size_t idx1, size_t idx2) {
@@ -102,10 +131,26 @@ void StarMSA::shrinkDownToRightFlank(size_t newRightFlankSize) {
 	}
 }
 
+bool checkMSA(const std::vector<std::string>& msa, size_t idxToIgnore) {
+	// just to be sure: check if all msa sequences which are not empty and not the idxToIgnore/taxonToAdd sequence have equal size
+	size_t w = 0;
+	for (size_t i = 0; i < msa.size(); ++i) {
+		if (i == idxToIgnore || msa[i].empty())
+			continue;
+		if (w == 0)
+			w = msa[i].size();
+		if (msa[i].size() != w) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void StarMSA::addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t centerSequenceIdx) {
 	if (taxonToAdd == centerSequenceIdx) {
 		throw std::runtime_error("This should not happen: taxonToAdd == centerSequenceIndex here");
 	}
+
 	size_t firstIdx = std::min(taxonToAdd, centerSequenceIdx);
 	size_t secondIdx = std::max(taxonToAdd, centerSequenceIdx);
 	std::pair<std::string, std::string> alignmentToAdd = pairwiseAlignments.entryAt(firstIdx, secondIdx).extractAlignment();
@@ -127,57 +172,73 @@ void StarMSA::addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t 
 	if (msa[centerSequenceIdx].empty()) {
 		msa[centerSequenceIdx] += aliSeqCenter;
 		msa[taxonToAdd] += aliSeqNewTaxon;
-	} else {
-		size_t i_ali = 0;
-		size_t i_msa = 0;
+		return;
+	}
 
-		while (true) {
-			if (i_ali >= aliSeqCenter.size() && i_msa >= msa[centerSequenceIdx].size()) {
-				break;
-			} else if (i_ali >= aliSeqCenter.size()) {
-				msa[taxonToAdd] += "-";
-				i_msa++;
-			} else if (i_msa >= msa[centerSequenceIdx].size()) {
-				for (size_t j = 0; j < msa.size(); ++j) {
-					if (msa[j].empty()) {
-						continue;
-					}
-					if (j == taxonToAdd) {
-						continue;
-					}
-					msa[j] += '-';
+	size_t i_ali = 0;
+	size_t i_msa = 0;
+
+	while (i_ali < aliSeqCenter.size() && i_msa < msa[centerSequenceIdx].size()) {
+		if (msa[centerSequenceIdx][i_msa] == aliSeqCenter[i_ali]) {
+			msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
+			i_msa++;
+			i_ali++;
+		} else if (msa[centerSequenceIdx][i_msa] == '-') {
+			msa[taxonToAdd] += "-";
+			i_msa++;
+		} else if (aliSeqCenter[i_ali] == '-') {
+			// add gap to all sequences already added to the msa, at position i
+			for (size_t j = 0; j < msa.size(); ++j) {
+				if (msa[j].empty())
+					continue;
+				if (j == taxonToAdd) {
+					continue;
 				}
-				msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
-				i_ali++;
-			} else {
-				if (msa[centerSequenceIdx][i_msa] == aliSeqCenter[i_ali]) {
-					msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
-					i_msa++;
-					i_ali++;
-				} else if (msa[centerSequenceIdx][i_msa] == '-') {
-					msa[taxonToAdd] += "-";
-					i_msa++;
-				} else if (aliSeqCenter[i_ali] == '-') {
-					// add gap to all sequences already added to the msa, at position i
-					for (size_t j = 0; j < msa.size(); ++j) {
-						if (msa[j].empty())
-							continue;
-						if (j == taxonToAdd) {
-							continue;
-						}
-						std::string left = msa[j].substr(0, i_msa);
-						std::string right = msa[j].substr(i_msa, std::string::npos);
-						msa[j] = left + "-" + right;
-					}
-					msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
-					i_ali++;
-					i_msa++; // because we inserted the gap
-				} else {
-					std::cout << "msa[centerSequenceIdx][i_msa]: " << msa[centerSequenceIdx][i_msa] << "\n";
-					std::cout << "aliSeqCenter[i_ali]: " << aliSeqCenter[i_ali] << "\n";
-					throw std::runtime_error("This should not happen");
-				}
+				std::string left = msa[j].substr(0, i_msa);
+				std::string right = msa[j].substr(i_msa, std::string::npos);
+				msa[j] = left + "-" + right;
 			}
+			msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
+			i_ali++;
+			i_msa++; // because we inserted the gap
+		} else {
+			std::cout << "msa[centerSequenceIdx][i_msa]: " << msa[centerSequenceIdx][i_msa] << "\n";
+			std::cout << "aliSeqCenter[i_ali]: " << aliSeqCenter[i_ali] << "\n";
+			throw std::runtime_error("This should not happen");
 		}
 	}
+
+	// add the trailing gaps to the newly added taxon
+	while (i_msa < msa[centerSequenceIdx].size()) {
+		msa[taxonToAdd] += "-";
+		i_msa++;
+	}
+	// add the trailing gaps/ remaining taxonToAdd sequence to the MSA
+	while (i_ali < aliSeqNewTaxon.size()) {
+		for (size_t j = 0; j < msa.size(); ++j) {
+			if (msa[j].empty()) {
+				continue;
+			}
+			if (j == taxonToAdd) {
+				continue;
+			}
+			msa[j] += '-';
+		}
+		msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
+		i_ali++;
+	}
+
+	/*if (!checkMSA(msa, -1)) {
+		std::cout << "msa[centerSequenceIdx]:\n" << msa[centerSequenceIdx] << "\n";
+		std::cout << "aliSeqCenter:\n" << aliSeqCenter << "\n";
+
+		std::cout << "msa[taxonToAdd]:\n" << msa[taxonToAdd] << "\n";
+		std::cout << "aliSeqNewTaxon:\n" << aliSeqNewTaxon << "\n";
+
+		std::cout << "entire MSA:\n";
+		for (size_t i = 0; i < msa.size(); ++i) {
+			std::cout << msa[i] << "\n";
+		}
+		throw std::runtime_error("Something went wrong AFTER adding new sequence");
+	}*/
 }

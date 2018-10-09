@@ -53,6 +53,12 @@ public:
 		n = newN;
 		m = newM;
 	}
+	size_t size() const {
+		return entries.size();
+	}
+	size_t size(size_t idx) const {
+		return entries[idx].size();
+	}
 private:
 	size_t n;
 	size_t m;
