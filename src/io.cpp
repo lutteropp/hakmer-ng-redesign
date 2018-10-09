@@ -59,6 +59,7 @@ FASTARecord readNextFASTA(std::ifstream& infile) {
 		std::getline(infile, line);
 		seq += line;
 	}
+
 	std::transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
 	/*for (size_t i = 0; i < seq.size(); ++i) {
 	 if (seq[i] != 'A' && seq[i] != 'C' && seq[i] != 'G' && seq[i] != 'T') {
@@ -104,6 +105,8 @@ void InputReader::openFile(const std::string& filepath) {
 	if (!infile.good()) {
 		throw std::runtime_error("Can not open file: " + filepath);
 	}
+	std::locale loc("");
+	infile.imbue(loc);
 }
 
 bool InputReader::hasNext() {
@@ -239,6 +242,7 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 		std::vector<std::string> contigs(record.contigs.size());
 		for (size_t i = 0; i < record.contigs.size(); ++i) {
 			std::string seq = record.contigs[i].seq;
+
 			if (options.discardNs) {
 				std::string noNSeq = "";
 				for (size_t j = 0; j < record.contigs[i].seq.size(); ++j) {
@@ -268,7 +272,6 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 			}
 			concat += revComp(contigs[0]);
 		}
-
 	}
 
 	IndexedConcatenatedSequence res(concat, coords, options);

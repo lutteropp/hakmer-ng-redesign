@@ -59,3 +59,21 @@ std::vector<size_t> SeededBlock::getTaxonIDsInBlock() const {
 	}
 	return res;
 }
+
+void SeededBlock::increaseTaxonCoordsRight() {
+	for (size_t i = 0; i < taxonCoords.size(); ++i) {
+		if (hasTaxon(i)) {
+			taxonCoords[i].second++;
+		}
+	}
+	k++;
+}
+
+void SeededBlock::decreaseTaxonCoordsLeft() {
+	for (size_t i = 0; i < taxonCoords.size(); ++i) {
+		if (hasTaxon(i)) {
+			taxonCoords[i].first--;
+		}
+	}
+	k++;
+}

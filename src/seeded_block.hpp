@@ -20,6 +20,8 @@ public:
 	bool hasTaxon(size_t taxID) const;
 	size_t getSeedSize() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
+	void increaseTaxonCoordsRight();
+	void decreaseTaxonCoordsLeft();
 private:
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
 	size_t n;

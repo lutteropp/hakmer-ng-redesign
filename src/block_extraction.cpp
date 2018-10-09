@@ -61,14 +61,102 @@ std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const IndexedC
 	return std::make_pair(resSA, resLCP);
 }
 
+/**
+ * Compute the entropy of a given k-mer.
+ * @param S The entire sequence data.
+ * @param startPos Index of the first base in the k-mer.
+ * @param k Size of the k-mer.
+ * @param NCount Variable to store the number of 'N' bases in the k-mer.
+ */
+float info_content(const std::string& seed, unsigned int *NCount) {
+	char histo[64] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	float x = 0.0;
+	*NCount = 0;
+	if (seed.size() == 3) {
+		return 0.0; // degenerate case
+	}
+
+	size_t p = 0, q = 0;
+
+	for (unsigned int i = 0; i <= seed.size() - 3; i++) {
+		unsigned int I = 0;
+		q = p;
+		for (int j = 0; j < 3; j++) {
+			I = (I << 2);
+			switch (seed[q]) {
+			case 'A':
+				break;
+			case 'C':
+				I |= 1;
+				break;
+			case 'G':
+				I |= 2;
+				break;
+			case 'T':
+				I |= 3;
+				break;
+			case 'U': // Added by Sarah
+				I |= 3;
+				break;
+			case 'N':
+				++*NCount;
+				break; // implicitly treating an N as an A...
+			default:
+				break; // implicitly treating all other chars as A also... :)
+			}
+			++q;
+		}
+		++p;
+		++histo[I];
+	}
+	for (unsigned int i = 0; i < 64; i++) {
+		x += histo[i] * (histo[i] - 1) / 2.0;
+	}
+	x /= (seed.size() - 3);
+	return x;
+}
+
+/**
+ * Checks whether a k-mer is of high enough complexity. For example, k-mers like AAAAAAAAAAA are bad and will fail the test.
+ * @param S The input sequence data.
+ * @param Position of the first base of the k-mer in the sequence data.
+ * @param kmerSize Size of the k-mer.
+ * @param Ncutoff Maximum number of 'N' bases allowed in a k-mer.
+ * @param lowComplexityCutoff The k-mer will only be accepted if its complexity is strictly greater than this value.
+ * @param gLowComplexityKmers Variable to keep track of the number of rejected k-mers due to low complexity.
+ */
+bool highComplexity(const std::string& seed, unsigned int Ncutoff, double lowComplexityCutoff) {
+	unsigned int NCount;
+	float lowComplexity = info_content(seed, &NCount);
+
+	if (NCount > Ncutoff || lowComplexity > lowComplexityCutoff) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
 bool acceptSeed(size_t actSAPos, size_t matchCount, size_t k, size_t nTax, const std::vector<size_t>& SA, PresenceChecker& presenceChecker,
-		const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, const Options& options) {
+		const std::vector<std::pair<size_t, size_t> >& taxonCoords, const std::string& T, const Options& options) {
 	if (matchCount > nTax /*|| matchCount > options.maxTaxaPerBlock*/) { // easy test for paralogy
 		return false;
 	}
 	if (matchCount < options.minTaxaPerBlock) { // easy test for not enough taxa
 		return false;
 	}
+
+	if (!options.lowComplexity) {
+		std::string seed = T.substr(SA[actSAPos], k);
+		if (!highComplexity(seed, k / 8, 1.0)) {
+			//std::cout << "rejecting seed complexity: " << seed << "\n";
+			return false;
+		}
+		//std::cout << "accepting seed complexity: " << seed << "\n";
+	}
+
+	size_t concatSize = T.size();
+
 	// more complicated check for paralogy
 	std::unordered_set<size_t> takenTaxa;
 	for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
@@ -109,6 +197,83 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 	return matchCount;
 }
 
+bool canGoLeftAll(const SeededBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
+	bool canGo = true;
+	for (size_t i = 0; i < nTax; ++i) {
+		if (block.hasTaxon(i)) {
+			if (!presenceChecker.isFree(block.getTaxonCoords(i).first - offset)) {
+				canGo = false;
+				break;
+			}
+		}
+	}
+	return canGo;
+}
+
+bool canGoRightAll(const SeededBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
+	bool canGo = true;
+	for (size_t i = 0; i < nTax; ++i) {
+		if (block.hasTaxon(i)) {
+			if (!presenceChecker.isFree(block.getTaxonCoords(i).second + offset)) {
+				canGo = false;
+				break;
+			}
+		}
+	}
+	return canGo;
+}
+
+bool allLeftSame(const SeededBlock& seededBlock, const std::string& T, size_t nTax) {
+	std::vector<size_t> taxIDs = seededBlock.getTaxonIDsInBlock();
+	char leftChar = T[seededBlock.getTaxonCoords(taxIDs[0]).first - 1];
+	for (size_t i = 1; i < taxIDs.size(); ++i) {
+		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).first - 1];
+		if (actChar != leftChar)
+			return false;
+	}
+	return true;
+}
+
+bool allRightSame(const SeededBlock& seededBlock, const std::string& T, size_t nTax) {
+	std::vector<size_t> taxIDs = seededBlock.getTaxonIDsInBlock();
+	char rightChar = T[seededBlock.getTaxonCoords(taxIDs[0]).second + 1];
+	for (size_t i = 1; i < taxIDs.size(); ++i) {
+		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).second + 1];
+		if (actChar != rightChar)
+			return false;
+	}
+	return true;
+}
+
+void trivialExtension(SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
+	// first, perform trivial extension of the seeded block
+	std::cout << "seed size before trivial extension: " << seededBlock.getSeedSize() << "\n";
+	std::vector<size_t> taxonIDs = seededBlock.getTaxonIDsInBlock();
+	bool canLeft = true;
+	bool canRight = true;
+	while (canLeft || canRight) {
+		if (!canGoLeftAll(seededBlock, presenceChecker, nTax, 1)) {
+			canLeft = false;
+		}
+		if (!canGoRightAll(seededBlock, presenceChecker, nTax, 1)) {
+			canRight = false;
+		}
+		if (canLeft && !allLeftSame(seededBlock, T, nTax)) {
+			canLeft = false;
+		}
+		if (canRight && !allRightSame(seededBlock, T, nTax)) {
+			canRight = false;
+		}
+		if (canLeft) {
+			seededBlock.decreaseTaxonCoordsLeft();
+		}
+		if (canRight) {
+			seededBlock.increaseTaxonCoordsRight();
+		}
+	}
+	std::cout << "seed size after trivial extension: " << seededBlock.getSeedSize() << "\n";
+}
+
 // TODO: Re-add mismatches and indels in seeds
 SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
@@ -127,12 +292,16 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 			continue;
 		}
 		size_t matchCount = countMatches(sIdx, lcp, k);
+
+		// TODO: Something seems to be wrong in the LCP Array? Why is the longest common prefix so long? And: How can match count be so large?
+
 		while (matchCount >= options.minTaxaPerBlock) {
-			if (acceptSeed(sIdx, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T.size(), options)) {
+			if (acceptSeed(sIdx, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
 				foundBlock = true;
 				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
 					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
 				}
+				trivialExtension(block, T, presenceChecker, nTax); // TODO: Improve this, do the trivial extension already before
 				break;
 			} else {
 				if (k == options.maxK) { // no further extension of seed length
@@ -310,9 +479,17 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 		}
 
 		double score = averageDeltaScore(block, nTaxBlock, options);
-		if (score < bestScore) {
+		if (score <= bestScore) {
 			bestScore = score;
 			bestSize = i;
+
+			std::cout << "found a better score: " << score << "\n" << " with flank size: " << i << "\n";
+			std::vector<std::string> msa = block.starMSA.assembleMSA();
+			std::cout << "with MSA:\n";
+			for (size_t msaIdx = 0; msaIdx < msa.size(); msaIdx++) {
+				std::cout << msa[msaIdx] << "\n";
+			}
+			std::cout << "\n";
 		}
 	}
 
@@ -322,6 +499,7 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
 		const Options& options) {
 	ExtendedBlock block(seededBlock, nTax);
+
 	if (!options.dynamicFlanks) {
 		size_t flankWidth = options.flankWidth;
 		for (size_t i = 0; i < nTax; ++i) {
@@ -387,6 +565,13 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		// check if the extended block can still be accepted.
 		if (presenceChecker.isFine(extendedBlock)) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
+
+			std::cout << "Pushing back a block with alignment: \n";
+			std::vector<std::string> msa = extendedBlock.starMSA.assembleMSA();
+			for (size_t i = 0; i < msa.size(); ++i) {
+				std::cout << msa[i] << "\n";
+			}
+
 			res.push_back(extendedBlock);
 		}
 	}
@@ -399,7 +584,12 @@ AlignedBlock nextAlignedBlock(size_t& actSAPos, const std::string& T, size_t nTa
 	ExtendedBlock extBlock = nextExtendedBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
 	AlignedBlock bl(extBlock, nTax);
 	if (bl.getSeedSize() != 0) {
-		bl.alignMAFFT(T, options);
+		if (options.noIndels) {
+			bl.setAlignment(extBlock.noGapsMSA.assembleMSA());
+		} else {
+			bl.setAlignment(extBlock.starMSA.assembleMSA());
+		}
+		// bl.alignMAFFT(T, options);
 	}
 	return bl;
 }
@@ -418,7 +608,12 @@ std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax
 		res.push_back(bl);
 	}
 	for (size_t i = 0; i < res.size(); ++i) {
-		res[i].alignMAFFT(T, options);
+		if (options.noIndels) {
+			res[i].setAlignment(extBlocks[i].noGapsMSA.assembleMSA());
+		} else {
+			res[i].setAlignment(extBlocks[i].starMSA.assembleMSA());
+		}
+		// res[i].alignMAFFT(T, options);
 	}
 	return res;
 }

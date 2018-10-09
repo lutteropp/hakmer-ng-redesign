@@ -51,6 +51,7 @@ public:
 	size_t minTaxaPerBlock = 4;
 	size_t maxTaxaPerBlock = std::numeric_limits<size_t>::max();
 	size_t maximumExtensionWidth = 300;
+	bool lowComplexity = false; // keep low complexity k-mers?
 
 	bool dynamicFlanks = false;
 	size_t flankWidth = 25;

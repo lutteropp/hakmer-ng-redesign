@@ -12,6 +12,7 @@
 #include <utility>
 #include <algorithm>
 #include <stdexcept>
+#include <iostream>
 
 #include "options.hpp"
 
@@ -100,10 +101,20 @@ public:
 		}
 		std::string s1Aligned;
 		std::string s2Aligned;
+
+		std::cout << "s1: " << s1 << "\n";
+		std::cout << "s2: " << s2 << "\n";
+
 		backtrack(s1.size(), s2.size(), s1Aligned, s2Aligned);
 		ali = std::make_pair(s1Aligned, s2Aligned);
 		aliValid = true;
 		return ali;
+	}
+	void printAlignment() {
+		if (!aliValid) {
+			extractAlignment();
+		}
+		std::cout << ali.first << "\n" << ali.second << "\n\n";
 	}
 	void addChars(char a, char b) {
 		matrix.addRow();
@@ -229,6 +240,9 @@ public:
 		std::string s1Aligned;
 		std::string s2Aligned;
 		std::pair<std::string, std::string> leftFlankAlignment = leftFlank.extractAlignment();
+
+		//std::cout << "Left flank alignment: \n" << leftFlankAlignment.first << "\n" << leftFlankAlignment.second << "\n";
+
 		std::reverse(leftFlankAlignment.first.begin(), leftFlankAlignment.first.end());
 		std::reverse(leftFlankAlignment.second.begin(), leftFlankAlignment.second.end());
 		s1Aligned += leftFlankAlignment.first;
@@ -242,6 +256,12 @@ public:
 		ali = std::make_pair(s1Aligned, s2Aligned);
 		aliValid = true;
 		return ali;
+	}
+	void printAlignment() {
+		if (!aliValid) {
+			extractAlignment();
+		}
+		std::cout << ali.first << "\n" << ali.second << "\n\n";
 	}
 	size_t getAlignmentWidth() {
 		return leftFlank.getAlignmentWidth() + seed.getAlignmentWidth() + rightFlank.getAlignmentWidth();
@@ -306,9 +326,9 @@ public:
 				smallestDist = distanceSums[i];
 			}
 		}
+
 		for (size_t i = 0; i < nTax; ++i) {
-			if (i == smallestIdx)
-				continue;
+			if (i == smallestIdx) continue;
 			addToMSA(i, msa, smallestIdx);
 		}
 		return msa;
@@ -372,9 +392,15 @@ public:
 	}
 private:
 	void addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t centerSequenceIdx) {
+		if (taxonToAdd == centerSequenceIdx) {
+			throw std::runtime_error("This should not happen: taxonToAdd == centerSequenceIndex here");
+		}
 		size_t firstIdx = std::min(taxonToAdd, centerSequenceIdx);
 		size_t secondIdx = std::max(taxonToAdd, centerSequenceIdx);
 		std::pair<std::string, std::string> alignmentToAdd = pairwiseAlignments.entryAt(firstIdx, secondIdx).extractAlignment();
+
+		//std::cout << "alignment to add: \n" << alignmentToAdd.first << "\n" << alignmentToAdd.second << "\n";
+
 		std::string aliSeqCenter;
 		std::string aliSeqNewTaxon;
 		if (centerSequenceIdx == firstIdx) {
@@ -389,14 +415,19 @@ private:
 			msa[centerSequenceIdx] += aliSeqCenter;
 			msa[taxonToAdd] += aliSeqNewTaxon;
 		} else {
+			/*std::cout << "msa[centerSequenceIdx].size(): " << msa[centerSequenceIdx].size() << "\n";
+			std::cout << "msa[centerSequenceIdx]: " << msa[centerSequenceIdx] << "\n";
+			std::cout << "aliSeqCenter.size(): " << aliSeqCenter.size() << "\n";
+			std::cout << "aliSeqCenter: " << aliSeqCenter << "\n";*/
+
 			size_t i = 0;
 			while (true) {
-				if (msa[centerSequenceIdx][i] == aliSeqCenter[i]) {
-					msa[taxonToAdd] += aliSeqNewTaxon[i];
-				} else if (msa[centerSequenceIdx][i] == '-') {
+				if (i >= aliSeqCenter.size() && i >= msa[centerSequenceIdx].size()) {
+					break;
+				} else if (i >= aliSeqCenter.size()) {
 					msa[taxonToAdd] += "-";
 					msa[taxonToAdd] += aliSeqNewTaxon[i];
-				} else if (aliSeqCenter[i] == '-') {
+				} else if (i >= msa[centerSequenceIdx].size()) {
 					// add gap to all sequences already added to the msa, at position i
 					for (size_t j = 0; j < msa.size(); ++j) {
 						if (msa[j].empty())
@@ -406,10 +437,31 @@ private:
 						msa[j] = left + "-" + right;
 					}
 					msa[taxonToAdd] += aliSeqNewTaxon[i];
+				} else {
+					if (msa[centerSequenceIdx][i] == aliSeqCenter[i]) {
+						msa[taxonToAdd] += aliSeqNewTaxon[i];
+					} else if (msa[centerSequenceIdx][i] == '-') {
+						msa[taxonToAdd] += "-";
+						msa[taxonToAdd] += aliSeqNewTaxon[i];
+					} else if (aliSeqCenter[i] == '-') {
+						// add gap to all sequences already added to the msa, at position i
+						for (size_t j = 0; j < msa.size(); ++j) {
+							if (msa[j].empty())
+								continue;
+							std::string left = msa[j].substr(0, i);
+							std::string right = msa[j].substr(i, std::string::npos);
+							msa[j] = left + "-" + right;
+						}
+						msa[taxonToAdd] += aliSeqNewTaxon[i];
+					}
 				}
 				++i;
 			}
 		}
+		/*std::cout << "MSA is now: \n";
+		for (size_t i = 0; i < msa.size(); ++i) {
+			std::cout << msa[i] << "\n";
+		}*/
 	}
 
 	size_t nTax;
