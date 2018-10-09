@@ -70,6 +70,7 @@ void printInputStatistics(const std::string& filepath, bool contigs);
 void writeFASTASupermatrix(const std::vector<AlignedBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath);
 void writeFASTASupermatrix(const std::vector<ExtendedBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath, const std::string& T);
 void writeFASTASupermatrix(const std::vector<SeededBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath, const std::string& T);
+void writeFASTASupermatrix(const std::vector<std::string>& msa, const std::vector<std::string>& taxonLabels, const std::string& filepath);
 // optional: write block coords
 // optional: write blocks separately
 

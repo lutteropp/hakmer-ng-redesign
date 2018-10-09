@@ -166,9 +166,9 @@ void quartetsCallback(const Options& options) {
 #endif
 					progressBar.Update();
 #ifndef WITH_OPENMP
-					}
 				}
 			}
+		}
 #endif
 	}
 	std::cout << "\n";
@@ -190,8 +190,28 @@ void matrixCallback(const Options& options) {
 
 	std::vector<AlignedBlock> alignedBlocks = extractAlignedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
 			concat.getLcpArray(), presenceChecker, taxCoords, options);
-
 	writeFASTASupermatrix(alignedBlocks, concat.getTaxonLabels(), options.outpath);
+
+	/*
+	 std::vector<std::string> msa(concat.nTax());
+	 size_t actSAPos = 0;
+	 double lastP = 0;
+	 while (actSAPos < concat.getSuffixArray().size()) {
+	 AlignedBlock bl = nextAlignedBlock(actSAPos, concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
+	 concat.getLcpArray(), presenceChecker, taxCoords, options);
+	 if (bl.getSeedSize() == 0) {
+	 break; // no blocks left
+	 }
+	 for (size_t i = 0; i < concat.nTax(); ++i) {
+	 msa[i] += extractTaxonSequence(bl, i);
+	 }
+	 double progress = (double) 100 * actSAPos / concat.getSuffixArray().size();
+	 if (progress > lastP + 1) {
+	 std::cout << progress << "\n";
+	 lastP = progress;
+	 }
+	 }
+	 writeFASTASupermatrix(msa, concat.getTaxonLabels(), options.outpath);*/
 }
 
 void reportCallback(const Options& options) {

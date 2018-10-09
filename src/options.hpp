@@ -19,7 +19,7 @@ public:
 	bool verbose = false;
 	bool reverseComplement = false;
 	bool proteinData = false;
-	double maxDelta = 0;
+	double maxDelta = 0.1;
 
 	bool noQuartets = true;
 	bool redo = false;
@@ -52,6 +52,7 @@ public:
 	size_t maxTaxaPerBlock = std::numeric_limits<size_t>::max();
 	size_t maximumExtensionWidth = 300;
 	bool lowComplexity = false; // keep low complexity k-mers?
+	size_t earlyStopCount = 20; // stop flank extension if earlyStopCount extra bases didn't improve the delta score
 
 	bool dynamicFlanks = false;
 	size_t flankWidth = 25;

@@ -438,7 +438,7 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 
 	for (size_t i = 1; i <= options.maximumExtensionWidth; ++i) {
-		if (bestScore == 0) {
+		if (bestScore <= options.maxDelta) {
 			break;
 		}
 		if (directionRight) {
@@ -482,8 +482,11 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 		if (score < bestScore) {
 			bestScore = score;
 			bestSize = i;
-
 			//std::cout << "found a better score: " << score << "\n" << " with flank size: " << i << "\n";
+		} else {
+			if (score > bestScore && i - bestSize >= options.earlyStopCount) {
+				break;
+			}
 		}
 	}
 
@@ -535,6 +538,10 @@ ExtendedBlock nextExtendedBlock(size_t& actSAPos, const std::string& T, size_t n
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
 	SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+	if (seededBlock.getSeedSize() == 0) {
+		ExtendedBlock bl(seededBlock, nTax);
+		return bl;
+	}
 	ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 	// check if the extended block can still be accepted.
 	if (presenceChecker.isFine(extendedBlock)) {
@@ -549,6 +556,8 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		const Options& options) {
 	std::vector<ExtendedBlock> res;
 	size_t actSAPos = 0;
+
+	double lastP = 0;
 
 	while (actSAPos < SA.size()) {
 		SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
@@ -574,6 +583,12 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 			}
 
 			res.push_back(extendedBlock);
+		}
+
+		double progress = (double) 100*actSAPos / SA.size();
+		if (progress > lastP + 1) {
+			std::cout << progress << " %\n";
+			lastP = progress;
 		}
 	}
 	return res;
@@ -608,6 +623,8 @@ std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax
 		AlignedBlock bl(extBlocks[i], nTax);
 		res.push_back(bl);
 	}
+
+#pragma omp parallel for
 	for (size_t i = 0; i < res.size(); ++i) {
 		if (options.noIndels) {
 			res[i].setAlignment(extBlocks[i].noGapsMSA.assembleMSA());

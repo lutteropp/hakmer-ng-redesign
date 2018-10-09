@@ -278,6 +278,15 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 	return res;
 }
 
+void writeFASTASupermatrix(const std::vector<std::string>& msa, const std::vector<std::string>& taxonLabels, const std::string& filepath) {
+	std::ofstream outfile(filepath);
+	std::cout << "writing to file: " << filepath << "\n";
+	for (size_t i = 0; i < taxonLabels.size(); ++i) {
+		outfile << ">" + taxonLabels[i] << "\n";
+		outfile << msa[i] << "\n";
+	}
+	outfile.close();
+}
 
 void writeFASTASupermatrix(const std::vector<AlignedBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath) {
 	std::ofstream outfile(filepath);
