@@ -110,8 +110,8 @@ void NoGapsMSA::shrinkDownToLeftFlank(size_t newLeftFlankSize) {
 	}
 	width -= sequencesLeft[0].size() - newLeftFlankSize;
 	for (size_t i = 0; i < nTax; ++i) {
-		sequencesLeft.resize(newLeftFlankSize);
-		sequencesLeft.shrink_to_fit();
+		sequencesLeft[i].resize(newLeftFlankSize);
+		sequencesLeft[i].shrink_to_fit();
 	}
 }
 
@@ -128,8 +128,8 @@ void NoGapsMSA::shrinkDownToRightFlank(size_t newRightFlankSize) {
 	}
 	width -= sequencesRight[0].size() - newRightFlankSize;
 	for (size_t i = 0; i < nTax; ++i) {
-		sequencesRight.resize(newRightFlankSize);
-		sequencesRight.shrink_to_fit();
+		sequencesRight[i].resize(newRightFlankSize);
+		sequencesRight[i].shrink_to_fit();
 	}
 }
 

@@ -120,6 +120,10 @@ void StarMSA::addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t 
 		aliSeqNewTaxon = alignmentToAdd.first;
 	}
 
+	if (aliSeqCenter.size() != aliSeqNewTaxon.size()) {
+		throw std::runtime_error("This should not happen: The sequences in the pairwise alignment have different sizes");
+	}
+
 	if (msa[centerSequenceIdx].empty()) {
 		msa[centerSequenceIdx] += aliSeqCenter;
 		msa[taxonToAdd] += aliSeqNewTaxon;

@@ -191,7 +191,7 @@ void matrixCallback(const Options& options) {
 	std::vector<AlignedBlock> alignedBlocks = extractAlignedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
 			concat.getLcpArray(), presenceChecker, taxCoords, options);
 
-	writeFASTASupermatrix(alignedBlocks, concat.getTaxonLabels(), options.filepath);
+	writeFASTASupermatrix(alignedBlocks, concat.getTaxonLabels(), options.outpath);
 }
 
 void reportCallback(const Options& options) {

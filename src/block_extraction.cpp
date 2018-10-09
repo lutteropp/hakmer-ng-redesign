@@ -485,18 +485,7 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 			bestScore = score;
 			bestSize = i;
 
-			//std::cout << "found a better score: " << score << "\n" << " with flank size: " << i << "\n";
-			std::vector<std::string> msa;
-			if (options.noIndels) {
-				msa = block.noGapsMSA.assembleMSA();
-			} else {
-				msa = block.starMSA.assembleMSA();
-			}
-			/*std::cout << "with MSA:\n";
-			for (size_t msaIdx = 0; msaIdx < msa.size(); msaIdx++) {
-				std::cout << msa[msaIdx] << "\n";
-			}*/
-			std::cout << "\n";
+			std::cout << "found a better score: " << score << "\n" << " with flank size: " << i << "\n";
 		}
 	}
 
@@ -573,11 +562,11 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		if (presenceChecker.isFine(extendedBlock)) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
 
-			std::cout << "Pushing back a block with alignment: \n";
+			/*std::cout << "Pushing back a block with alignment: \n";
 			std::vector<std::string> msa = extendedBlock.starMSA.assembleMSA();
 			for (size_t i = 0; i < msa.size(); ++i) {
 				std::cout << msa[i] << "\n";
-			}
+			}*/
 
 			res.push_back(extendedBlock);
 		}
