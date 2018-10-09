@@ -246,7 +246,6 @@ bool allRightSame(const SeededBlock& seededBlock, const std::string& T, size_t n
 
 void trivialExtension(SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
 	// first, perform trivial extension of the seeded block
-	std::cout << "seed size before trivial extension: " << seededBlock.getSeedSize() << "\n";
 	std::vector<size_t> taxonIDs = seededBlock.getTaxonIDsInBlock();
 	bool canLeft = true;
 	bool canRight = true;
@@ -270,7 +269,6 @@ void trivialExtension(SeededBlock& seededBlock, const std::string& T, PresenceCh
 			seededBlock.increaseTaxonCoordsRight();
 		}
 	}
-	std::cout << "seed size after trivial extension: " << seededBlock.getSeedSize() << "\n";
 }
 
 // TODO: Re-add mismatches and indels in seeds
