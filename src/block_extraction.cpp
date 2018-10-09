@@ -485,7 +485,7 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 			bestScore = score;
 			bestSize = i;
 
-			std::cout << "found a better score: " << score << "\n" << " with flank size: " << i << "\n";
+			//std::cout << "found a better score: " << score << "\n" << " with flank size: " << i << "\n";
 		}
 	}
 

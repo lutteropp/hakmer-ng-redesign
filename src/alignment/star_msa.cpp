@@ -8,6 +8,7 @@
 #include "star_msa.hpp"
 
 #include <stdexcept>
+#include <iostream>
 
 StarMSA::StarMSA() :
 		nTax(0) {
@@ -100,6 +101,7 @@ void StarMSA::shrinkDownToRightFlank(size_t newRightFlankSize) {
 		}
 	}
 }
+
 void StarMSA::addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t centerSequenceIdx) {
 	if (taxonToAdd == centerSequenceIdx) {
 		throw std::runtime_error("This should not happen: taxonToAdd == centerSequenceIndex here");
@@ -107,8 +109,6 @@ void StarMSA::addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t 
 	size_t firstIdx = std::min(taxonToAdd, centerSequenceIdx);
 	size_t secondIdx = std::max(taxonToAdd, centerSequenceIdx);
 	std::pair<std::string, std::string> alignmentToAdd = pairwiseAlignments.entryAt(firstIdx, secondIdx).extractAlignment();
-
-	//std::cout << "alignment to add: \n" << alignmentToAdd.first << "\n" << alignmentToAdd.second << "\n";
 
 	std::string aliSeqCenter;
 	std::string aliSeqNewTaxon;
@@ -128,51 +128,56 @@ void StarMSA::addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t 
 		msa[centerSequenceIdx] += aliSeqCenter;
 		msa[taxonToAdd] += aliSeqNewTaxon;
 	} else {
-		/*std::cout << "msa[centerSequenceIdx].size(): " << msa[centerSequenceIdx].size() << "\n";
-		 std::cout << "msa[centerSequenceIdx]: " << msa[centerSequenceIdx] << "\n";
-		 std::cout << "aliSeqCenter.size(): " << aliSeqCenter.size() << "\n";
-		 std::cout << "aliSeqCenter: " << aliSeqCenter << "\n";*/
+		size_t i_ali = 0;
+		size_t i_msa = 0;
 
-		size_t i = 0;
 		while (true) {
-			if (i >= aliSeqCenter.size() && i >= msa[centerSequenceIdx].size()) {
+			if (i_ali >= aliSeqCenter.size() && i_msa >= msa[centerSequenceIdx].size()) {
 				break;
-			} else if (i >= aliSeqCenter.size()) {
+			} else if (i_ali >= aliSeqCenter.size()) {
 				msa[taxonToAdd] += "-";
-				msa[taxonToAdd] += aliSeqNewTaxon[i];
-			} else if (i >= msa[centerSequenceIdx].size()) {
-				// add gap to all sequences already added to the msa, at position i
+				i_msa++;
+			} else if (i_msa >= msa[centerSequenceIdx].size()) {
 				for (size_t j = 0; j < msa.size(); ++j) {
-					if (msa[j].empty())
+					if (msa[j].empty()) {
 						continue;
-					std::string left = msa[j].substr(0, i);
-					std::string right = msa[j].substr(i, std::string::npos);
-					msa[j] = left + "-" + right;
+					}
+					if (j == taxonToAdd) {
+						continue;
+					}
+					msa[j] += '-';
 				}
-				msa[taxonToAdd] += aliSeqNewTaxon[i];
+				msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
+				i_ali++;
 			} else {
-				if (msa[centerSequenceIdx][i] == aliSeqCenter[i]) {
-					msa[taxonToAdd] += aliSeqNewTaxon[i];
-				} else if (msa[centerSequenceIdx][i] == '-') {
+				if (msa[centerSequenceIdx][i_msa] == aliSeqCenter[i_ali]) {
+					msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
+					i_msa++;
+					i_ali++;
+				} else if (msa[centerSequenceIdx][i_msa] == '-') {
 					msa[taxonToAdd] += "-";
-					msa[taxonToAdd] += aliSeqNewTaxon[i];
-				} else if (aliSeqCenter[i] == '-') {
+					i_msa++;
+				} else if (aliSeqCenter[i_ali] == '-') {
 					// add gap to all sequences already added to the msa, at position i
 					for (size_t j = 0; j < msa.size(); ++j) {
 						if (msa[j].empty())
 							continue;
-						std::string left = msa[j].substr(0, i);
-						std::string right = msa[j].substr(i, std::string::npos);
+						if (j == taxonToAdd) {
+							continue;
+						}
+						std::string left = msa[j].substr(0, i_msa);
+						std::string right = msa[j].substr(i_msa, std::string::npos);
 						msa[j] = left + "-" + right;
 					}
-					msa[taxonToAdd] += aliSeqNewTaxon[i];
+					msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
+					i_ali++;
+					i_msa++; // because we inserted the gap
+				} else {
+					std::cout << "msa[centerSequenceIdx][i_msa]: " << msa[centerSequenceIdx][i_msa] << "\n";
+					std::cout << "aliSeqCenter[i_ali]: " << aliSeqCenter[i_ali] << "\n";
+					throw std::runtime_error("This should not happen");
 				}
 			}
-			++i;
 		}
 	}
-	/*std::cout << "MSA is now: \n";
-	 for (size_t i = 0; i < msa.size(); ++i) {
-	 std::cout << msa[i] << "\n";
-	 }*/
 }
