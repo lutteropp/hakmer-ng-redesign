@@ -10,6 +10,7 @@
 
 #include <unordered_set>
 #include <cmath>
+#include <queue>
 
 #include "indexing/suffix_array_classic.hpp"
 
@@ -296,7 +297,6 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
 					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
 				}
-				trivialExtension(block, T, presenceChecker, nTax); // TODO: Improve this, do the trivial extension already before
 				break;
 			} else {
 				if (k == options.maxK) { // no further extension of seed length
@@ -583,19 +583,40 @@ ExtendedBlock nextExtendedBlock(size_t& actSAPos, const std::string& T, size_t n
 	}
 }
 
+class MyComparator {
+public:
+	int operator()(const SeededBlock& t1, const SeededBlock& t2) {
+		return t1.getNTaxInBlock() < t2.getNTaxInBlock();
+	}
+};
+
 std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
 	std::vector<ExtendedBlock> res;
 	size_t actSAPos = 0;
-
+	std::cout << "Extracting seeded blocks...\n";
 	double lastP = 0;
-
+	std::priority_queue<SeededBlock, std::vector<SeededBlock>, MyComparator> seededBlocks;
 	while (actSAPos < SA.size()) {
 		SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
 		if (seededBlock.getSeedSize() == 0) { // no more seeded blocks found
-			return res;
+			break;
 		}
+		seededBlocks.push(seededBlock);
+		double progress = (double) 100 * actSAPos / SA.size();
+		if (progress > lastP + 1) {
+			std::cout << progress << " %\n";
+			lastP = progress;
+		}
+	}
+	std::cout << "Assembling extended blocks...\n";
+	lastP = 0;
+	size_t n_seeds = seededBlocks.size();
+	while (!seededBlocks.empty()) {
+		SeededBlock seededBlock = seededBlocks.top();
+		seededBlocks.pop();
+		trivialExtension(seededBlock, T, presenceChecker, nTax);
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 		// check if the extended block can still be accepted.
 		if (presenceChecker.isFine(extendedBlock)) {
@@ -617,7 +638,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 			res.push_back(extendedBlock);
 		}
 
-		double progress = (double) 100 * actSAPos / SA.size();
+		double progress = (double) 100 * (n_seeds - seededBlocks.size()) / n_seeds;
 		if (progress > lastP + 1) {
 			std::cout << progress << " %\n";
 			lastP = progress;
