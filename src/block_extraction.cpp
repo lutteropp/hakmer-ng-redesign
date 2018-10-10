@@ -15,7 +15,7 @@
 
 size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, bool revComp) {
 	if (pos >= concatSize/2 && revComp) {
-		pos = concatSize - 1 - pos;
+		pos = concatSize - pos;
 	}
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		if (pos >= taxonCoords[i].first && pos <= taxonCoords[i].second) {
