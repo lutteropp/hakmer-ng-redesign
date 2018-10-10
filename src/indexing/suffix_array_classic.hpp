@@ -52,11 +52,13 @@ public:
 		std::cout << "Suffix array built...Working...\n";
 		_nTotalSites = nTotalSites;
 
+		std::cout << "Computing longest common prefixes...\n";
 		lcp.resize(nTotalSites);
 		lcp[0] = 0;
 		for (size_t i = 1; i < nTotalSites; ++i) {
 			lcp[i] = longestCommonPrefix(seq, SA[i - 1], SA[i], lTop);
 		}
+		std::cout << "Finished computation of longest common prefixes.\n";
 	}
 
 	void buildSuffixArray(const std::string& seq, size_t nTotalSites, const Options& options) {

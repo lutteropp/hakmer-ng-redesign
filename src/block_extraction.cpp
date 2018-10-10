@@ -14,7 +14,7 @@
 #include "indexing/suffix_array_classic.hpp"
 
 size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, bool revComp) {
-	if (pos >= concatSize/2 && revComp) {
+	if (pos >= concatSize / 2 && revComp) {
 		pos = concatSize - pos;
 	}
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
@@ -435,6 +435,50 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 	size_t nTaxBlock = block.getNTaxInBlock();
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 
+	if (!options.dynamicFlanks) {
+		size_t finalFlankSize = 0;
+		for (size_t i = 1; i <= options.flankWidth; ++i) {
+			if (directionRight) {
+				if (!canGoRightAll(block, presenceChecker, nTax, i)) {
+					break;
+				}
+			} else {
+				if (!canGoLeftAll(block, presenceChecker, nTax, i)) {
+					break;
+				}
+			}
+			std::vector<char> charsToAdd(taxIDs.size());
+			for (size_t j = 0; j < taxIDs.size(); ++j) {
+				size_t coord;
+				if (directionRight) {
+					coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second + i;
+				} else {
+					coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first - i;
+				}
+				if (coord >= T.size()) {
+					throw std::runtime_error("This should not happen! Coord is too large.");
+				}
+				charsToAdd[j] = T[coord];
+			}
+			if (options.noIndels) {
+				if (directionRight) {
+					block.noGapsMSA.addCharsRight(charsToAdd);
+				} else {
+					block.noGapsMSA.addCharsLeft(charsToAdd);
+				}
+			} else {
+				if (directionRight) {
+					block.starMSA.addCharsRight(charsToAdd);
+				} else {
+					block.starMSA.addCharsLeft(charsToAdd);
+				}
+			}
+			finalFlankSize = i;
+		}
+		double score = averageDeltaScore(block, nTaxBlock, options);
+		return std::make_pair(finalFlankSize, score);
+	}
+
 	for (size_t i = 1; i <= options.maximumExtensionWidth; ++i) {
 		if (bestScore <= options.maxDelta) {
 			break;
@@ -495,39 +539,29 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 		const Options& options) {
 	ExtendedBlock block(seededBlock, nTax);
 
-	if (!options.dynamicFlanks) {
-		size_t flankWidth = options.flankWidth;
-		for (size_t i = 0; i < nTax; ++i) {
-			if (block.hasTaxon(i)) {
-				block.setLeftFlankSize(i, flankWidth);
-				block.setRightFlankSize(i, flankWidth);
-			}
-		}
+	std::string seedSequence = extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[0], T);
+	if (options.noIndels) {
+		block.noGapsMSA.init(block.getNTaxInBlock());
+		block.noGapsMSA.setSeeds(seedSequence);
 	} else {
-		std::string seedSequence = extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[0], T);
-		if (options.noIndels) {
-			block.noGapsMSA.init(block.getNTaxInBlock());
-			block.noGapsMSA.setSeeds(seedSequence);
-		} else {
-			block.starMSA.init(block.getNTaxInBlock());
-			block.starMSA.setSeeds(seedSequence);
-		}
+		block.starMSA.init(block.getNTaxInBlock());
+		block.starMSA.setSeeds(seedSequence);
+	}
 
-		std::pair<size_t, double> bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
-		std::pair<size_t, double> bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
-		for (size_t i = 0; i < nTax; ++i) {
-			if (block.hasTaxon(i)) {
-				block.setLeftFlankSize(i, bestLeft.first);
-				block.setRightFlankSize(i, bestRight.first);
-			}
+	std::pair<size_t, double> bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
+	std::pair<size_t, double> bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
+	for (size_t i = 0; i < nTax; ++i) {
+		if (block.hasTaxon(i)) {
+			block.setLeftFlankSize(i, bestLeft.first);
+			block.setRightFlankSize(i, bestRight.first);
 		}
-		if (options.noIndels) {
-			block.noGapsMSA.shrinkDownToLeftFlank(bestLeft.first);
-			block.noGapsMSA.shrinkDownToRightFlank(bestRight.first);
-		} else {
-			block.starMSA.shrinkDownToLeftFlank(bestLeft.first);
-			block.starMSA.shrinkDownToRightFlank(bestRight.first);
-		}
+	}
+	if (options.noIndels) {
+		block.noGapsMSA.shrinkDownToLeftFlank(bestLeft.first);
+		block.noGapsMSA.shrinkDownToRightFlank(bestRight.first);
+	} else {
+		block.starMSA.shrinkDownToLeftFlank(bestLeft.first);
+		block.starMSA.shrinkDownToRightFlank(bestRight.first);
 	}
 	return block;
 }
