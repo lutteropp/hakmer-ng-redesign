@@ -32,6 +32,7 @@ public:
 	SuffixArrayClassic() {
 		_nTotalSites = 0;
 	}
+
 	/**
 	 * Build the suffix array according to Marius's code.
 	 * @param seq The concatenated input sequences.
@@ -53,11 +54,12 @@ public:
 		_nTotalSites = nTotalSites;
 
 		std::cout << "Computing longest common prefixes...\n";
-		lcp.resize(nTotalSites);
+		/*lcp.resize(nTotalSites);
 		lcp[0] = 0;
 		for (size_t i = 1; i < nTotalSites; ++i) {
 			lcp[i] = longestCommonPrefix(seq, SA[i - 1], SA[i], lTop);
-		}
+		}*/
+		computeLCP(seq);
 		std::cout << "Finished computation of longest common prefixes.\n";
 	}
 
@@ -92,6 +94,27 @@ public:
 private:
 	bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& res, const std::string& text);
 	bool binarySearch3Prime(size_t patternSeqStartPos, unsigned int m, std::pair<size_t, size_t>& res, const std::string& text);
+	// algorithm from http://web.cs.iastate.edu/~cs548/references/linear_lcp.pdf
+	void computeLCP(const std::string& seq) {
+		std::vector<size_t> rank(SA.size());
+		for (size_t i = 1; i < SA.size(); ++i) {
+			rank[SA[i]] = i;
+		}
+		lcp.resize(SA.size());
+		lcp[0] = 0;
+		size_t h = 0;
+		for (size_t i = 1; i < SA.size(); ++i) {
+			if (rank[i] > 1) {
+				size_t j = SA[rank[i] - 1];
+				while (seq[i + h] == seq[j + h]) {
+					h++;
+				}
+				lcp[rank[i]] = h;
+				if (h > 0)
+					h--;
+			}
+		}
+	}
 	std::vector<size_t> SA;
 
 	size_t _nTotalSites;
