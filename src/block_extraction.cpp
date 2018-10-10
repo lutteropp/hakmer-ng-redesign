@@ -14,7 +14,7 @@
 #include "indexing/suffix_array_classic.hpp"
 
 size_t posToTaxon(size_t pos, const std::vector<std::pair<size_t, size_t> >& taxonCoords, size_t concatSize, bool revComp) {
-	if (pos >= concatSize && revComp) {
+	if (pos >= concatSize/2 && revComp) {
 		pos = concatSize - 1 - pos;
 	}
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
@@ -289,8 +289,6 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 			continue;
 		}
 		size_t matchCount = countMatches(sIdx, lcp, k);
-
-		// TODO: Something seems to be wrong in the LCP Array? Why is the longest common prefix so long? And: How can match count be so large?
 
 		while (matchCount >= options.minTaxaPerBlock) {
 			if (acceptSeed(sIdx, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
@@ -585,7 +583,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 			res.push_back(extendedBlock);
 		}
 
-		double progress = (double) 100*actSAPos / SA.size();
+		double progress = (double) 100 * actSAPos / SA.size();
 		if (progress > lastP + 1) {
 			std::cout << progress << " %\n";
 			lastP = progress;

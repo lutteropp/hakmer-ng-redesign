@@ -20,6 +20,9 @@ SeededBlock::SeededBlock(size_t nTax) {
 }
 
 void SeededBlock::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
+	if (taxID >= taxonCoords.size()) {
+		throw std::runtime_error("Trying to add taxon ID that belongs to no taxon");
+	}
 	if (taxonCoords[taxID].first != std::string::npos) {
 		std::cout << "taxID: " << taxID << "\n";
 		std::cout << "firstCoord: " << firstCoord << "\n";
