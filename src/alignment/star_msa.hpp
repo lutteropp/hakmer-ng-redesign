@@ -32,4 +32,6 @@ private:
 	void addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t centerSequenceIdx);
 	size_t nTax;
 	TwoDimMatrix<SplitPairwiseAlignment> pairwiseAlignments;
+	std::vector<std::string> msa;
+	bool msaValid;
 };

@@ -601,14 +601,14 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		if (presenceChecker.isFine(extendedBlock)) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
 
+			std::vector<std::string> msa;
+			if (options.noIndels) {
+				msa = extendedBlock.noGapsMSA.assembleMSA();
+			} else {
+				msa = extendedBlock.starMSA.assembleMSA();
+			}
 			if (options.verboseDebug) {
 				std::cout << "Pushing back a block with alignment: \n";
-				std::vector<std::string> msa;
-				if (options.noIndels) {
-					msa = extendedBlock.noGapsMSA.assembleMSA();
-				} else {
-					msa = extendedBlock.starMSA.assembleMSA();
-				}
 				for (size_t i = 0; i < msa.size(); ++i) {
 					std::cout << msa[i] << "\n";
 				}
@@ -656,7 +656,6 @@ std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax
 		res.push_back(bl);
 	}
 
-#pragma omp parallel for
 	for (size_t i = 0; i < res.size(); ++i) {
 		if (options.noIndels) {
 			res[i].setAlignment(extBlocks[i].noGapsMSA.assembleMSA());

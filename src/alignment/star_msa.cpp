@@ -11,14 +11,16 @@
 #include <iostream>
 
 StarMSA::StarMSA() :
-		nTax(0) {
+		nTax(0), msaValid(false) {
 }
 void StarMSA::init(size_t nTax) {
 	this->nTax = nTax;
 	pairwiseAlignments.init(nTax, nTax);
 }
 std::vector<std::string> StarMSA::assembleMSA() {
-	std::vector<std::string> msa;
+	if (msaValid) {
+		return msa;
+	}
 	msa.resize(nTax);
 	// first, find the sequence with the smallest distance sum to the others
 	std::vector<int> distanceSums(nTax, 0);
@@ -70,6 +72,10 @@ std::vector<std::string> StarMSA::assembleMSA() {
 			throw std::runtime_error("THIS SHOULD NOT HAPPEN! ALIGNMENT WIDTH IS NOT EQUAL");
 		}
 	}
+	msaValid = true;
+
+	// now the pairwise alignments are not needed anymore, most likely not even the pairwise distances... free them.
+	pairwiseAlignments.shrinkDownTo(0,0);
 
 	return msa;
 }
@@ -94,6 +100,7 @@ void StarMSA::addCharsLeft(const std::vector<char>& chars) {
 			pairwiseAlignments.entryAt(i, j).addCharsLeft(chars[i], chars[j]);
 		}
 	}
+	msaValid = false;
 }
 void StarMSA::addCharsRight(const std::vector<char>& chars) {
 	for (size_t i = 0; i < nTax - 1; ++i) {
@@ -101,6 +108,7 @@ void StarMSA::addCharsRight(const std::vector<char>& chars) {
 			pairwiseAlignments.entryAt(i, j).addCharsRight(chars[i], chars[j]);
 		}
 	}
+	msaValid = false;
 }
 void StarMSA::setSeeds(const std::vector<std::string>& seeds) {
 	for (size_t i = 0; i < nTax - 1; ++i) {
@@ -108,6 +116,7 @@ void StarMSA::setSeeds(const std::vector<std::string>& seeds) {
 			pairwiseAlignments.entryAt(i, j).setSeed(seeds[i], seeds[j]);
 		}
 	}
+	msaValid = false;
 }
 void StarMSA::setSeeds(const std::string& seed) {
 	for (size_t i = 0; i < nTax - 1; ++i) {
@@ -115,6 +124,7 @@ void StarMSA::setSeeds(const std::string& seed) {
 			pairwiseAlignments.entryAt(i, j).setSeed(seed, seed);
 		}
 	}
+	msaValid = false;
 }
 void StarMSA::shrinkDownToLeftFlank(size_t newLeftFlankSize) {
 	for (size_t i = 0; i < nTax - 1; ++i) {
@@ -122,6 +132,7 @@ void StarMSA::shrinkDownToLeftFlank(size_t newLeftFlankSize) {
 			pairwiseAlignments.entryAt(i, j).shrinkDownToLeftFlank(newLeftFlankSize);
 		}
 	}
+	msaValid = false;
 }
 void StarMSA::shrinkDownToRightFlank(size_t newRightFlankSize) {
 	for (size_t i = 0; i < nTax - 1; ++i) {
@@ -129,6 +140,7 @@ void StarMSA::shrinkDownToRightFlank(size_t newRightFlankSize) {
 			pairwiseAlignments.entryAt(i, j).shrinkDownToRightFlank(newRightFlankSize);
 		}
 	}
+	msaValid = false;
 }
 
 bool checkMSA(const std::vector<std::string>& msa, size_t idxToIgnore) {
