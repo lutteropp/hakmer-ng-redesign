@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <cmath>
 #include <queue>
+#include <algorithm>
 
 #include "indexing/suffix_array_classic.hpp"
 
@@ -318,17 +319,54 @@ SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax,
 	return block;
 }
 
+// TODO: Re-add mismatches and indels in seeds
 std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
 	std::vector<SeededBlock> res;
 	size_t actSAPos = 0;
-	while (actSAPos < SA.size()) {
-		SeededBlock bl = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
-		if (bl.getSeedSize() > 0) {
-			res.push_back(nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options));
-		} else {
-			break;
+	double lastP = 0;
+
+#pragma omp parallel for schedule(dynamic)
+	for (size_t sIdx = 0; sIdx < SA.size(); ++sIdx) {
+		size_t startPos = SA[sIdx];
+		size_t k = options.minK;
+		if ((startPos + k >= T.size() || !presenceChecker.isFree(startPos, startPos + k - 1))) {
+			continue;
+		}
+		size_t matchCount = countMatches(sIdx, lcp, k);
+
+		while (matchCount >= options.minTaxaPerBlock) {
+			if (acceptSeed(sIdx, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
+				SeededBlock block(nTax);
+				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
+					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
+				}
+#pragma omp critical
+				{
+					res.push_back(block);
+				}
+				double progress = (double) 100 * sIdx / SA.size();
+				if (progress > lastP + 1) {
+#pragma omp critical
+					{
+						if (progress > lastP + 1) {
+							std::cout << progress << " %\n";
+							lastP = progress;
+						}
+					}
+				}
+				break;
+			} else {
+				if (k == options.maxK) { // no further extension of seed length
+					break;
+				}
+				if (startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // newly added character would be already taken anyway
+					break;
+				}
+				k++;
+				matchCount = countMatches(sIdx, lcp, k);
+			}
 		}
 	}
 	return res;
@@ -583,39 +621,17 @@ ExtendedBlock nextExtendedBlock(size_t& actSAPos, const std::string& T, size_t n
 	}
 }
 
-class MyComparator {
-public:
-	int operator()(const SeededBlock& t1, const SeededBlock& t2) {
-		return t1.getNTaxInBlock() < t2.getNTaxInBlock();
-	}
-};
-
 std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
 	std::vector<ExtendedBlock> res;
-	size_t actSAPos = 0;
 	std::cout << "Extracting seeded blocks...\n";
-	double lastP = 0;
-	std::priority_queue<SeededBlock, std::vector<SeededBlock>, MyComparator> seededBlocks;
-	while (actSAPos < SA.size()) {
-		SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
-		if (seededBlock.getSeedSize() == 0) { // no more seeded blocks found
-			break;
-		}
-		seededBlocks.push(seededBlock);
-		double progress = (double) 100 * actSAPos / SA.size();
-		if (progress > lastP + 1) {
-			std::cout << progress << " %\n";
-			lastP = progress;
-		}
-	}
+	std::vector<SeededBlock> seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<SeededBlock>());
 	std::cout << "Assembling extended blocks...\n";
-	lastP = 0;
-	size_t n_seeds = seededBlocks.size();
-	while (!seededBlocks.empty()) {
-		SeededBlock seededBlock = seededBlocks.top();
-		seededBlocks.pop();
+	double lastP = 0;
+	for (size_t i = 0; i < seededBlocks.size(); ++i) {
+		SeededBlock seededBlock = seededBlocks[i];
 		trivialExtension(seededBlock, T, presenceChecker, nTax);
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 		// check if the extended block can still be accepted.
@@ -637,8 +653,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 
 			res.push_back(extendedBlock);
 		}
-
-		double progress = (double) 100 * (n_seeds - seededBlocks.size()) / n_seeds;
+		double progress = (double) 100 * i / seededBlocks.size();
 		if (progress > lastP + 1) {
 			std::cout << progress << " %\n";
 			lastP = progress;

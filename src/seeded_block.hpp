@@ -22,6 +22,12 @@ public:
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	void increaseTaxonCoordsRight();
 	void decreaseTaxonCoordsLeft();
+	bool operator <(const SeededBlock& str) const {
+		return (n < str.n);
+	}
+	bool operator >(const SeededBlock& str) const {
+		return (n > str.n);
+	}
 private:
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
 	size_t n;
