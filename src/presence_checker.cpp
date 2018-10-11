@@ -89,3 +89,15 @@ bool PresenceChecker::isFine(const ExtendedBlock& block) {
 	}
 	return true;
 }
+
+bool PresenceChecker::isFine(const SeededBlock& block) {
+	for (size_t i = 0; i < nTax; ++i) {
+		if (block.hasTaxon(i)) {
+			std::pair<size_t, size_t> coords = block.getTaxonCoords(i);
+			if (!isFree(coords.first, coords.second)) {
+				return false;
+			}
+		}
+	}
+	return true;
+}

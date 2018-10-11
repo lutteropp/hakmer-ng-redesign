@@ -546,6 +546,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	double lastP = 0;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		SeededBlock seededBlock = seededBlocks[i];
+		if (!presenceChecker.isFine(seededBlock)) continue;
 		trivialExtension(seededBlock, T, presenceChecker, nTax);
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 		// check if the extended block can still be accepted.
