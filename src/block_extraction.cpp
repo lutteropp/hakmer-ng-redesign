@@ -224,22 +224,22 @@ bool canGoRightAll(const SeededBlock& block, const PresenceChecker& presenceChec
 	return canGo;
 }
 
-bool allLeftSame(const SeededBlock& seededBlock, const std::string& T, size_t nTax) {
+bool allLeftSame(const SeededBlock& seededBlock, const std::string& T, size_t nTax, size_t offset = 1) {
 	std::vector<size_t> taxIDs = seededBlock.getTaxonIDsInBlock();
-	char leftChar = T[seededBlock.getTaxonCoords(taxIDs[0]).first - 1];
+	char leftChar = T[seededBlock.getTaxonCoords(taxIDs[0]).first - offset];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
-		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).first - 1];
+		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).first - offset];
 		if (actChar != leftChar)
 			return false;
 	}
 	return true;
 }
 
-bool allRightSame(const SeededBlock& seededBlock, const std::string& T, size_t nTax) {
+bool allRightSame(const SeededBlock& seededBlock, const std::string& T, size_t nTax, size_t offset = 1) {
 	std::vector<size_t> taxIDs = seededBlock.getTaxonIDsInBlock();
-	char rightChar = T[seededBlock.getTaxonCoords(taxIDs[0]).second + 1];
+	char rightChar = T[seededBlock.getTaxonCoords(taxIDs[0]).second + offset];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
-		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).second + 1];
+		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).second + offset];
 		if (actChar != rightChar)
 			return false;
 	}
@@ -273,6 +273,37 @@ void trivialExtension(SeededBlock& seededBlock, const std::string& T, PresenceCh
 	}
 }
 
+size_t computeBestCaseMaxSize(const SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
+	size_t maxSize = seededBlock.getSeedSize();
+	bool canLeft = true;
+	bool canRight = true;
+	size_t leftOffset = 1;
+	size_t rightOffset = 1;
+	while (canLeft || canRight) {
+		if (!canGoLeftAll(seededBlock, presenceChecker, nTax, leftOffset)) {
+			canLeft = false;
+		}
+		if (!canGoRightAll(seededBlock, presenceChecker, nTax, rightOffset)) {
+			canRight = false;
+		}
+		if (canLeft && !allLeftSame(seededBlock, T, nTax, leftOffset)) {
+			canLeft = false;
+		}
+		if (canRight && !allRightSame(seededBlock, T, nTax, rightOffset)) {
+			canRight = false;
+		}
+		if (canLeft) {
+			maxSize++;
+			leftOffset++;
+		}
+		if (canRight) {
+			maxSize++;
+			rightOffset++;
+		}
+	}
+	return maxSize;
+}
+
 // TODO: Re-add mismatches and indels in seeds
 std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
@@ -296,6 +327,7 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
 					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
 				}
+				block.setBestCaseMaxSize(computeBestCaseMaxSize(block, T, presenceChecker, nTax));
 #pragma omp critical
 				{
 					res.push_back(block);

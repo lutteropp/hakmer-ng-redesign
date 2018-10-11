@@ -23,13 +23,20 @@ public:
 	void increaseTaxonCoordsRight();
 	void decreaseTaxonCoordsLeft();
 	bool operator <(const SeededBlock& str) const {
-		return (n < str.n);
+		return (n * bestCaseMaxSize < str.n * str.bestCaseMaxSize);
 	}
 	bool operator >(const SeededBlock& str) const {
-		return (n > str.n);
+		return (n * bestCaseMaxSize > str.n * str.bestCaseMaxSize);
+	}
+	void setBestCaseMaxSize(size_t s) {
+		bestCaseMaxSize = s;
+	}
+	size_t getBestCaseMaxSize() const {
+		return bestCaseMaxSize;
 	}
 private:
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
 	size_t n;
 	size_t k;
+	size_t bestCaseMaxSize;
 };

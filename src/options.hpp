@@ -50,9 +50,9 @@ public:
 	bool sameBlockCountAsMultiSPAM = false;
 	size_t minTaxaPerBlock = 4;
 	size_t maxTaxaPerBlock = std::numeric_limits<size_t>::max();
-	size_t maximumExtensionWidth = 50;
+	size_t maximumExtensionWidth = 500;
 	bool lowComplexity = false; // keep low complexity k-mers?
-	size_t earlyStopCount = 20; // stop flank extension if earlyStopCount extra bases didn't improve the delta score
+	size_t earlyStopCount = 50; // stop flank extension if earlyStopCount extra bases didn't improve the delta score
 
 	bool dynamicFlanks = false;
 	size_t flankWidth = 20;
