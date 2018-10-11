@@ -7,8 +7,8 @@
 
 #include "extended_block.hpp"
 
-ExtendedBlock::ExtendedBlock(const SeededBlock& seededBlock, size_t nTax) :
-		mySeededBlock(seededBlock) {
+ExtendedBlock::ExtendedBlock(const SeededBlock& seededBlock, size_t nTax, bool noGaps) :
+		mySeededBlock(seededBlock), msaWrapper(noGaps) {
 	leftFlankSizes.resize(nTax);
 	rightFlankSizes.resize(nTax);
 	for (size_t i = 0; i < nTax; ++i) {
@@ -111,12 +111,7 @@ std::vector<size_t> ExtendedBlock::getTaxonIDsInBlock() const {
 }
 
 double ExtendedBlock::getPairwiseNormalizedDistance(size_t idxInBlock1, size_t idxInBlock2, const Options& options) {
-	double dist = 1;
-	if (options.noIndels) {
-		dist = noGapsMSA.normalizedPairwiseDistance(idxInBlock1, idxInBlock2);
-	} else {
-		dist = starMSA.normalizedPairwiseDistance(idxInBlock1, idxInBlock2);
-	}
+	double dist = msaWrapper.normalizedPairwiseDistance(idxInBlock1, idxInBlock2);
 	if (options.jukesCantor) {
 		dist = jukesCantorCorrection(dist);
 	}

@@ -9,8 +9,7 @@
 
 #include <cmath>
 
-#include "alignment/nogaps_msa.hpp"
-#include "alignment/star_msa.hpp"
+#include "alignment/msa_wrapper.hpp"
 #include "seeded_block.hpp"
 #include "options.hpp"
 
@@ -23,7 +22,7 @@ inline double jukesCantorCorrection(double dist) {
 
 class ExtendedBlock {
 public:
-	ExtendedBlock(const SeededBlock& seededBlock, size_t nTax);
+	ExtendedBlock(const SeededBlock& seededBlock, size_t nTax, bool noGaps);
 	size_t getLeftFlankSize(size_t taxID) const;
 	size_t getRightFlankSize(size_t taxID) const;
 	void setLeftFlankSize(size_t taxID, size_t val);
@@ -40,9 +39,8 @@ public:
 	size_t getMaxRightFlankSize() const;
 	size_t getNTaxInBlock() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
-	NoGapsMSA noGapsMSA;
-	StarMSA starMSA;
 	double getPairwiseNormalizedDistance(size_t idxInBlock1, size_t idxInBlock2, const Options& options);
+	MSAWrapper msaWrapper;
 private:
 	SeededBlock mySeededBlock;
 	std::vector<size_t> leftFlankSizes;

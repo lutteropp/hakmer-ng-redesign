@@ -452,18 +452,11 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 				}
 				charsToAdd[j] = T[coord];
 			}
-			if (options.noIndels) {
-				if (directionRight) {
-					block.noGapsMSA.addCharsRight(charsToAdd);
-				} else {
-					block.noGapsMSA.addCharsLeft(charsToAdd);
-				}
+
+			if (directionRight) {
+				block.msaWrapper.addCharsRight(charsToAdd);
 			} else {
-				if (directionRight) {
-					block.starMSA.addCharsRight(charsToAdd);
-				} else {
-					block.starMSA.addCharsLeft(charsToAdd);
-				}
+				block.msaWrapper.addCharsLeft(charsToAdd);
 			}
 			finalFlankSize = i;
 		}
@@ -498,18 +491,11 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 			}
 			charsToAdd[j] = T[coord];
 		}
-		if (options.noIndels) {
-			if (directionRight) {
-				block.noGapsMSA.addCharsRight(charsToAdd);
-			} else {
-				block.noGapsMSA.addCharsLeft(charsToAdd);
-			}
+
+		if (directionRight) {
+			block.msaWrapper.addCharsRight(charsToAdd);
 		} else {
-			if (directionRight) {
-				block.starMSA.addCharsRight(charsToAdd);
-			} else {
-				block.starMSA.addCharsLeft(charsToAdd);
-			}
+			block.msaWrapper.addCharsLeft(charsToAdd);
 		}
 
 		double score = averageDeltaScore(block, nTaxBlock, options);
@@ -529,16 +515,11 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 
 ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
 		const Options& options) {
-	ExtendedBlock block(seededBlock, nTax);
+	ExtendedBlock block(seededBlock, nTax, options.noIndels);
 
 	std::string seedSequence = extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[0], T);
-	if (options.noIndels) {
-		block.noGapsMSA.init(block.getNTaxInBlock());
-		block.noGapsMSA.setSeeds(seedSequence);
-	} else {
-		block.starMSA.init(block.getNTaxInBlock());
-		block.starMSA.setSeeds(seedSequence);
-	}
+	block.msaWrapper.init(block.getNTaxInBlock());
+	block.msaWrapper.setSeeds(seedSequence);
 
 	std::pair<size_t, double> bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
 	std::pair<size_t, double> bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
@@ -548,13 +529,9 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 			block.setRightFlankSize(i, bestRight.first);
 		}
 	}
-	if (options.noIndels) {
-		block.noGapsMSA.shrinkDownToLeftFlank(bestLeft.first);
-		block.noGapsMSA.shrinkDownToRightFlank(bestRight.first);
-	} else {
-		block.starMSA.shrinkDownToLeftFlank(bestLeft.first);
-		block.starMSA.shrinkDownToRightFlank(bestRight.first);
-	}
+	block.msaWrapper.shrinkDownToLeftFlank(bestLeft.first);
+	block.msaWrapper.shrinkDownToRightFlank(bestRight.first);
+
 	return block;
 }
 
@@ -575,12 +552,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		if (presenceChecker.isFine(extendedBlock)) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
 
-			std::vector<std::string> msa;
-			if (options.noIndels) {
-				msa = extendedBlock.noGapsMSA.assembleMSA();
-			} else {
-				msa = extendedBlock.starMSA.assembleMSA();
-			}
+			std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
 			if (options.verboseDebug) {
 				std::cout << "Pushing back a block with alignment: \n";
 				for (size_t i = 0; i < msa.size(); ++i) {
@@ -614,11 +586,7 @@ std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax
 	}
 
 	for (size_t i = 0; i < res.size(); ++i) {
-		if (options.noIndels) {
-			res[i].setAlignment(extBlocks[i].noGapsMSA.assembleMSA());
-		} else {
-			res[i].setAlignment(extBlocks[i].starMSA.assembleMSA());
-		}
+		res[i].setAlignment(extBlocks[i].msaWrapper.assembleMSA());
 		// res[i].alignMAFFT(T, options);
 	}
 	return res;
