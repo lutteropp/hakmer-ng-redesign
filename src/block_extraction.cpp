@@ -521,8 +521,12 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 	block.msaWrapper.init(block.getNTaxInBlock());
 	block.msaWrapper.setSeeds(seedSequence);
 
-	std::pair<size_t, double> bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
-	std::pair<size_t, double> bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
+	std::pair<size_t, double> bestLeft;
+	std::pair<size_t, double> bestRight;
+
+	bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
+	bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
+
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
 			block.setLeftFlankSize(i, bestLeft.first);
@@ -546,13 +550,13 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	double lastP = 0;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		SeededBlock seededBlock = seededBlocks[i];
-		if (!presenceChecker.isFine(seededBlock)) continue;
+		if (!presenceChecker.isFine(seededBlock))
+			continue;
 		trivialExtension(seededBlock, T, presenceChecker, nTax);
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 		// check if the extended block can still be accepted.
 		if (presenceChecker.isFine(extendedBlock)) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
-
 			std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
 			if (options.verboseDebug) {
 				std::cout << "Pushing back a block with alignment: \n";
@@ -560,7 +564,6 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 					std::cout << msa[i] << "\n";
 				}
 			}
-
 			res.push_back(extendedBlock);
 		}
 		double progress = (double) 100 * i / seededBlocks.size();

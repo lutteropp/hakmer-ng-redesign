@@ -38,7 +38,7 @@ public:
 
 	// internal parameters
 	bool verboseDebug = false;
-	size_t minK = 8;
+	size_t minK = 24;
 	size_t maxK = std::numeric_limits<size_t>::max(); // if maxK == minK, then we don't do dynamic extension
 	bool largeMem = false;
 	bool jukesCantor = true;
@@ -50,11 +50,11 @@ public:
 	bool sameBlockCountAsMultiSPAM = false;
 	size_t minTaxaPerBlock = 4;
 	size_t maxTaxaPerBlock = std::numeric_limits<size_t>::max();
-	size_t maximumExtensionWidth = 300;
+	size_t maximumExtensionWidth = 50;
 	bool lowComplexity = false; // keep low complexity k-mers?
 	size_t earlyStopCount = 20; // stop flank extension if earlyStopCount extra bases didn't improve the delta score
 
 	bool dynamicFlanks = false;
-	size_t flankWidth = 25;
+	size_t flankWidth = 20;
 };
 

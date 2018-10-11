@@ -121,7 +121,7 @@ void StarMSA::setSeeds(const std::vector<std::string>& seeds) {
 void StarMSA::setSeeds(const std::string& seed) {
 	for (size_t i = 0; i < nTax - 1; ++i) {
 		for (size_t j = i + 1; j < nTax; ++j) {
-			pairwiseAlignments.entryAt(i, j).setSeed(seed, seed);
+			pairwiseAlignments.entryAt(i, j).setSeed(seed);
 		}
 	}
 	msaValid = false;
@@ -141,21 +141,6 @@ void StarMSA::shrinkDownToRightFlank(size_t newRightFlankSize) {
 		}
 	}
 	msaValid = false;
-}
-
-bool checkMSA(const std::vector<std::string>& msa, size_t idxToIgnore) {
-	// just to be sure: check if all msa sequences which are not empty and not the idxToIgnore/taxonToAdd sequence have equal size
-	size_t w = 0;
-	for (size_t i = 0; i < msa.size(); ++i) {
-		if (i == idxToIgnore || msa[i].empty())
-			continue;
-		if (w == 0)
-			w = msa[i].size();
-		if (msa[i].size() != w) {
-			return false;
-		}
-	}
-	return true;
 }
 
 size_t StarMSA::getAlignmentWidth() {
@@ -251,18 +236,4 @@ void StarMSA::addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t 
 		msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
 		i_ali++;
 	}
-
-	/*if (!checkMSA(msa, -1)) {
-		std::cout << "msa[centerSequenceIdx]:\n" << msa[centerSequenceIdx] << "\n";
-		std::cout << "aliSeqCenter:\n" << aliSeqCenter << "\n";
-
-		std::cout << "msa[taxonToAdd]:\n" << msa[taxonToAdd] << "\n";
-		std::cout << "aliSeqNewTaxon:\n" << aliSeqNewTaxon << "\n";
-
-		std::cout << "entire MSA:\n";
-		for (size_t i = 0; i < msa.size(); ++i) {
-			std::cout << msa[i] << "\n";
-		}
-		throw std::runtime_error("Something went wrong AFTER adding new sequence");
-	}*/
 }

@@ -12,6 +12,7 @@
 
 SplitPairwiseAlignment::SplitPairwiseAlignment() {
 	aliValid = false;
+	singleSeed = false;
 }
 void SplitPairwiseAlignment::addCharsLeft(char a, char b) {
 	leftFlank.addChars(a, b);
@@ -28,8 +29,15 @@ void SplitPairwiseAlignment::setSeed(const std::string& seed1, const std::string
 	for (size_t i = 0; i < seed1.size(); ++i) {
 		seed.addChars(seed1[i], seed2[i]);
 	}
+	singleSeed = false;
 	aliValid = false;
 }
+
+void SplitPairwiseAlignment::setSeed(const std::string& seed) {
+	singleSeed = true;
+	singleSeedSequence = seed;
+}
+
 std::pair<std::string, std::string> SplitPairwiseAlignment::extractAlignment() {
 	if (aliValid) {
 		return ali;
@@ -44,9 +52,16 @@ std::pair<std::string, std::string> SplitPairwiseAlignment::extractAlignment() {
 	std::reverse(leftFlankAlignment.second.begin(), leftFlankAlignment.second.end());
 	s1Aligned += leftFlankAlignment.first;
 	s2Aligned += leftFlankAlignment.second;
-	std::pair<std::string, std::string> seedAlignment = seed.extractAlignment();
-	s1Aligned += seedAlignment.first;
-	s2Aligned += seedAlignment.second;
+
+	if (singleSeed) {
+		s1Aligned += singleSeedSequence;
+		s2Aligned += singleSeedSequence;
+	} else {
+		std::pair<std::string, std::string> seedAlignment = seed.extractAlignment();
+		s1Aligned += seedAlignment.first;
+		s2Aligned += seedAlignment.second;
+	}
+
 	std::pair<std::string, std::string> rightFlankAlignment = rightFlank.extractAlignment();
 	s1Aligned += rightFlankAlignment.first;
 	s2Aligned += rightFlankAlignment.second;

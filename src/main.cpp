@@ -190,6 +190,7 @@ void matrixCallback(const Options& options) {
 
 	std::vector<ExtendedBlock> extendedBlocks = extractExtendedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
 			concat.getLcpArray(), presenceChecker, taxCoords, options);
+	std::cout << "Number of extracted blocks: " << extendedBlocks.size() << "\n";
 	writeFASTASupermatrix(extendedBlocks, concat.getTaxonLabels(), options.outpath);
 }
 

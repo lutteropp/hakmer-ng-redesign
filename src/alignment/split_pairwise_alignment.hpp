@@ -17,6 +17,7 @@ public:
 	void addCharsLeft(char a, char b);
 	void addCharsRight(char a, char b);
 	void setSeed(const std::string& seed1, const std::string& seed2);
+	void setSeed(const std::string& seed);
 	std::pair<std::string, std::string> extractAlignment();
 	void printAlignment();
 	size_t getAlignmentWidth();
@@ -26,6 +27,8 @@ public:
 	void shrinkDownToLeftFlank(size_t newLeftFlankSize);
 	void shrinkDownToRightFlank(size_t newRightFlankSize);
 private:
+	bool singleSeed;
+	std::string singleSeedSequence;
 	PairwiseAlignment leftFlank;
 	PairwiseAlignment seed;
 	PairwiseAlignment rightFlank;
