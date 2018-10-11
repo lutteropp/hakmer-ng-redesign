@@ -6,6 +6,8 @@
  */
 
 #include "block_helper_functions.hpp"
+#include "extended_block.hpp"
+#include "seeded_block.hpp"
 #include <iostream>
 
 std::string createMissingString(size_t len) {
@@ -16,14 +18,14 @@ std::string createMissingString(size_t len) {
 	return res;
 }
 
-std::string extractTaxonSequence(const AlignedBlock& block, size_t taxID) {
+std::string extractTaxonSequence(ExtendedBlock& block, size_t taxID) {
 	std::string res;
-	size_t aliWidth = block.getAlignmentWidth();
+	size_t aliWidth = block.msaWrapper.getAlignmentWidth();
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 	if (block.hasTaxon(taxID)) {
 		for (size_t i = 0; i < taxIDs.size(); ++i) {
 			if (taxIDs[i] == taxID) {
-				res = block.getAlignment()[i];
+				res = block.msaWrapper.assembleMSA()[i];
 				break;
 			}
 		}
@@ -33,16 +35,6 @@ std::string extractTaxonSequence(const AlignedBlock& block, size_t taxID) {
 	return res;
 }
 
-std::string extractTaxonSequence(const ExtendedBlock& block, size_t taxID, const std::string& T) {
-	std::string res;
-	if (block.hasTaxon(taxID)) {
-		std::pair<size_t, size_t> coord = block.getTaxonCoordsWithFlanks(taxID);
-		res = T.substr(coord.first, coord.second + 1 - coord.first);
-	} else {
-		res = createMissingString(block.getMaxLeftFlankSize() + block.getSeedSize() + block.getMaxRightFlankSize());
-	}
-	return res;
-}
 
 std::string extractTaxonSequence(const SeededBlock& block, size_t taxID, const std::string& T) {
 	std::string res;

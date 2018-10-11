@@ -28,6 +28,7 @@ public:
 	void setSeeds(const std::string& seed);
 	void shrinkDownToLeftFlank(size_t newLeftFlankSize);
 	void shrinkDownToRightFlank(size_t newRightFlankSize);
+	size_t getAlignmentWidth();
 private:
 	void addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t centerSequenceIdx);
 	size_t nTax;

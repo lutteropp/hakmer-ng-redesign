@@ -38,13 +38,13 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 	std::pair<std::vector<size_t>, std::vector<size_t> > shrunk = shrinkArrays(concat, taxCoords, wantedTaxa, options);
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 
-	std::vector<AlignedBlock> alignedBlocks = extractAlignedBlocks(concat.getConcatenatedSeq(), concat.nTax(), shrunk.first, shrunk.second,
+	std::vector<ExtendedBlock> blocks = extractExtendedBlocks(concat.getConcatenatedSeq(), concat.nTax(), shrunk.first, shrunk.second,
 			presenceChecker, taxCoords, options);
 	if (options.concatenatedMSA) { // this is the one that uses raxml-ng for quartet inference
 		std::array<std::string, 4> concatMSA = { "", "", "", "" };
-		for (size_t i = 0; i < alignedBlocks.size(); ++i) {
+		for (size_t i = 0; i < blocks.size(); ++i) {
 			for (size_t j = 0; j < 4; ++j) {
-				concatMSA[j] += extractTaxonSequence(alignedBlocks[i], j);
+				concatMSA[j] += extractTaxonSequence(blocks[i], j);
 			}
 		}
 		std::string prefix = concat.getTaxonLabels()[a] + "_" + concat.getTaxonLabels()[b] + "_" + concat.getTaxonLabels()[c] + "_"
@@ -52,8 +52,8 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 		return inferTopology(prefix, concatMSA, options);
 	} else if (options.concatenatedDistance) { // concatenated distances
 		std::array<double, 6> concatDist = { 0, 0, 0, 0, 0, 0 };
-		for (size_t i = 0; i < alignedBlocks.size(); ++i) {
-			std::vector<double> pwdist = alignedBlocks[i].getPairwiseNormalizedDistances(options);
+		for (size_t i = 0; i < blocks.size(); ++i) {
+			std::vector<double> pwdist = blocks[i].getPairwiseNormalizedDistances(options);
 			for (size_t j = 0; j < 6; ++j) {
 				concatDist[j] += pwdist[j];
 			}
@@ -63,8 +63,8 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 		return topologyFromDistances(pairwiseDistances);
 	} else { // inferring distance-based topologies for each block separately, then doing a majority vote
 		std::array<size_t, 3> counts = { 0, 0, 0 }; // ab|cd, ac|bd, ad|bc
-		for (size_t i = 0; i < alignedBlocks.size(); ++i) {
-			std::vector<double> pwdist = alignedBlocks[i].getPairwiseNormalizedDistances(options);
+		for (size_t i = 0; i < blocks.size(); ++i) {
+			std::vector<double> pwdist = blocks[i].getPairwiseNormalizedDistances(options);
 			std::array<double, 6> pairwiseDistances = { pwdist[0], pwdist[1], pwdist[2], pwdist[3], pwdist[4], pwdist[5] };
 			QuartetTopology topo = topologyFromDistances(pairwiseDistances);
 			switch (topo) {
@@ -188,9 +188,9 @@ void matrixCallback(const Options& options) {
 	}
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 
-	std::vector<AlignedBlock> alignedBlocks = extractAlignedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
+	std::vector<ExtendedBlock> extendedBlocks = extractExtendedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
 			concat.getLcpArray(), presenceChecker, taxCoords, options);
-	writeFASTASupermatrix(alignedBlocks, concat.getTaxonLabels(), options.outpath);
+	writeFASTASupermatrix(extendedBlocks, concat.getTaxonLabels(), options.outpath);
 }
 
 void reportCallback(const Options& options) {

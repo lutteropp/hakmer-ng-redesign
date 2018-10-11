@@ -158,6 +158,18 @@ bool checkMSA(const std::vector<std::string>& msa, size_t idxToIgnore) {
 	return true;
 }
 
+size_t StarMSA::getAlignmentWidth() {
+	if (!msaValid) {
+		assembleMSA();
+	}
+	for (size_t i = 0; i < msa.size(); ++i) {
+		if (!msa[i].empty()) {
+			return msa[i].size();
+		}
+	}
+	return 0;
+}
+
 void StarMSA::addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t centerSequenceIdx) {
 	if (taxonToAdd == centerSequenceIdx) {
 		throw std::runtime_error("This should not happen: taxonToAdd == centerSequenceIndex here");

@@ -117,3 +117,13 @@ double ExtendedBlock::getPairwiseNormalizedDistance(size_t idxInBlock1, size_t i
 	}
 	return dist;
 }
+
+std::vector<double> ExtendedBlock::getPairwiseNormalizedDistances(const Options& options) {
+	std::vector<double> res;
+	for (size_t i = 0; i < getNTaxInBlock(); ++i) {
+		for (size_t j = i + 1; j < getNTaxInBlock(); ++j) {
+			res.push_back(getPairwiseNormalizedDistance(i, j, options));
+		}
+	}
+	return res;
+}

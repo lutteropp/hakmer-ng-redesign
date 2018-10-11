@@ -88,6 +88,13 @@ public:
 			starMSA.shrinkDownToRightFlank(newRightFlankSize);
 		}
 	}
+	size_t getAlignmentWidth() {
+		if (noGaps) {
+			return noGapsMSA.getAlignmentWidth();
+		} else {
+			return starMSA.getAlignmentWidth();
+		}
+	}
 private:
 	bool noGaps;
 	NoGapsMSA noGapsMSA;

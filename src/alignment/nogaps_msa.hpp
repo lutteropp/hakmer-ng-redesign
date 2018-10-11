@@ -24,10 +24,13 @@ public:
 	void setSeeds(const std::string& seed);
 	void shrinkDownToLeftFlank(size_t newLeftFlankSize);
 	void shrinkDownToRightFlank(size_t newRightFlankSize);
+	size_t getAlignmentWidth() const;
 private:
 	bool isGapCharacter(char c);
 	size_t nTax;
 	TwoDimMatrix<size_t> pairwiseHammingDistances;
 	std::vector<std::string> sequencesLeft, sequencesMiddle, sequencesRight;
 	size_t width;
+	std::vector<std::string> msa;
+	bool msaValid;
 };

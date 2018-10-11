@@ -10,7 +10,7 @@
 #include <algorithm>
 
 NoGapsMSA::NoGapsMSA() :
-		nTax(0), width(0) {
+		nTax(0), width(0), msaValid(false) {
 }
 
 void NoGapsMSA::init(size_t nTax) {
@@ -20,6 +20,7 @@ void NoGapsMSA::init(size_t nTax) {
 	sequencesMiddle.resize(nTax);
 	sequencesRight.resize(nTax);
 	width = 0;
+	msaValid = false;
 
 	for (size_t i = 0; i < nTax; ++i) {
 		for (size_t j = i + 1; j < nTax; ++j) {
@@ -28,12 +29,18 @@ void NoGapsMSA::init(size_t nTax) {
 	}
 }
 std::vector<std::string> NoGapsMSA::assembleMSA() {
-	std::vector<std::string> msa(nTax, "");
+	if (msaValid) {
+		return msa;
+	}
+
+	msa.clear();
+	msa.resize(nTax);
 	for (size_t i = 0; i < nTax; ++i) {
 		std::string reversedLeft = sequencesLeft[i];
 		std::reverse(reversedLeft.begin(), reversedLeft.end());
 		msa[i] = reversedLeft + sequencesMiddle[i] + sequencesRight[i];
 	}
+	msaValid = true;
 	return msa;
 }
 double NoGapsMSA::pairwiseDistance(size_t idx1, size_t idx2) {
@@ -59,6 +66,7 @@ void NoGapsMSA::addCharsLeft(const std::vector<char>& chars) {
 			}
 		}
 	}
+	msaValid = false;
 	width++;
 }
 void NoGapsMSA::addCharsRight(const std::vector<char>& chars) {
@@ -72,6 +80,7 @@ void NoGapsMSA::addCharsRight(const std::vector<char>& chars) {
 			}
 		}
 	}
+	msaValid = false;
 	width++;
 }
 void NoGapsMSA::setSeeds(const std::vector<std::string>& seeds) {
@@ -88,12 +97,14 @@ void NoGapsMSA::setSeeds(const std::vector<std::string>& seeds) {
 			}
 		}
 	}
+	msaValid = false;
 	width += seeds[0].size();
 }
 void NoGapsMSA::setSeeds(const std::string& seed) {
 	for (size_t i = 0; i < nTax; ++i) {
 		sequencesMiddle[i] = seed;
 	}
+	msaValid = false;
 	width += seed.size();
 }
 
@@ -113,6 +124,7 @@ void NoGapsMSA::shrinkDownToLeftFlank(size_t newLeftFlankSize) {
 		sequencesLeft[i].resize(newLeftFlankSize);
 		sequencesLeft[i].shrink_to_fit();
 	}
+	msaValid = false;
 }
 
 void NoGapsMSA::shrinkDownToRightFlank(size_t newRightFlankSize) {
@@ -131,6 +143,7 @@ void NoGapsMSA::shrinkDownToRightFlank(size_t newRightFlankSize) {
 		sequencesRight[i].resize(newRightFlankSize);
 		sequencesRight[i].shrink_to_fit();
 	}
+	msaValid = false;
 }
 
 bool NoGapsMSA::isGapCharacter(char c) {
@@ -140,7 +153,7 @@ bool NoGapsMSA::isGapCharacter(char c) {
 		return false;
 	}
 }
-size_t nTax;
-TwoDimMatrix<size_t> pairwiseHammingDistances;
-std::vector<std::string> sequencesLeft, sequencesMiddle, sequencesRight;
-size_t width;
+
+size_t NoGapsMSA::getAlignmentWidth() const {
+	return width;
+}

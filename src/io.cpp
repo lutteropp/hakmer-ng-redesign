@@ -288,7 +288,7 @@ void writeFASTASupermatrix(const std::vector<std::string>& msa, const std::vecto
 	outfile.close();
 }
 
-void writeFASTASupermatrix(const std::vector<AlignedBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath) {
+void writeFASTASupermatrix(std::vector<ExtendedBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath) {
 	std::ofstream outfile(filepath);
 	std::cout << "writing to file: " << filepath << "\n";
 	for (size_t i = 0; i < taxonLabels.size(); ++i) {
@@ -296,18 +296,6 @@ void writeFASTASupermatrix(const std::vector<AlignedBlock>& blocks, const std::v
 		std::string concat = "";
 		for (size_t j = 0; j < blocks.size(); ++j) {
 			concat += extractTaxonSequence(blocks[j], i);
-		}
-		outfile << concat << "\n";
-	}
-	outfile.close();
-}
-void writeFASTASupermatrix(const std::vector<ExtendedBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath, const std::string& T) {
-	std::ofstream outfile(filepath);
-	for (size_t i = 0; i < taxonLabels.size(); ++i) {
-		outfile << ">" + taxonLabels[i] << "\n";
-		std::string concat = "";
-		for (size_t j = 0; j < blocks.size(); ++j) {
-			concat += extractTaxonSequence(blocks[j], i, T);
 		}
 		outfile << concat << "\n";
 	}

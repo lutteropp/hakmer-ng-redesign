@@ -570,24 +570,3 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	}
 	return res;
 }
-
-std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
-		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
-		const Options& options) {
-	std::vector<AlignedBlock> res;
-	std::vector<ExtendedBlock> extBlocks = extractExtendedBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
-
-	for (size_t i = 0; i < extBlocks.size(); ++i) {
-		if (extBlocks[i].getSeedSize() == 0) {
-			break;
-		}
-		AlignedBlock bl(extBlocks[i], nTax);
-		res.push_back(bl);
-	}
-
-	for (size_t i = 0; i < res.size(); ++i) {
-		res[i].setAlignment(extBlocks[i].msaWrapper.assembleMSA());
-		// res[i].alignMAFFT(T, options);
-	}
-	return res;
-}

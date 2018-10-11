@@ -40,6 +40,7 @@ public:
 	size_t getNTaxInBlock() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	double getPairwiseNormalizedDistance(size_t idxInBlock1, size_t idxInBlock2, const Options& options);
+	std::vector<double> getPairwiseNormalizedDistances(const Options& options);
 	MSAWrapper msaWrapper;
 private:
 	SeededBlock mySeededBlock;
