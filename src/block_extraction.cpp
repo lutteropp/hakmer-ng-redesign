@@ -248,33 +248,24 @@ bool allRightSame(const SeededBlock& seededBlock, const std::string& T, size_t n
 
 void trivialExtension(SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
 	// first, perform trivial extension of the seeded block
-	std::vector<size_t> taxonIDs = seededBlock.getTaxonIDsInBlock();
-	bool canLeft = true;
-	bool canRight = true;
-	while (canLeft || canRight) {
+	for (size_t i = 1; i <= seededBlock.getBestCaseMaxSizeLeft(); ++i) {
 		if (!canGoLeftAll(seededBlock, presenceChecker, nTax, 1)) {
-			canLeft = false;
+			break;
 		}
+		seededBlock.decreaseTaxonCoordsLeft();
+	}
+
+	for (size_t i = 1; i <= seededBlock.getBestCaseMaxSizeRight(); ++i) {
 		if (!canGoRightAll(seededBlock, presenceChecker, nTax, 1)) {
-			canRight = false;
+			break;
 		}
-		if (canLeft && !allLeftSame(seededBlock, T, nTax)) {
-			canLeft = false;
-		}
-		if (canRight && !allRightSame(seededBlock, T, nTax)) {
-			canRight = false;
-		}
-		if (canLeft) {
-			seededBlock.decreaseTaxonCoordsLeft();
-		}
-		if (canRight) {
-			seededBlock.increaseTaxonCoordsRight();
-		}
+		seededBlock.increaseTaxonCoordsRight();
 	}
 }
 
-size_t computeBestCaseMaxSize(const SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
-	size_t maxSize = seededBlock.getSeedSize();
+void computeBestCaseMaxSizes(SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
+	size_t maxSizeLeft = 0;
+	size_t maxSizeRight = 0;
 	bool canLeft = true;
 	bool canRight = true;
 	size_t leftOffset = 1;
@@ -293,15 +284,15 @@ size_t computeBestCaseMaxSize(const SeededBlock& seededBlock, const std::string&
 			canRight = false;
 		}
 		if (canLeft) {
-			maxSize++;
+			maxSizeLeft++;
 			leftOffset++;
 		}
 		if (canRight) {
-			maxSize++;
+			maxSizeRight++;
 			rightOffset++;
 		}
 	}
-	return maxSize;
+	seededBlock.setBestCaseMaxSizes(maxSizeLeft, maxSizeRight);
 }
 
 // TODO: Re-add mismatches and indels in seeds
@@ -327,7 +318,7 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
 					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
 				}
-				block.setBestCaseMaxSize(computeBestCaseMaxSize(block, T, presenceChecker, nTax));
+				computeBestCaseMaxSizes(block, T, presenceChecker, nTax);
 #pragma omp critical
 				{
 					res.push_back(block);
