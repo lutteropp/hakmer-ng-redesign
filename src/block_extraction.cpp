@@ -274,52 +274,6 @@ void trivialExtension(SeededBlock& seededBlock, const std::string& T, PresenceCh
 }
 
 // TODO: Re-add mismatches and indels in seeds
-SeededBlock nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
-		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
-		const Options& options) {
-	SeededBlock block(nTax);
-	bool foundBlock = false;
-	if (actSAPos >= SA.size()) {
-		return block;
-	}
-
-	size_t lastPos = SA.size() - 1;
-	for (size_t sIdx = actSAPos; sIdx < SA.size(); ++sIdx) {
-		size_t startPos = SA[sIdx];
-		size_t k = options.minK;
-		if ((startPos + k >= T.size() || !presenceChecker.isFree(startPos, startPos + k - 1))) {
-			continue;
-		}
-		size_t matchCount = countMatches(sIdx, lcp, k);
-
-		while (matchCount >= options.minTaxaPerBlock) {
-			if (acceptSeed(sIdx, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
-				foundBlock = true;
-				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
-					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
-				}
-				break;
-			} else {
-				if (k == options.maxK) { // no further extension of seed length
-					break;
-				}
-				if (startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // newly added character would be already taken anyway
-					break;
-				}
-				k++;
-				matchCount = countMatches(sIdx, lcp, k);
-			}
-		}
-		if (foundBlock) {
-			lastPos = sIdx;
-			break;
-		}
-	}
-	actSAPos = lastPos + 1;
-	return block;
-}
-
-// TODO: Re-add mismatches and indels in seeds
 std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
@@ -604,23 +558,6 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 	return block;
 }
 
-ExtendedBlock nextExtendedBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
-		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
-		const Options& options) {
-	SeededBlock seededBlock = nextSeededBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
-	if (seededBlock.getSeedSize() == 0) {
-		ExtendedBlock bl(seededBlock, nTax);
-		return bl;
-	}
-	ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
-	// check if the extended block can still be accepted.
-	if (presenceChecker.isFine(extendedBlock)) {
-		return extendedBlock;
-	} else {
-		throw std::runtime_error("The extended block could not be accepted");
-	}
-}
-
 std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
 		const Options& options) {
@@ -660,22 +597,6 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		}
 	}
 	return res;
-}
-
-AlignedBlock nextAlignedBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA,
-		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<std::pair<size_t, size_t> >& taxonCoords,
-		const Options& options) {
-	ExtendedBlock extBlock = nextExtendedBlock(actSAPos, T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
-	AlignedBlock bl(extBlock, nTax);
-	if (bl.getSeedSize() != 0) {
-		if (options.noIndels) {
-			bl.setAlignment(extBlock.noGapsMSA.assembleMSA());
-		} else {
-			bl.setAlignment(extBlock.starMSA.assembleMSA());
-		}
-		// bl.alignMAFFT(T, options);
-	}
-	return bl;
 }
 
 std::vector<AlignedBlock> extractAlignedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
