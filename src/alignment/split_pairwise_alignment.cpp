@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <stdexcept>
 
 #include "split_pairwise_alignment.hpp"
 

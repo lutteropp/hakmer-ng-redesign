@@ -1,4 +1,5 @@
 #include "../indexing/suffix_array_classic.hpp"
+#include <stdexcept>
 
 // Better version, as of Nov 10, 2015, handles boundary cases
 /**
