@@ -31,15 +31,11 @@
 
 QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const IndexedConcatenatedSequence& concat, const Options& options) {
 	std::vector<size_t> wantedTaxa = { a, b, c, d };
-	std::vector<std::pair<size_t, size_t> > taxCoords;
-	for (size_t i = 0; i < concat.nTax(); ++i) {
-		taxCoords.push_back(std::make_pair(concat.getTaxonCoords(i).getFirstCoord(), concat.getTaxonCoords(i).getLastCoord()));
-	}
-	std::pair<std::vector<size_t>, std::vector<size_t> > shrunk = shrinkArrays(concat, taxCoords, wantedTaxa, options);
+	std::pair<std::vector<size_t>, std::vector<size_t> > shrunk = shrinkArrays(concat, concat.getTaxonCoords(), wantedTaxa, options);
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 
 	std::vector<ExtendedBlock> blocks = extractExtendedBlocks(concat.getConcatenatedSeq(), concat.nTax(), shrunk.first, shrunk.second,
-			presenceChecker, taxCoords, options);
+			presenceChecker, concat.getTaxonCoords(), options);
 	if (options.concatenatedMSA) { // this is the one that uses raxml-ng for quartet inference
 		std::array<std::string, 4> concatMSA = { "", "", "", "" };
 		for (size_t i = 0; i < blocks.size(); ++i) {
@@ -182,14 +178,10 @@ void quartetsCallback(const Options& options) {
 
 void matrixCallback(const Options& options) {
 	IndexedConcatenatedSequence concat = readConcat(options);
-	std::vector<std::pair<size_t, size_t> > taxCoords;
-	for (size_t i = 0; i < concat.nTax(); ++i) {
-		taxCoords.push_back(std::make_pair(concat.getTaxonCoords(i).getFirstCoord(), concat.getTaxonCoords(i).getLastCoord()));
-	}
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 
 	std::vector<ExtendedBlock> extendedBlocks = extractExtendedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
-			concat.getLcpArray(), presenceChecker, taxCoords, options);
+			concat.getLcpArray(), presenceChecker, concat.getTaxonCoords(), options);
 	std::cout << "Number of extracted blocks: " << extendedBlocks.size() << "\n";
 	writeFASTASupermatrix(extendedBlocks, concat.getTaxonLabels(), options.outpath);
 }

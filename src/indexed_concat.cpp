@@ -1,13 +1,22 @@
 #include "indexed_concat.hpp"
 
-IndexedTaxonCoords::IndexedTaxonCoords(const std::string& label, const std::vector<std::string>& contigs, size_t coordOffset) {
+IndexedTaxonCoords::IndexedTaxonCoords(const std::string& label, const std::vector<std::string>& contigs, size_t coordOffset, bool revComp) {
 	this->label = label;
 
-	contigCoords.resize(contigs.size());
+	size_t nC = contigs.size();
+	if (revComp) {
+		nC *= 2;
+	}
+	contigCoords.resize(nC);
 
 	contigCoords[0] = std::make_pair(coordOffset, contigs[0].size() - 1 + coordOffset);
 	for (size_t i = 1; i < contigs.size(); ++i) {
 		contigCoords[i] = std::make_pair(contigCoords[i - 1].second + 2, contigCoords[i - 1].second + 2 + contigs[i].size() - 1);
+	}
+	if (revComp) {
+		for (size_t i = 0; i < contigs.size(); ++i) {
+			contigCoords[i + contigs.size()] = std::make_pair(contigCoords[i + contigs.size() - 1].second + 2, contigCoords[i + contigs.size() - 1].second + 2 + contigs[i].size() - 1);
+		}
 	}
 
 	firstCoord = contigCoords[0].first;
@@ -37,8 +46,14 @@ size_t IndexedTaxonCoords::getContigEnd(size_t contigIdx) const {
 std::pair<size_t, size_t> IndexedTaxonCoords::getContigCoords(size_t contigIdx) const {
 	return contigCoords[contigIdx];
 }
-size_t IndexedTaxonCoords::nContigs() const {
-	return contigCoords.size();
+
+bool IndexedTaxonCoords::contains(size_t pos) const {
+	for (size_t i = 0; i < contigCoords.size(); ++i) {
+		if (pos >= contigCoords[i].first && pos <= contigCoords[i].second) {
+			return true;
+		}
+	}
+	return false;
 }
 
 IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords,
@@ -74,4 +89,8 @@ size_t IndexedConcatenatedSequence::getConcatSize() const {
 
 const std::vector<std::string>& IndexedConcatenatedSequence::getTaxonLabels() const {
 	return taxonLabels;
+}
+
+const std::vector<IndexedTaxonCoords>& IndexedConcatenatedSequence::getTaxonCoords() const {
+	return taxonCoords;
 }

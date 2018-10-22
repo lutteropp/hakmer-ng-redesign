@@ -255,9 +255,9 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 			contigs[i] = seq;
 		}
 
-		IndexedTaxonCoords itc(record.name.substr(0, record.name.find(" ")), contigs, coordOffset);
+		coordOffset = concat.size();
+		IndexedTaxonCoords itc(record.name.substr(0, record.name.find(" ")), contigs, coordOffset, options.reverseComplement);
 		coords.push_back(itc);
-		coordOffset = itc.getLastCoord() + 2;
 
 		for (size_t i = 0; i < contigs.size(); ++i) {
 			concat += contigs[i];
@@ -265,12 +265,10 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 		}
 
 		if (options.reverseComplement) {
-			concat += "$";
-			for (size_t i = contigs.size() - 1; i >= 1; --i) {
+			for (size_t i = 0; i < contigs.size(); ++i) {
 				concat += revComp(contigs[i]);
 				concat += "$";
 			}
-			concat += revComp(contigs[0]);
 		}
 	}
 

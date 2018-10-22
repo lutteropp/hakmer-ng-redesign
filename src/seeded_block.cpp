@@ -17,6 +17,9 @@ SeededBlock::SeededBlock(size_t nTax) {
 	}
 	n = 0;
 	k = 0;
+	bestCaseMaxSize = 0;
+	bestCaseMaxSizeLeft = 0;
+	bestCaseMaxSizeRight = 0;
 }
 
 void SeededBlock::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
