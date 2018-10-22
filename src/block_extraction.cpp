@@ -311,6 +311,24 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 
 		while (matchCount >= options.minTaxaPerBlock) {
 			if (acceptSeed(sIdx, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
+				if (options.largeSeeds) {
+					// try to find largest seed size that still gets accepted
+					size_t bestK = k;
+					while (acceptSeed(sIdx, matchCount, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
+						bestK = k;
+						if (k == options.maxK) { // no further extension of seed length
+							break;
+						}
+						if (startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // newly added character would be already taken anyway
+							break;
+						}
+						k++;
+						matchCount = countMatches(sIdx, lcp, k);
+					}
+					k = bestK;
+					matchCount = countMatches(sIdx, lcp, k);
+				}
+
 				SeededBlock block(nTax);
 				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
 					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);

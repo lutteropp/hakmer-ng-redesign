@@ -205,6 +205,7 @@ int main(int argc, char* argv[]) {
 	auto reportMode = app.add_subcommand("report", "Report on input sequences and exit without analysis");
 
 	app.add_flag("--gapfree,--noindels,--nogaps", options.noIndels, "Build gap-free alignments.");
+	app.add_flag("--largeseeds,--largeSeeds", options.largeSeeds, "Prefer larger seeds.");
 	app.add_flag("-v,--verbose", options.verbose, "Print progress updates.");
 	app.add_flag("--debug", options.verboseDebug, "Print debug output.");
 	auto revCompOption = app.add_flag("--revcomp,-r", options.reverseComplement, "Also consider reverse-complement matches of DNA data.");

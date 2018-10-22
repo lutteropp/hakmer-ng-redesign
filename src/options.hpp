@@ -20,6 +20,7 @@ public:
 	bool reverseComplement = false;
 	bool proteinData = false;
 	double maxDelta = 0.1;
+	bool largeSeeds = false;
 
 	bool noQuartets = true;
 	bool redo = false;
