@@ -16,6 +16,7 @@ StarMSA::StarMSA() :
 void StarMSA::init(size_t nTax) {
 	this->nTax = nTax;
 	pairwiseAlignments.init(nTax, nTax);
+	normalizedPairwiseDistances.init(nTax, nTax);
 }
 std::vector<std::string> StarMSA::assembleMSA() {
 	if (msaValid) {
@@ -74,17 +75,31 @@ std::vector<std::string> StarMSA::assembleMSA() {
 	}
 	msaValid = true;
 
+	// rescue the normalized pairwise distances
+	for (size_t i = 0; i < nTax; ++i) {
+		for (size_t j = 0; j < nTax; ++j) {
+			normalizedPairwiseDistances.entryAt(i, j) = normalizedPairwiseDistance(i, j);
+		}
+	}
 	// now the pairwise alignments are not needed anymore, most likely not even the pairwise distances... free them.
-	pairwiseAlignments.shrinkDownTo(0,0);
+	pairwiseAlignments.shrinkDownTo(0, 0);
 
 	return msa;
 }
 double StarMSA::pairwiseDistance(size_t idx1, size_t idx2) {
+	if (idx1 == idx2)
+		return 0.0;
 	size_t firstIdx = std::min(idx1, idx2);
 	size_t secondIdx = std::max(idx1, idx2);
 	return pairwiseAlignments.entryAt(firstIdx, secondIdx).pairwiseDistance();
 }
 double StarMSA::normalizedPairwiseDistance(size_t idx1, size_t idx2) {
+	if (msaValid) {
+		return normalizedPairwiseDistances.entryAt(idx1, idx2);
+	}
+
+	if (idx1 == idx2)
+		return 0.0;
 	size_t firstIdx = std::min(idx1, idx2);
 	size_t secondIdx = std::max(idx1, idx2);
 	double editDist = pairwiseAlignments.entryAt(firstIdx, secondIdx).pairwiseDistance();

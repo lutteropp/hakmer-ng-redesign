@@ -35,4 +35,5 @@ private:
 	TwoDimMatrix<SplitPairwiseAlignment> pairwiseAlignments;
 	std::vector<std::string> msa;
 	bool msaValid;
+	TwoDimMatrix<double> normalizedPairwiseDistances;
 };

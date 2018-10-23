@@ -237,7 +237,7 @@ int main(int argc, char* argv[]) {
 			"Concatenate quartet block distances instead of majority voting the topology.");
 	quartetsMode->add_flag("--concatMSA", options.concatenatedMSA,
 			"Concatenate quartet blocks and then infer the quartet topology via RAxML.");
-	quartetsMode->add_flag("--noPartitions", options.noPartitions, "Do not build a partitioned MSA, use a single partition instead.");
+	//quartetsMode->add_flag("--noPartitions", options.noPartitions, "Do not build a partitioned MSA, use a single partition instead.");
 	auto evalOption = quartetsMode->add_option("--speciesTree", options.speciesTreePath,
 			"Path to the trusted species tree topology. Activates quartet evaluation mode.")->check(CLI::ExistingFile);
 	quartetsMode->add_option("--geneTrees", options.geneTreesPath, "Path to the gene trees. Only used in quartet evaluation mode.")->check(
