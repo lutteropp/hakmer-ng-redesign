@@ -207,7 +207,7 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--gapfree,--noindels,--nogaps", options.noIndels, "Build gap-free alignments.");
 	app.add_flag("--largeseeds,--largeSeeds", options.largeSeeds, "Prefer larger seeds.");
 	app.add_flag("-v,--verbose", options.verbose, "Print progress updates.");
-	app.add_flag("--debug", options.verboseDebug, "Print debug output.");
+	app.add_flag("--debug,--verboseDebug", options.verboseDebug, "Print debug output.");
 	auto revCompOption = app.add_flag("--revcomp,-r", options.reverseComplement, "Also consider reverse-complement matches of DNA data.");
 	app.add_flag("--protein", options.proteinData, "The sequences are protein data instead of DNA data.")->excludes(revCompOption);
 	app.add_option("--kmin", options.minK, "Minimum kmer seed size.");
