@@ -227,6 +227,7 @@ int main(int argc, char* argv[]) {
 			dynamicFlanksOption);
 	app.add_option("--maxdelta", options.maxDelta, "Maximum delta-score to be still considered tree-like.", true)->needs(
 			dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
+	app.add_flag("--quickdelta,--quickDelta", options.quickDelta, "Only compute the delta score for O(n) quartets instead of all O(n^4) quartets.")->needs(dynamicFlanksOption);
 
 	auto quartetsMode = app.add_subcommand("quartets", "Quartets mode");
 	quartetsMode->add_option("--minblocks", options.minBlocksPerQuartet, "Minimum number of blocks to be sampled for each quartet.", true);

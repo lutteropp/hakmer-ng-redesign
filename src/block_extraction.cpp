@@ -16,7 +16,7 @@
 #include "indexing/suffix_array_classic.hpp"
 
 size_t posToTaxon(size_t pos, const std::vector<IndexedTaxonCoords>& taxonCoords, size_t concatSize, bool revComp) {
-	if (revComp && pos >= concatSize/2) {
+	if (revComp && pos >= concatSize / 2) {
 		pos = concatSize - pos - 1;
 	}
 
@@ -419,16 +419,31 @@ double deltaScore(const std::array<double, 6>& pairwiseDist) {
 
 double averageDeltaScore(ExtendedBlock& block, size_t nTaxBlock, const Options& options) {
 	double sum = 0.0;
-	size_t numQuartets = nTaxBlock * (nTaxBlock - 1) * (nTaxBlock - 2) * (nTaxBlock - 3) / 24;
-	for (size_t i = 0; i < nTaxBlock - 3; ++i) {
-		for (size_t j = i + 1; j < nTaxBlock - 2; ++j) {
-			for (size_t k = j + 1; k < nTaxBlock - 1; ++k) {
-				for (size_t l = k + 1; l < nTaxBlock; ++l) {
-					std::array<double, 6> pairwiseDist = { block.getPairwiseNormalizedDistance(i, j, options),
-							block.getPairwiseNormalizedDistance(i, k, options), block.getPairwiseNormalizedDistance(i, l, options),
-							block.getPairwiseNormalizedDistance(j, k, options), block.getPairwiseNormalizedDistance(j, l, options),
-							block.getPairwiseNormalizedDistance(k, l, options) };
-					sum += deltaScore(pairwiseDist);
+	size_t numQuartets;
+
+	if (options.quickDelta) {
+		numQuartets = nTaxBlock - 3;
+		for (size_t i = 0; i < nTaxBlock - 3; ++i) {
+			size_t j = i + 1;
+			size_t k = i + 2;
+			size_t l = i + 3;
+			std::array<double, 6> pairwiseDist = { block.getPairwiseNormalizedDistance(i, j, options), block.getPairwiseNormalizedDistance(
+					i, k, options), block.getPairwiseNormalizedDistance(i, l, options), block.getPairwiseNormalizedDistance(j, k, options),
+					block.getPairwiseNormalizedDistance(j, l, options), block.getPairwiseNormalizedDistance(k, l, options) };
+			sum += deltaScore(pairwiseDist);
+		}
+	} else {
+		numQuartets = nTaxBlock * (nTaxBlock - 1) * (nTaxBlock - 2) * (nTaxBlock - 3) / 24;
+		for (size_t i = 0; i < nTaxBlock - 3; ++i) {
+			for (size_t j = i + 1; j < nTaxBlock - 2; ++j) {
+				for (size_t k = j + 1; k < nTaxBlock - 1; ++k) {
+					for (size_t l = k + 1; l < nTaxBlock; ++l) {
+						std::array<double, 6> pairwiseDist = { block.getPairwiseNormalizedDistance(i, j, options),
+								block.getPairwiseNormalizedDistance(i, k, options), block.getPairwiseNormalizedDistance(i, l, options),
+								block.getPairwiseNormalizedDistance(j, k, options), block.getPairwiseNormalizedDistance(j, l, options),
+								block.getPairwiseNormalizedDistance(k, l, options) };
+						sum += deltaScore(pairwiseDist);
+					}
 				}
 			}
 		}
