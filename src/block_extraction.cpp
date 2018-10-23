@@ -342,13 +342,15 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 				{
 					res.push_back(block);
 				}
-				double progress = (double) 100 * sIdx / SA.size();
-				if (progress > lastP + 1) {
+				if (!options.quartetFlavor) {
+					double progress = (double) 100 * sIdx / SA.size();
+					if (progress > lastP + 1) {
 #pragma omp critical
-					{
-						if (progress > lastP + 1) {
-							std::cout << progress << " %\n";
-							lastP = progress;
+						{
+							if (progress > lastP + 1) {
+								std::cout << progress << " %\n";
+								lastP = progress;
+							}
 						}
 					}
 				}
@@ -600,10 +602,12 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
 		const Options& options) {
 	std::vector<ExtendedBlock> res;
-	std::cout << "Extracting seeded blocks...\n";
+	if (!options.quartetFlavor)
+		std::cout << "Extracting seeded blocks...\n";
 	std::vector<SeededBlock> seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
 	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<SeededBlock>());
-	std::cout << "Assembling extended blocks...\n";
+	if (!options.quartetFlavor)
+		std::cout << "Assembling extended blocks...\n";
 	double lastP = 0;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		SeededBlock seededBlock = seededBlocks[i];
@@ -623,10 +627,12 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 			}
 			res.push_back(extendedBlock);
 		}
-		double progress = (double) 100 * i / seededBlocks.size();
-		if (progress > lastP + 1) {
-			std::cout << progress << " %\n";
-			lastP = progress;
+		if (!options.quartetFlavor) {
+			double progress = (double) 100 * i / seededBlocks.size();
+			if (progress > lastP + 1) {
+				std::cout << progress << " %\n";
+				lastP = progress;
+			}
 		}
 	}
 	return res;

@@ -41,6 +41,7 @@ public:
 	bool concatenatedMSA = true;
 	bool noFinalMSA = false;
 	bool noPartitions = true;
+	bool quartetFlavor = false;
 
 	// internal parameters
 	bool verboseDebug = false;

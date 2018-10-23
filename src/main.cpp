@@ -259,6 +259,7 @@ int main(int argc, char* argv[]) {
 #endif
 	if (app.got_subcommand(quartetsMode)) {
 		options.maxTaxaPerBlock = 4;
+		options.quartetFlavor = true;
 		quartetsCallback(options);
 	} else if (app.got_subcommand(supermatrixMode)) {
 		matrixCallback(options);
