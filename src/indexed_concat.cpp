@@ -1,22 +1,14 @@
 #include "indexed_concat.hpp"
 
-IndexedTaxonCoords::IndexedTaxonCoords(const std::string& label, const std::vector<std::string>& contigs, size_t coordOffset, bool revComp) {
+IndexedTaxonCoords::IndexedTaxonCoords(const std::string& label, const std::vector<std::string>& contigs, size_t coordOffset) {
 	this->label = label;
 
 	size_t nC = contigs.size();
-	if (revComp) {
-		nC *= 2;
-	}
 	contigCoords.resize(nC);
 
 	contigCoords[0] = std::make_pair(coordOffset, contigs[0].size() - 1 + coordOffset);
 	for (size_t i = 1; i < contigs.size(); ++i) {
 		contigCoords[i] = std::make_pair(contigCoords[i - 1].second + 2, contigCoords[i - 1].second + 2 + contigs[i].size() - 1);
-	}
-	if (revComp) {
-		for (size_t i = 0; i < contigs.size(); ++i) {
-			contigCoords[i + contigs.size()] = std::make_pair(contigCoords[i + contigs.size() - 1].second + 2, contigCoords[i + contigs.size() - 1].second + 2 + contigs[i].size() - 1);
-		}
 	}
 
 	firstCoord = contigCoords[0].first;

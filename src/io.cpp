@@ -214,6 +214,8 @@ std::string revComp(const std::string& str) {
 	mapping['H'] = 'D';
 	mapping['B'] = 'V';
 	mapping['X'] = 'X';
+	// delimiters stay unchanged
+	mapping['$'] = '$';
 
 	std::string res;
 	for (int i = str.size() - 1; i >= 0; --i) {
@@ -256,20 +258,18 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 		}
 
 		coordOffset = concat.size();
-		IndexedTaxonCoords itc(record.name.substr(0, record.name.find(" ")), contigs, coordOffset, options.reverseComplement);
+		IndexedTaxonCoords itc(record.name.substr(0, record.name.find(" ")), contigs, coordOffset);
 		coords.push_back(itc);
 
 		for (size_t i = 0; i < contigs.size(); ++i) {
 			concat += contigs[i];
 			concat += "$";
 		}
+	}
 
-		if (options.reverseComplement) {
-			for (size_t i = 0; i < contigs.size(); ++i) {
-				concat += revComp(contigs[i]);
-				concat += "$";
-			}
-		}
+	if (options.reverseComplement) {
+		// reverse complement the entire concat
+		concat += revComp(concat);
 	}
 
 	IndexedConcatenatedSequence res(concat, coords, options);

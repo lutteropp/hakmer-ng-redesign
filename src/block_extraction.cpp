@@ -16,6 +16,10 @@
 #include "indexing/suffix_array_classic.hpp"
 
 size_t posToTaxon(size_t pos, const std::vector<IndexedTaxonCoords>& taxonCoords, size_t concatSize, bool revComp) {
+	if (revComp && pos >= concatSize/2) {
+		pos = concatSize - pos - 1;
+	}
+
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		if (taxonCoords[i].contains(pos)) {
 			return i;

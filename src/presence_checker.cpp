@@ -7,7 +7,8 @@
 
 #include "presence_checker.hpp"
 
-PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool revComp) {
+PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool revComp) :
+		revComp(revComp) {
 	size_t nSites = concat.getConcatSize();
 	if (revComp) {
 		nSites /= 2;
@@ -17,7 +18,6 @@ PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool
 		freePos[i] = true;
 	}
 	this->nTax = concat.nTax();
-	this->revComp = revComp;
 
 	for (size_t i = 0; i < nSites; ++i) {
 		if (concat.getConcatenatedSeq()[i] == '$') {
@@ -28,8 +28,8 @@ PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool
 }
 
 bool PresenceChecker::isFree(size_t coord) const {
-	if (coord >= freePos.size() && revComp) {
-		coord = 2 * freePos.size() - 1 - coord;
+	if (revComp && coord >= freePos.size()) {
+		coord = freePos.size() - coord - 1;
 	}
 	if (coord >= freePos.size()) {
 		return false;
@@ -48,8 +48,8 @@ bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) const {
 }
 
 void PresenceChecker::setTaken(size_t coord) {
-	if (coord >= freePos.size() && revComp) {
-		coord = 2 * freePos.size() - 1 - coord;
+	if (revComp && coord >= freePos.size()) {
+		coord = freePos.size() - coord - 1;
 	}
 	freePos[coord] = false;
 }
