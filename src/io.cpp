@@ -50,6 +50,7 @@ FASTARecord readNextFASTA(std::ifstream& infile) {
 	}
 	if (line[0] != '>') {
 		std::cout << line.size() << "\n";
+		std::cout << line << "n";
 		throw std::runtime_error("the sequence is not in FASTA format");
 	}
 	std::string name = line.substr(1, std::string::npos);

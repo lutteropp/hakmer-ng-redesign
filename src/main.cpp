@@ -176,6 +176,19 @@ void quartetsCallback(const Options& options) {
 	writeQuartets(quartetTable, concat.getTaxonLabels(), options.outpath);
 }
 
+void printSummaryStatistics(const std::vector<ExtendedBlock>& blocks, size_t nTax, size_t totalSeqData) {
+	size_t seqDataUsed = 0;
+	size_t nMissingData = 0;
+#pragma omp parallel for reduction(+:seqDataUsed,nMissingData)
+	for (size_t i = 0; i < blocks.size(); ++i) {
+		size_t rowSize = blocks[i].getSeedSize() + blocks[i].getLeftFlankSize() + blocks[i].getRightFlankSize();
+		seqDataUsed += rowSize * blocks[i].getNTaxInBlock();
+		nMissingData += rowSize * (nTax - blocks[i].getNTaxInBlock());
+	}
+	std::cout << "Percentage of reconstructed sequence data: " << ((double) seqDataUsed * 100) / totalSeqData << " %\n";
+	std::cout << "Percentage of missing data: " << ((double) nMissingData * 100) / (nMissingData + seqDataUsed) << " %\n";
+}
+
 void matrixCallback(const Options& options) {
 	IndexedConcatenatedSequence concat = readConcat(options);
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
@@ -183,6 +196,7 @@ void matrixCallback(const Options& options) {
 	std::vector<ExtendedBlock> extendedBlocks = extractExtendedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
 			concat.getLcpArray(), presenceChecker, concat.getTaxonCoords(), options);
 	std::cout << "Number of extracted blocks: " << extendedBlocks.size() << "\n";
+	printSummaryStatistics(extendedBlocks, concat.nTax(), concat.getSequenceDataSize());
 	writeFASTASupermatrix(extendedBlocks, concat.getTaxonLabels(), options.outpath);
 }
 

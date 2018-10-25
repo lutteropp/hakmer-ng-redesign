@@ -170,11 +170,11 @@ bool acceptSeed(size_t actSAPos, size_t matchCount, size_t k, size_t nTax, const
 	}
 
 	size_t flankOffset = 0;
-	if (!options.dynamicFlanks) {
+	if (!options.dynamicFlanks && options.fixedFlanks) {
 		flankOffset = options.flankWidth;
 	}
 
-	// check for presence/absence
+	// check for presence/absence of the whole region, including flanks
 	for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
 		if (flankOffset > SA[i] || SA[i] + k - 1 + flankOffset >= concatSize) {
 			return false;
@@ -343,7 +343,7 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 					res.push_back(block);
 				}
 				if (!options.quartetFlavor) {
-					double progress = (double) 100 * sIdx / SA.size();
+					double progress = (double) 100 * sIdx / SA.size(); // TODO: Fix this, this looks kinda wrong in parallel mode
 					if (progress > lastP + 1) {
 #pragma omp critical
 						{
@@ -583,15 +583,36 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 	std::pair<size_t, double> bestLeft;
 	std::pair<size_t, double> bestRight;
 
-	bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
-	bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
-
-	for (size_t i = 0; i < nTax; ++i) {
-		if (block.hasTaxon(i)) {
-			block.setLeftFlankSize(i, bestLeft.first);
-			block.setRightFlankSize(i, bestRight.first);
+	if (!options.dynamicFlanks && options.fixedFlanks) {
+		bestLeft.first = options.flankWidth;
+		bestRight.first = options.flankWidth;
+		// we still need to add the chars to the MSA
+		std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
+		for (size_t i = 1; i <= options.flankWidth; ++i) {
+			std::vector<char> charsToAddLeft(taxIDs.size());
+			std::vector<char> charsToAddRight(taxIDs.size());
+			for (size_t j = 0; j < taxIDs.size(); ++j) {
+				size_t coordRight = 0;
+				size_t coordLeft = 0;
+				coordRight = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second + i;
+				coordLeft = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first - i;
+				if (coordRight >= T.size() || coordLeft >= T.size()) {
+					throw std::runtime_error("This should not happen! Coord is too large.");
+				}
+				charsToAddLeft[j] = T[coordLeft];
+				charsToAddRight[j] = T[coordRight];
+			}
+			block.msaWrapper.addCharsRight(charsToAddRight);
+			block.msaWrapper.addCharsLeft(charsToAddLeft);
 		}
+	} else {
+		bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
+		bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
 	}
+
+	block.setLeftFlankSize(bestLeft.first);
+	block.setRightFlankSize(bestRight.first);
+
 	block.msaWrapper.shrinkDownToLeftFlank(bestLeft.first);
 	block.msaWrapper.shrinkDownToRightFlank(bestRight.first);
 

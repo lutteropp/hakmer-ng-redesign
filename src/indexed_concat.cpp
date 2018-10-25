@@ -56,6 +56,16 @@ IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq,
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		taxonLabels.push_back(taxonCoords[i].getLabel());
 	}
+	sequenceDataSize = 0;
+	for (size_t i = 0; i < seq.size(); ++i) {
+		if (seq[i] != '$') {
+			sequenceDataSize++;
+		}
+	}
+}
+
+size_t IndexedConcatenatedSequence::getSequenceDataSize() const {
+	return sequenceDataSize;
 }
 
 const std::vector<size_t>& IndexedConcatenatedSequence::getSuffixArray() const {

@@ -38,12 +38,14 @@ class IndexedConcatenatedSequence {
 	std::string concatenatedSeq;
 	std::vector<IndexedTaxonCoords> taxonCoords;
 	std::vector<std::string> taxonLabels;
+	size_t sequenceDataSize;
 public:
 	IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords, const Options& options); // internal-indexing variant
 	const std::vector<size_t>& getSuffixArray() const;
 	const std::vector<size_t>& getLcpArray() const;
 	size_t getConcatSize() const;
 	size_t nTax() const;
+	size_t getSequenceDataSize() const;
 	IndexedTaxonCoords getTaxonCoords(size_t taxonIdx) const;
 	const std::string& getConcatenatedSeq() const;
 	const std::vector<std::string>& getTaxonLabels() const;

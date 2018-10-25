@@ -59,5 +59,6 @@ public:
 	size_t maximumExtensionWidth = 500;
 	bool lowComplexity = false; // keep low complexity k-mers?
 	size_t earlyStopCount = 50; // stop flank extension if earlyStopCount extra bases didn't improve the delta score
+	bool fixedFlanks = false; // in non-dynamic extension mode: Enforce that the entire flank width is present?
 };
 
