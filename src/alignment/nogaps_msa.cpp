@@ -6,6 +6,7 @@
  */
 
 #include "nogaps_msa.hpp"
+#include "../dna_functions.hpp"
 
 #include <algorithm>
 
@@ -61,7 +62,7 @@ void NoGapsMSA::addCharsLeft(const std::vector<char>& chars) {
 	}
 	for (size_t i = 0; i < nTax; ++i) {
 		for (size_t j = i + 1; j < nTax; ++j) {
-			if (!isGapCharacter(chars[i]) && !isGapCharacter(chars[j]) && chars[i] != chars[j]) {
+			if (!isGapCharacter(chars[i]) && !isGapCharacter(chars[j]) && !ambiguousMatch(chars[i], chars[j])) {
 				pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) + 1;
 			}
 		}
@@ -75,7 +76,7 @@ void NoGapsMSA::addCharsRight(const std::vector<char>& chars) {
 	}
 	for (size_t i = 0; i < nTax; ++i) {
 		for (size_t j = i + 1; j < nTax; ++j) {
-			if (!isGapCharacter(chars[i]) && !isGapCharacter(chars[j]) && chars[i] != chars[j]) {
+			if (!isGapCharacter(chars[i]) && !isGapCharacter(chars[j]) && !ambiguousMatch(chars[i], chars[j])) {
 				pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) + 1;
 			}
 		}
@@ -91,7 +92,7 @@ void NoGapsMSA::setSeeds(const std::vector<std::string>& seeds) {
 	for (size_t i = 0; i < nTax - 1; ++i) {
 		for (size_t j = i + 1; j < nTax; ++j) {
 			for (size_t k = 0; k < seeds[i].size(); ++k) {
-				if ((!isGapCharacter(seeds[i][k])) && (!isGapCharacter(seeds[j][k])) && (seeds[i][k] != seeds[j][k])) {
+				if ((!isGapCharacter(seeds[i][k])) && (!isGapCharacter(seeds[j][k])) && !ambiguousMatch(seeds[i][k], seeds[j][k])) {
 					pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) + 1;
 				}
 			}
@@ -113,7 +114,7 @@ void NoGapsMSA::shrinkDownToLeftFlank(size_t newLeftFlankSize) {
 		for (size_t j = i + 1; j < nTax; ++j) {
 			for (size_t k = newLeftFlankSize - 1; k < sequencesLeft[0].size(); ++k) {
 				if (!isGapCharacter(sequencesLeft[i][k]) && !isGapCharacter(sequencesLeft[j][k])
-						&& sequencesLeft[i][k] != sequencesLeft[j][k]) {
+						&& !ambiguousMatch(sequencesLeft[i][k], sequencesLeft[j][k])) {
 					pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) - 1; // because this position will be deleted
 				}
 			}
@@ -132,7 +133,7 @@ void NoGapsMSA::shrinkDownToRightFlank(size_t newRightFlankSize) {
 		for (size_t j = i + 1; j < nTax; ++j) {
 			for (size_t k = newRightFlankSize - 1; k < sequencesRight[0].size(); ++k) {
 				if (!isGapCharacter(sequencesRight[i][k]) && !isGapCharacter(sequencesRight[j][k])
-						&& sequencesRight[i][k] != sequencesRight[j][k]) {
+						&& !ambiguousMatch(sequencesRight[i][k], sequencesRight[j][k])) {
 					pairwiseHammingDistances.entryAt(i, j) = pairwiseHammingDistances.entryAt(i, j) - 1; // because this position will be deleted
 				}
 			}

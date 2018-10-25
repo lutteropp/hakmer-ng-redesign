@@ -44,6 +44,7 @@ public:
 	}
 private:
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
+	std::vector<size_t> taxIDs;
 	size_t n;
 	size_t k;
 	size_t bestCaseMaxSize;

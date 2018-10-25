@@ -38,6 +38,7 @@ void SeededBlock::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 	taxonCoords[taxID].first = firstCoord;
 	taxonCoords[taxID].second = lastCoord;
 	k = lastCoord - firstCoord + 1;
+	taxIDs.push_back(taxID);
 }
 
 size_t SeededBlock::getNTaxInBlock() const {
@@ -57,29 +58,19 @@ size_t SeededBlock::getSeedSize() const {
 }
 
 std::vector<size_t> SeededBlock::getTaxonIDsInBlock() const {
-	std::vector<size_t> res;
-	for (size_t i = 0; i < taxonCoords.size(); ++i) {
-		if (hasTaxon(i)) {
-			res.push_back(i);
-		}
-	}
-	return res;
+	return taxIDs;
 }
 
 void SeededBlock::increaseTaxonCoordsRight() {
-	for (size_t i = 0; i < taxonCoords.size(); ++i) {
-		if (hasTaxon(i)) {
-			taxonCoords[i].second++;
-		}
+	for (size_t i = 0; i < taxIDs.size(); ++i) {
+		taxonCoords[taxIDs[i]].second++;
 	}
 	k++;
 }
 
 void SeededBlock::decreaseTaxonCoordsLeft() {
-	for (size_t i = 0; i < taxonCoords.size(); ++i) {
-		if (hasTaxon(i)) {
-			taxonCoords[i].first--;
-		}
+	for (size_t i = 0; i < taxIDs.size(); ++i) {
+		taxonCoords[taxIDs[i]].first--;
 	}
 	k++;
 }

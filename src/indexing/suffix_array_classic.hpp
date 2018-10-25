@@ -8,6 +8,7 @@
 
 #include "../indexing/suffix_array_construction/radix.hpp"
 #include "../options.hpp"
+#include "../dna_functions.hpp"
 
 inline size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t start2, unsigned int lTop) {
 	size_t res = 0;
@@ -55,10 +56,10 @@ public:
 
 		std::cout << "Computing longest common prefixes...\n";
 		/*lcp.resize(nTotalSites);
-		lcp[0] = 0;
-		for (size_t i = 1; i < nTotalSites; ++i) {
-			lcp[i] = longestCommonPrefix(seq, SA[i - 1], SA[i], lTop);
-		}*/
+		 lcp[0] = 0;
+		 for (size_t i = 1; i < nTotalSites; ++i) {
+		 lcp[i] = longestCommonPrefix(seq, SA[i - 1], SA[i], lTop);
+		 }*/
 		computeLCP(seq);
 		std::cout << "Finished computation of longest common prefixes.\n";
 	}
@@ -106,7 +107,8 @@ private:
 		for (size_t i = 1; i < SA.size(); ++i) {
 			if (rank[i] > 1) {
 				size_t j = SA[rank[i] - 1];
-				while (seq[i + h] == seq[j + h]) {
+				//while (seq[i + h] == seq[j + h]) {
+				while (ambiguousMatch(seq[i + h], seq[j + h])) {
 					h++;
 				}
 				lcp[rank[i]] = h;

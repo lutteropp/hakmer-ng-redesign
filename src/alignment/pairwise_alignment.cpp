@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include "pairwise_alignment.hpp"
+#include "../dna_functions.hpp"
 
 PairwiseAlignment::PairwiseAlignment() :
 		s1(""), s2(""), aliValid(false) {
@@ -90,7 +91,7 @@ void PairwiseAlignment::backtrack(size_t i, size_t j, std::string& s1Aligned, st
 		s1Aligned = missingText1 + missingGaps1 + s1Aligned;
 		s2Aligned = missingText2 + missingGaps2 + s2Aligned;
 	} else { // backtracking continues
-		int sub = (s1[i - 1] == s2[j - 1]) ? 0 : MISMATCH_PENALTY;
+		int sub = (ambiguousMatch(s1[i - 1], s2[j - 1])) ? 0 : MISMATCH_PENALTY;
 		int gap = GAP_PENALTY;
 		int vertical = matrix.entryAt(i - 1, j) + gap;
 		int horizontal = matrix.entryAt(i, j - 1) + gap;
@@ -117,7 +118,7 @@ void PairwiseAlignment::update(size_t i, size_t j) {
 	} else if (j == 0) {
 		matrix.entryAt(i, j) = matrix.entryAt(i - 1, j) + GAP_PENALTY;
 	} else {
-		int sub = (s1[i - 1] == s2[j - 1]) ? 0 : MISMATCH_PENALTY;
+		int sub = (ambiguousMatch(s1[i - 1], s2[j - 1])) ? 0 : MISMATCH_PENALTY;
 		int gap = GAP_PENALTY;
 		int vertical = matrix.entryAt(i - 1, j) + gap;
 		int horizontal = matrix.entryAt(i, j - 1) + gap;

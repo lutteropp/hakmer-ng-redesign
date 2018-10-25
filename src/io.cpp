@@ -14,6 +14,7 @@
 #include <unordered_map>
 
 #include "block_helper_functions.hpp"
+#include "dna_functions.hpp"
 
 /**
  * Check if the file contains more records.
@@ -194,42 +195,6 @@ void printInputStatistics(const std::string& filepath, bool contigs) {
 		std::cout << std::left << std::setfill(separator) << stats.name << "\n";
 		++i;
 	}
-}
-
-std::string revComp(const std::string& str) {
-	static std::unordered_map<char, char> mapping; // TODO: Make this one static somehow
-	mapping['A'] = 'T';
-	mapping['T'] = 'A';
-	mapping['C'] = 'G';
-	mapping['G'] = 'C';
-	mapping['N'] = 'N';
-	// DNA ambiguity codes, see http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
-	mapping['Y'] = 'R';
-	mapping['R'] = 'Y';
-	mapping['W'] = 'W';
-	mapping['S'] = 'S';
-	mapping['K'] = 'M';
-	mapping['M'] = 'K';
-	mapping['D'] = 'H';
-	mapping['V'] = 'B';
-	mapping['H'] = 'D';
-	mapping['B'] = 'V';
-	mapping['X'] = 'X';
-	// delimiters stay unchanged
-	mapping['$'] = '$';
-
-	std::string res;
-	for (int i = str.size() - 1; i >= 0; --i) {
-		if (mapping.find(str[i]) != mapping.end()) {
-			res += mapping[str[i]];
-		} else {
-			std::string c;
-			c += str[i];
-			std::cout << "i: " << i << "str.size(): " << str.size() << "\n";
-			throw std::runtime_error("Cannot reverse-complement the following base: " + c);
-		}
-	}
-	return res;
 }
 
 IndexedConcatenatedSequence readConcat(const Options& options) {
