@@ -7,6 +7,7 @@
 
 #include "block_extraction.hpp"
 #include "block_helper_functions.hpp"
+#include "dna_functions.hpp"
 
 #include <unordered_set>
 #include <cmath>
@@ -230,7 +231,7 @@ bool allLeftSame(const SeededBlock& seededBlock, const std::string& T, size_t nT
 	char leftChar = T[seededBlock.getTaxonCoords(taxIDs[0]).first - offset];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
 		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).first - offset];
-		if (actChar != leftChar)
+		if (!ambiguousMatch(actChar, leftChar))
 			return false;
 	}
 	return true;
@@ -241,7 +242,7 @@ bool allRightSame(const SeededBlock& seededBlock, const std::string& T, size_t n
 	char rightChar = T[seededBlock.getTaxonCoords(taxIDs[0]).second + offset];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
 		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).second + offset];
-		if (actChar != rightChar)
+		if (!ambiguousMatch(actChar, rightChar))
 			return false;
 	}
 	return true;
