@@ -71,6 +71,18 @@ inline bool ambiguousMatch(char a, char b) {
 	}
 }
 
+inline bool ambiguousEqual(const std::string& s1, const std::string& s2) {
+	if (s1.size() != s2.size()) {
+		return false;
+	}
+	for (size_t i = 0; i < s1.size(); ++i) {
+		if (!ambiguousMatch(s1[i], s2[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
 inline std::string revComp(const std::string& str) {
 	std::string res;
 	for (int i = str.size() - 1; i >= 0; --i) {

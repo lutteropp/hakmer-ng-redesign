@@ -198,7 +198,7 @@ std::vector<Occ> ApproximateMatcher::leftUntilExact(size_t jIdx, size_t lastPos,
 	std::string text = extractText(seq, lastPos - newPattern.size() - 1, lastPos - 1);
 
 	if (lastPos - newPattern.size() == 0) { // at beginning of whole text document
-		if (newPattern == text && jIdx == 1) { // exact match
+		if (ambiguousEqual(newPattern, text) && jIdx == 1) { // exact match
 			Occ o;
 			o.i = 0;
 			o.begin = lastPos - newPattern.size();
@@ -216,7 +216,7 @@ std::vector<Occ> ApproximateMatcher::leftUntilExact(size_t jIdx, size_t lastPos,
 	// CHECK FOR EXACT MATCH OR SINGLE SUBSTITUTION, ALSO ADD SINGLE INSERTION BEFORE MATCH
 	std::string sameSizeTextRight = text.substr(1, std::string::npos);
 	// check for exact match
-	if (sameSizeTextRight == newPattern) { // found i
+	if (ambiguousEqual(sameSizeTextRight, newPattern)) { // found i
 		Occ o;
 		o.i = jIdx - 1;
 		o.begin = lastPos - newPattern.size();
@@ -227,7 +227,7 @@ std::vector<Occ> ApproximateMatcher::leftUntilExact(size_t jIdx, size_t lastPos,
 		for (size_t i = 0; i < newPattern.size(); ++i) {
 			bool valid = true;
 			for (size_t j = 0; j < newPattern.size(); ++j) {
-				if (j != i && newPattern[j] != sameSizeTextRight[j]) {
+				if (j != i && !ambiguousMatch(newPattern[j], sameSizeTextRight[j])) {
 					valid = false;
 					break;
 				}
@@ -245,7 +245,7 @@ std::vector<Occ> ApproximateMatcher::leftUntilExact(size_t jIdx, size_t lastPos,
 	if (!mismatchesOnly) {
 		// CHECK FOR SINGLE INSERTION AFTER PATTERN (P[0..n]*)
 		std::string sameSizeTextLeft = text.substr(0, newPattern.size());
-		if (sameSizeTextLeft == newPattern) { // found insertion of character after pattern, this is, P[0..n]*
+		if (ambiguousEqual(sameSizeTextLeft, newPattern)) { // found insertion of character after pattern, this is, P[0..n]*
 			std::vector<Occ> continued = leftUntilExact(jIdx - 1, lastPos - newPattern.size() - 1, subpatterns, seq);
 			for (Occ o : continued) {
 				res.push_back(o);
@@ -254,8 +254,8 @@ std::vector<Occ> ApproximateMatcher::leftUntilExact(size_t jIdx, size_t lastPos,
 
 		// CHECK FOR SINGLE INSERTION WITHIN PATTERN (P[0..i-1]*P[i..n])
 		for (size_t i = 1; i < newPattern.size(); ++i) {
-			if (text.substr(0, i) == newPattern.substr(0, i)
-					&& text.substr(i + 1, std::string::npos) == newPattern.substr(i, std::string::npos)) {
+			if (ambiguousEqual(text.substr(0, i), newPattern.substr(0, i))
+					&& ambiguousEqual(text.substr(i + 1, std::string::npos), newPattern.substr(i, std::string::npos))) {
 				// found insertion error
 				std::vector<Occ> continued = leftUntilExact(jIdx - 1, lastPos - newPattern.size() - 1, subpatterns, seq);
 				for (Occ o : continued) {
@@ -272,8 +272,8 @@ std::vector<Occ> ApproximateMatcher::leftUntilExact(size_t jIdx, size_t lastPos,
 				if (i == 0 || i == newPattern.size() - 1)
 					continue; // avoid deletion of first character
 			}
-			if (textOneShorter.substr(0, i) == newPattern.substr(0, i)
-					&& textOneShorter.substr(i, std::string::npos) == newPattern.substr(i + 1, std::string::npos)) {
+			if (ambiguousEqual(textOneShorter.substr(0, i), newPattern.substr(0, i))
+					&& ambiguousEqual(textOneShorter.substr(i, std::string::npos), newPattern.substr(i + 1, std::string::npos))) {
 				// found deletion error
 				std::vector<Occ> continued = leftUntilExact(jIdx - 1, lastPos - newPattern.size() + 1, subpatterns, seq);
 				for (Occ o : continued) {
@@ -327,7 +327,7 @@ std::vector<ErrorOcc> ApproximateMatcher::leftExtend(size_t iIdx, const std::vec
 		size_t mis = 0;
 		assert(text.size() == searchedPattern.size());
 		for (size_t i = 0; i < text.size(); ++i) {
-			if (text[i] != searchedPattern[i]) {
+			if (!ambiguousMatch(text[i], searchedPattern[i])) {
 				mis++;
 				if (mis > iIdx) {
 					break;
@@ -381,7 +381,7 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::rightExtend(size_t j
 		assert(text.size() == searchedPattern.size());
 		size_t mis = 0;
 		for (size_t i = 0; i < text.size(); ++i) {
-			if (text[i] != searchedPattern[i]) {
+			if (!ambiguousMatch(text[i], searchedPattern[i])) {
 				mis++;
 				if (mis > maxErrors) {
 					break;
@@ -429,7 +429,7 @@ bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& r
 		if (pos > text.size() - m - 1) { /*printf ("Seq array out of bounds in bsearch; bailing\n");*/
 			return false;
 		}
-		if (pattern.compare(0, m, text, pos, m) <= 0) {
+		if (pattern.compare(0, m, text, pos, m) <= 0 || ambiguousEqual(text.substr(pos, m), pattern.substr(0, m))) {
 			h = mid;
 		} else {
 			l = mid + 1;
@@ -439,7 +439,8 @@ bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& r
 	if (pos > text.size() - m - 1) { /*printf ("Seq array out of bounds in bsearch; bailing\n");*/
 		return false;
 	}
-	if (text.compare(pos, m, pattern, 0, m) != 0) {
+
+	if (!ambiguousEqual(text.substr(pos, m), pattern.substr(0, m))) {
 		return false;
 	} else {
 		res.first = l;
@@ -457,7 +458,7 @@ bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& r
 		if (pos > text.size() - m - 1) { /*printf ("Seq array out of bounds in bsearch; bailing\n");*/
 			return false;
 		}
-		if (pattern.compare(0, m, text, pos, m) >= 0) {
+		if (pattern.compare(0, m, text, pos, m) >= 0 || ambiguousEqual(text.substr(pos, m), pattern.substr(0, m))) {
 			l = mid;
 		} else {
 			h = mid - 1;
@@ -467,7 +468,7 @@ bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& r
 	if (pos > text.size() - m - 1) { /*printf ("Seq array out of bounds in bsearch; bailing\n");*/
 		return false;
 	}
-	if (text.compare(pos, m, pattern, 0, m) != 0) {
+	if (!ambiguousEqual(text.substr(pos, m), pattern.substr(0, m))) {
 		return false;
 	} else {
 		res.second = l - 1;

@@ -364,6 +364,10 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 						std::cout << "extraOccs.size(): " << extraOccs.size() << "\n";
 						std::cout << startPos << " " << k << " " << "pattern: " << pattern << "\n";
 					}
+					for (size_t i = 0; i < extraOccs.size(); ++i) {
+						std::cout << T.substr(extraOccs[i].first,k) << "\n";
+					}
+					std::cout << "\n";
 
 					if (!acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
 						std::cout << "Not accepting seed anymore\n";
