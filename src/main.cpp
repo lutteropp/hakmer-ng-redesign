@@ -8,6 +8,7 @@
 #include <iostream>
 #include <limits>
 #include <cassert>
+#include <fstream>
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -176,17 +177,38 @@ void quartetsCallback(const Options& options) {
 	writeQuartets(quartetTable, concat.getTaxonLabels(), options.outpath);
 }
 
-void printSummaryStatistics(const std::vector<ExtendedBlock>& blocks, size_t nTax, size_t totalSeqData) {
+void printSummaryStatistics(const std::vector<ExtendedBlock>& blocks, size_t nTax, size_t totalSeqData, const Options& options) {
 	size_t seqDataUsed = 0;
 	size_t nMissingData = 0;
+	size_t rightFlankSum = 0;
+	size_t leftFlankSum = 0;
+	size_t seedSizeSum = 0;
 #pragma omp parallel for reduction(+:seqDataUsed,nMissingData)
 	for (size_t i = 0; i < blocks.size(); ++i) {
 		size_t rowSize = blocks[i].getSeedSize() + blocks[i].getLeftFlankSize() + blocks[i].getRightFlankSize();
 		seqDataUsed += rowSize * blocks[i].getNTaxInBlock();
 		nMissingData += rowSize * (nTax - blocks[i].getNTaxInBlock());
+		leftFlankSum += blocks[i].getLeftFlankSize();
+		rightFlankSum += blocks[i].getRightFlankSize();
+		seedSizeSum += blocks[i].getSeedSize();
 	}
+	std::cout << "Number of extracted blocks: " << blocks.size() << "\n";
 	std::cout << "Percentage of reconstructed sequence data: " << ((double) seqDataUsed * 100) / totalSeqData << " %\n";
 	std::cout << "Percentage of missing data: " << ((double) nMissingData * 100) / (nMissingData + seqDataUsed) << " %\n";
+	std::cout << "Average left flank size: " << (double) leftFlankSum / blocks.size() << "\n";
+	std::cout << "Average right flank size: " << (double) rightFlankSum / blocks.size() << "\n";
+	std::cout << "Average seed size: " << (double) seedSizeSum / blocks.size() << "\n";
+
+	if (!options.infopath.empty()) {
+		std::ofstream info(options.infopath);
+		info << "Number of extracted blocks: " << blocks.size() << "\n";
+		info << "Percentage of reconstructed sequence data: " << ((double) seqDataUsed * 100) / totalSeqData << " %\n";
+		info << "Percentage of missing data: " << ((double) nMissingData * 100) / (nMissingData + seqDataUsed) << " %\n";
+		info << "Average left flank size: " << (double) leftFlankSum / blocks.size() << "\n";
+		info << "Average right flank size: " << (double) rightFlankSum / blocks.size() << "\n";
+		info << "Average seed size: " << (double) seedSizeSum / blocks.size() << "\n";
+		info.close();
+	}
 }
 
 void matrixCallback(const Options& options) {
@@ -195,8 +217,7 @@ void matrixCallback(const Options& options) {
 
 	std::vector<ExtendedBlock> extendedBlocks = extractExtendedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
 			concat.getLcpArray(), presenceChecker, concat.getTaxonCoords(), options);
-	std::cout << "Number of extracted blocks: " << extendedBlocks.size() << "\n";
-	printSummaryStatistics(extendedBlocks, concat.nTax(), concat.getSequenceDataSize());
+	printSummaryStatistics(extendedBlocks, concat.nTax(), concat.getSequenceDataSize(), options);
 	writeFASTASupermatrix(extendedBlocks, concat.getTaxonLabels(), options.outpath);
 }
 
@@ -232,6 +253,7 @@ int main(int argc, char* argv[]) {
 
 	app.add_flag("--redo", options.redo, "Redo the run, overwrite old result files.");
 	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written.")->required();
+	app.add_option("-i,--info,--infopath", options.infopath, "Path to the optional run-information file to be written.");
 
 	auto dynamicFlanksOption = app.add_flag("-d,--dynamic", options.dynamicFlanks,
 			"Dynamically extend the sequence regions flanking a kmer seed.");

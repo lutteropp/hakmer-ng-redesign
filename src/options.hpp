@@ -13,6 +13,7 @@ class Options {
 public:
 	std::string filepath = "";
 	std::string outpath = "";
+	std::string infopath = "";
 	bool contigs = false;
 	bool reportAndExit = false;
 	bool noIndels = false;
