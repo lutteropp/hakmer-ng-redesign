@@ -360,17 +360,8 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 				if (options.maxMismatches > 0) {
 					std::string pattern = T.substr(startPos, k);
 					extraOccs = approxMatcher.findOccurrences(T, SA, presenceChecker, pattern, options.maxMismatches, 1, false);
-					if (extraOccs.size() > 0) {
-						std::cout << "extraOccs.size(): " << extraOccs.size() << "\n";
-						std::cout << startPos << " " << k << " " << "pattern: " << pattern << "\n";
-					}
-					for (size_t i = 0; i < extraOccs.size(); ++i) {
-						std::cout << T.substr(extraOccs[i].first,k) << "\n";
-					}
-					std::cout << "\n";
 
 					if (!acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
-						std::cout << "Not accepting seed anymore\n";
 						if (k == options.maxK || startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // no further extension of seed length, or newly added character would be already taken anyway
 							break;
 						}
@@ -378,7 +369,6 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 						matchCount = countMatches(sIdx, lcp, k);
 						continue;
 					}
-					std::cout << "still accepting seed\n";
 				}
 
 				SeededBlock block(nTax);

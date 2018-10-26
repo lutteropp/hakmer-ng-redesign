@@ -350,12 +350,11 @@ std::vector<ErrorOcc> ApproximateMatcher::leftExtend(size_t iIdx, const std::vec
 std::vector<std::pair<size_t, size_t> > ApproximateMatcher::rightExtend(size_t jIdx, const std::vector<std::string> &subpatterns,
 		size_t posJ, size_t maxErrors, size_t p1Pos, size_t minErrors, const std::string& seq) {
 	std::vector<std::pair<size_t, size_t> > res;
-
 	std::string searchedPattern = ""; // This string has to be found with at most maxErrors errors.
 	for (size_t i = jIdx + 1; i < subpatterns.size(); ++i) {
 		searchedPattern = searchedPattern + subpatterns[i];
 	}
-	if (searchedPattern.empty()) { // pattern has already been found
+	if (searchedPattern.empty() && minErrors == 0) { // pattern has already been found
 		res.push_back(std::make_pair(p1Pos, posJ + subpatterns[jIdx].size() - 1));
 		return res;
 	}
@@ -388,7 +387,7 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::rightExtend(size_t j
 				}
 			}
 		}
-		if (mis <= maxErrors) {
+		if (mis <= maxErrors && mis >= minErrors) {
 			res.push_back(std::make_pair(p1Pos, posJ + subpatterns[jIdx].size() + searchedPattern.size() - 1));
 		}
 		return res;
