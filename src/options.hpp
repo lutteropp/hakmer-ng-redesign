@@ -30,6 +30,7 @@ public:
 	size_t flankWidth = 20;
 	size_t minTaxaPerBlock = 4;
 	bool quickDelta = false;
+	size_t maxMismatches = 0;
 
 	// quartet-flavor-only parameters
 	std::string speciesTreePath = "";

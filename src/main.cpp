@@ -183,7 +183,8 @@ void printSummaryStatistics(const std::vector<ExtendedBlock>& blocks, size_t nTa
 	size_t rightFlankSum = 0;
 	size_t leftFlankSum = 0;
 	size_t seedSizeSum = 0;
-#pragma omp parallel for reduction(+:seqDataUsed,nMissingData)
+	size_t nTaxSum = 0;
+#pragma omp parallel for reduction(+:seqDataUsed,nMissingData,leftFlankSum,rightFlankSum,seedSizeSum,nTaxSum)
 	for (size_t i = 0; i < blocks.size(); ++i) {
 		size_t rowSize = blocks[i].getSeedSize() + blocks[i].getLeftFlankSize() + blocks[i].getRightFlankSize();
 		seqDataUsed += rowSize * blocks[i].getNTaxInBlock();
@@ -191,6 +192,7 @@ void printSummaryStatistics(const std::vector<ExtendedBlock>& blocks, size_t nTa
 		leftFlankSum += blocks[i].getLeftFlankSize();
 		rightFlankSum += blocks[i].getRightFlankSize();
 		seedSizeSum += blocks[i].getSeedSize();
+		nTaxSum += blocks[i].getNTaxInBlock();
 	}
 	std::cout << "Number of extracted blocks: " << blocks.size() << "\n";
 	std::cout << "Percentage of reconstructed sequence data: " << ((double) seqDataUsed * 100) / totalSeqData << " %\n";
@@ -198,6 +200,7 @@ void printSummaryStatistics(const std::vector<ExtendedBlock>& blocks, size_t nTa
 	std::cout << "Average left flank size: " << (double) leftFlankSum / blocks.size() << "\n";
 	std::cout << "Average right flank size: " << (double) rightFlankSum / blocks.size() << "\n";
 	std::cout << "Average seed size: " << (double) seedSizeSum / blocks.size() << "\n";
+	std::cout << "Average nTax in block: " << (double) nTaxSum / blocks.size() << "\n";
 
 	if (!options.infopath.empty()) {
 		std::ofstream info(options.infopath);
@@ -207,6 +210,7 @@ void printSummaryStatistics(const std::vector<ExtendedBlock>& blocks, size_t nTa
 		info << "Average left flank size: " << (double) leftFlankSum / blocks.size() << "\n";
 		info << "Average right flank size: " << (double) rightFlankSum / blocks.size() << "\n";
 		info << "Average seed size: " << (double) seedSizeSum / blocks.size() << "\n";
+		info << "Average nTax in block: " << (double) nTaxSum / blocks.size() << "\n";
 		info.close();
 	}
 }
@@ -247,6 +251,7 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--protein", options.proteinData, "The sequences are protein data instead of DNA data.")->excludes(revCompOption);
 	app.add_option("--kmin", options.minK, "Minimum kmer seed size.");
 	app.add_option("--kmax", options.maxK, "Maximum kmer seed size.");
+	app.add_option("-q,--mismatches", options.maxMismatches, "Maximum number of mismatches in a k-mer block seed.", true);
 
 	size_t nThreads = 0;
 	app.add_option("-t,--threads", nThreads, "Maximum number of threads to use.");

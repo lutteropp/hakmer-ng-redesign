@@ -27,6 +27,15 @@ PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool
 
 }
 
+PresenceChecker::PresenceChecker(const PresenceChecker& other) {
+	this->revComp = other.revComp;
+	this->freePos.resize(other.freePos.size());
+	for (size_t i = 0; i < other.freePos.size(); ++i) {
+		this->freePos[i] = other.freePos[i];
+	}
+	this->nTax = other.nTax;
+}
+
 bool PresenceChecker::isFree(size_t coord) const {
 	if (revComp && coord >= freePos.size()) {
 		coord = freePos.size() - coord - 1;

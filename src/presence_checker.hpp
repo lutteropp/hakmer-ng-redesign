@@ -19,6 +19,7 @@
 class PresenceChecker {
 public:
 	PresenceChecker(const IndexedConcatenatedSequence& concat, bool revComp);
+	PresenceChecker(const PresenceChecker& other);
 	bool isFree(size_t firstCoord, size_t lastCoord) const;
 	bool isFree(size_t coord) const;
 	void setTaken(size_t firstCoord, size_t lastCoord);
