@@ -28,6 +28,7 @@ public:
 	void reserveExtendedBlock(const ExtendedBlock& block);
 
 	bool isFine(const ExtendedBlock& block);
+	bool isFineWithoutSeed(const ExtendedBlock& block);
 	bool isFine(const SeededBlock& block);
 private:
 	std::vector<bool> freePos;

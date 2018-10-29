@@ -99,6 +99,22 @@ bool PresenceChecker::isFine(const ExtendedBlock& block) {
 	return true;
 }
 
+bool PresenceChecker::isFineWithoutSeed(const ExtendedBlock& block) {
+	for (size_t i = 0; i < nTax; ++i) {
+		if (block.hasTaxon(i)) {
+			std::pair<size_t, size_t> coords = block.getTaxonCoordsWithFlanks(i);
+			std::pair<size_t, size_t> seedCoords = block.getTaxonCoordsWithoutFlanks(i);
+			if (seedCoords.first - 1 >= coords.first && !isFree(coords.first, seedCoords.first - 1)) {
+				return false;
+			}
+			if (coords.second >= seedCoords.second + 1 && !isFree(seedCoords.second + 1, coords.second)) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 bool PresenceChecker::isFine(const SeededBlock& block) {
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {

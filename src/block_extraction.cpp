@@ -664,6 +664,17 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 	return block;
 }
 
+std::vector<SeededBlock> filterSeededBlocks(const std::vector<SeededBlock>& seededBlocks, PresenceChecker& presenceChecker, const Options& options) {
+	std::vector<SeededBlock> res;
+	for (size_t i = 0; i < seededBlocks.size(); ++i) {
+		if (presenceChecker.isFine(seededBlocks[i])) {
+			res.push_back(seededBlocks[i]);
+			presenceChecker.reserveSeededBlock(seededBlocks[i]);
+		}
+	}
+	return res;
+}
+
 std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
 		const Options& options) {
@@ -672,17 +683,22 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		std::cout << "Extracting seeded blocks...\n";
 	std::vector<SeededBlock> seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
 	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<SeededBlock>());
+
+	if (options.preselectSeeds) {
+		seededBlocks = filterSeededBlocks(seededBlocks, presenceChecker, options);
+	}
+
 	if (!options.quartetFlavor)
 		std::cout << "Assembling extended blocks...\n";
 	double lastP = 0;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		SeededBlock seededBlock = seededBlocks[i];
-		if (!presenceChecker.isFine(seededBlock))
+		if (!options.preselectSeeds && !presenceChecker.isFine(seededBlock))
 			continue;
 		trivialExtension(seededBlock, T, presenceChecker, nTax);
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 		// check if the extended block can still be accepted.
-		if (presenceChecker.isFine(extendedBlock)) {
+		if ( (!options.preselectSeeds && presenceChecker.isFine(extendedBlock)) || (options.preselectSeeds && presenceChecker.isFineWithoutSeed(extendedBlock)) ) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
 			std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
 			if (options.verboseDebug) {
