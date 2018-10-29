@@ -28,26 +28,9 @@ public:
 	bool operator >(const SeededBlock& str) const {
 		return n > str.n;
 	}
-	void setBestCaseMaxSizes(size_t left, size_t right) {
-		bestCaseMaxSizeLeft = left;
-		bestCaseMaxSizeRight = right;
-		bestCaseMaxSize = left + right;
-	}
-	size_t getBestCaseMaxSize() const {
-		return bestCaseMaxSizeLeft + bestCaseMaxSizeRight;
-	}
-	size_t getBestCaseMaxSizeLeft() const {
-		return bestCaseMaxSizeLeft;
-	}
-	size_t getBestCaseMaxSizeRight() const {
-		return bestCaseMaxSizeRight;
-	}
 private:
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
 	std::vector<size_t> taxIDs;
 	size_t n;
 	size_t k;
-	size_t bestCaseMaxSize;
-	size_t bestCaseMaxSizeLeft;
-	size_t bestCaseMaxSizeRight;
 };
