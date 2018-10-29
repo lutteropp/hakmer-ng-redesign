@@ -23,10 +23,10 @@ public:
 	void increaseTaxonCoordsRight();
 	void decreaseTaxonCoordsLeft();
 	bool operator <(const SeededBlock& str) const {
-		return (n * bestCaseMaxSize < str.n * str.bestCaseMaxSize);
+		return n < str.n;
 	}
 	bool operator >(const SeededBlock& str) const {
-		return (n * bestCaseMaxSize > str.n * str.bestCaseMaxSize);
+		return n > str.n;
 	}
 	void setBestCaseMaxSizes(size_t left, size_t right) {
 		bestCaseMaxSizeLeft = left;
