@@ -30,6 +30,9 @@ public:
 	size_t flankWidth = 20;
 	size_t minTaxaPerBlock = 4;
 	bool quickDelta = false;
+	bool useHMM = false;
+	bool hmm_gcCorrection = false;
+	bool useBigGapsCriterion = false; // TODO: This still ahs to be implemented... stop alignment extension as soon as there are too big gaps.
 	size_t maxMismatches = 0;
 
 	// quartet-flavor-only parameters

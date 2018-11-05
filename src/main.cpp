@@ -266,9 +266,15 @@ int main(int argc, char* argv[]) {
 	app.add_option("--flankwidth", options.flankWidth,
 			"Length of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is 2*flankwidth+k.", true)->excludes(
 			dynamicFlanksOption);
-	app.add_option("--maxdelta", options.maxDelta, "Maximum delta-score to be still considered tree-like.", true)->needs(
-			dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
-	app.add_flag("--quickdelta,--quickDelta", options.quickDelta, "Only compute the delta score for O(n) quartets instead of all O(n^4) quartets.")->needs(dynamicFlanksOption);
+	auto maxDeltaOption =
+			app.add_option("--maxdelta", options.maxDelta, "Maximum delta-score to be still considered tree-like.", true)->needs(
+					dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
+	auto quickDeltaOption = app.add_flag("--quickdelta,--quickDelta", options.quickDelta,
+			"Only compute the delta score for O(n) quartets instead of all O(n^4) quartets.")->needs(dynamicFlanksOption);
+	auto hmmOption = app.add_flag("--hmm,--HMM", options.useHMM,
+			"Use Hidden Markov Model instead of delta score to decide when to stop alignment extension.")->needs(dynamicFlanksOption)->excludes(
+			maxDeltaOption)->excludes(quickDeltaOption);
+	app.add_flag("--gcCorrection", options.hmm_gcCorrection, "Experimental: Try to correct for GC-content of the genomes.")->needs(hmmOption);
 
 	auto quartetsMode = app.add_subcommand("quartets", "Quartets mode");
 	quartetsMode->add_option("--minblocks", options.minBlocksPerQuartet, "Minimum number of blocks to be sampled for each quartet.", true);

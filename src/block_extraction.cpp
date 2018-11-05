@@ -10,6 +10,8 @@
 #include "dna_functions.hpp"
 #include "indexing/approx_matching.hpp"
 
+#include "hmm_classification.hpp"
+
 #include <unordered_set>
 #include <cmath>
 #include <queue>
