@@ -271,7 +271,7 @@ int main(int argc, char* argv[]) {
 					dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
 	auto quickDeltaOption = app.add_flag("--quickdelta,--quickDelta", options.quickDelta,
 			"Only compute the delta score for O(n) quartets instead of all O(n^4) quartets.")->needs(dynamicFlanksOption);
-	auto hmmOption = app.add_flag("--hmm,--HMM", options.useHMM,
+	auto hmmOption = app.add_flag("--hmm,--HMM,--useHMM", options.useHMM,
 			"Use Hidden Markov Model instead of delta score to decide when to stop alignment extension.")->needs(dynamicFlanksOption)->excludes(
 			maxDeltaOption)->excludes(quickDeltaOption);
 	app.add_flag("--gcCorrection", options.hmm_gcCorrection, "Experimental: Try to correct for GC-content of the genomes.")->needs(hmmOption);

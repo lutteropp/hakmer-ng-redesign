@@ -626,6 +626,7 @@ std::pair<size_t, double> findPerfectFlankSizeDelta(ExtendedBlock& block, size_t
 	return std::make_pair(bestSize, bestScore);
 }
 
+// TODO: FIX THIS!!!
 std::pair<size_t, double> findPerfectFlankSizeHMM(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
 		const std::string& T, const Options& options, bool directionRight) {
 	size_t bestSize = 0;
@@ -660,12 +661,14 @@ std::pair<size_t, double> findPerfectFlankSizeHMM(ExtendedBlock& block, size_t n
 		} else {
 			block.msaWrapper.addCharsLeft(charsToAdd);
 		}
+
+		// TODO: Run the HomologyHMM on the pairwise alignments to check if we should already stop the extension...
 	}
 
 	std::pair<size_t, size_t> seedCoords; // TODO: This currently only works with exactly matching seeds I think...
 	std::string seed;
 	for (size_t i = 0; i < nTax; ++i) {
-		if (block.hasTaxon(i)) {
+		if (block.hasTaxon(i)) { // TODO: ALso, this is super sloooow!!!
 			seed = T.substr(block.getTaxonCoordsWithoutFlanks(i).first, block.getSeedSize());
 			seedCoords.first = block.msaWrapper.assembleMSA()[0].find(seed);
 			seedCoords.second = seedCoords.first + block.getSeedSize() - 1;
@@ -674,7 +677,11 @@ std::pair<size_t, double> findPerfectFlankSizeHMM(ExtendedBlock& block, size_t n
 	}
 
 	Params hmmParams = prepareHmmParams(T, options);
-	bestSize = findNumGoodSitesMSA(block.msaWrapper, directionRight, seedCoords, hmmParams);
+	if (!directionRight && seedCoords.first == 0) {
+		bestSize = 0;
+	} else {
+		bestSize = findNumGoodSitesMSA(block.msaWrapper, directionRight, seedCoords, hmmParams);
+	}
 
 	return std::make_pair(bestSize, 1);
 }

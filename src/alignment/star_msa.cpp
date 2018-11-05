@@ -23,6 +23,7 @@ std::vector<std::string> StarMSA::assembleMSA() {
 	if (msaValid) {
 		return msa;
 	}
+	msa.clear();
 	msa.resize(nTax);
 	// first, find the sequence with the smallest distance sum to the others
 	std::vector<int> distanceSums(nTax, 0);
