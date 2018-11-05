@@ -32,6 +32,11 @@ public:
 			return starMSA.assembleMSA();
 		}
 	}
+	void clearMSADataStructures() {
+		if (noGaps) {
+			starMSA.clearMSADataStructures();
+		}
+	}
 	double pairwiseDistance(size_t idx1, size_t idx2) {
 		if (noGaps) {
 			return noGapsMSA.pairwiseDistance(idx1, idx2);

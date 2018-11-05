@@ -267,7 +267,8 @@ bool allRightSame(const SeededBlock& seededBlock, const std::string& T, size_t n
 	return true;
 }
 
-std::pair<size_t, size_t> computeBestCaseMaxSizes(SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
+std::pair<size_t, size_t> computeBestCaseMaxSizes(SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker,
+		size_t nTax) {
 	size_t maxSizeLeft = 0;
 	size_t maxSizeRight = 0;
 	bool canLeft = true;
@@ -389,7 +390,8 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 				{
 					res.push_back(block);
 					if (options.verboseDebug) {
-						std::cout << "Pushing back a seeded block with " << block.getNTaxInBlock() << " taxa and seed size " << block.getSeedSize() << "\n";
+						std::cout << "Pushing back a seeded block with " << block.getNTaxInBlock() << " taxa and seed size "
+								<< block.getSeedSize() << "\n";
 					}
 				}
 				if (!options.quartetFlavor) {
@@ -526,49 +528,54 @@ bool canGoRightAll(const ExtendedBlock& block, const PresenceChecker& presenceCh
 	return canGo;
 }
 
-std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
+std::pair<size_t, double> findPerfectFlankSizeStatic(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
 		const std::string& T, const Options& options, bool directionRight) {
 	size_t bestSize = 0;
 	double bestScore = 1.0;
 	size_t nTaxBlock = block.getNTaxInBlock();
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
-
-	if (!options.dynamicFlanks) {
-		size_t finalFlankSize = 0;
-		for (size_t i = 1; i <= options.flankWidth; ++i) {
-			if (directionRight) {
-				if (!canGoRightAll(block, presenceChecker, nTax, i)) {
-					break;
-				}
-			} else {
-				if (!canGoLeftAll(block, presenceChecker, nTax, i)) {
-					break;
-				}
+	size_t finalFlankSize = 0;
+	for (size_t i = 1; i <= options.flankWidth; ++i) {
+		if (directionRight) {
+			if (!canGoRightAll(block, presenceChecker, nTax, i)) {
+				break;
 			}
-			std::vector<char> charsToAdd(taxIDs.size());
-			for (size_t j = 0; j < taxIDs.size(); ++j) {
-				size_t coord;
-				if (directionRight) {
-					coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second + i;
-				} else {
-					coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first - i;
-				}
-				if (coord >= T.size()) {
-					throw std::runtime_error("This should not happen! Coord is too large.");
-				}
-				charsToAdd[j] = T[coord];
+		} else {
+			if (!canGoLeftAll(block, presenceChecker, nTax, i)) {
+				break;
 			}
-
-			if (directionRight) {
-				block.msaWrapper.addCharsRight(charsToAdd);
-			} else {
-				block.msaWrapper.addCharsLeft(charsToAdd);
-			}
-			finalFlankSize = i;
 		}
-		double score = averageDeltaScore(block, nTaxBlock, options);
-		return std::make_pair(finalFlankSize, score);
+		std::vector<char> charsToAdd(taxIDs.size());
+		for (size_t j = 0; j < taxIDs.size(); ++j) {
+			size_t coord;
+			if (directionRight) {
+				coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second + i;
+			} else {
+				coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first - i;
+			}
+			if (coord >= T.size()) {
+				throw std::runtime_error("This should not happen! Coord is too large.");
+			}
+			charsToAdd[j] = T[coord];
+		}
+
+		if (directionRight) {
+			block.msaWrapper.addCharsRight(charsToAdd);
+		} else {
+			block.msaWrapper.addCharsLeft(charsToAdd);
+		}
+		finalFlankSize = i;
 	}
+	double score = averageDeltaScore(block, nTaxBlock, options);
+	return std::make_pair(finalFlankSize, score);
+}
+
+std::pair<size_t, double> findPerfectFlankSizeDelta(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
+		const std::string& T, const Options& options, bool directionRight) {
+	size_t bestSize = 0;
+	double bestScore = 1.0;
+	size_t nTaxBlock = block.getNTaxInBlock();
+	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 
 	for (size_t i = 1; i <= options.maximumExtensionWidth; ++i) {
 		if (bestScore <= options.maxDelta) {
@@ -619,6 +626,77 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 	return std::make_pair(bestSize, bestScore);
 }
 
+std::pair<size_t, double> findPerfectFlankSizeHMM(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
+		const std::string& T, const Options& options, bool directionRight) {
+	size_t bestSize = 0;
+	size_t nTaxBlock = block.getNTaxInBlock();
+	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
+
+	for (size_t i = 1; i <= options.maximumExtensionWidth; ++i) {
+		if (directionRight) {
+			if (!canGoRightAll(block, presenceChecker, nTax, i)) {
+				break;
+			}
+		} else {
+			if (!canGoLeftAll(block, presenceChecker, nTax, i)) {
+				break;
+			}
+		}
+		std::vector<char> charsToAdd(taxIDs.size());
+		for (size_t j = 0; j < taxIDs.size(); ++j) {
+			size_t coord;
+			if (directionRight) {
+				coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).second + i;
+			} else {
+				coord = block.getTaxonCoordsWithoutFlanks(taxIDs[j]).first - i;
+			}
+			if (coord >= T.size()) {
+				throw std::runtime_error("This should not happen! Coord is too large.");
+			}
+			charsToAdd[j] = T[coord];
+		}
+		if (directionRight) {
+			block.msaWrapper.addCharsRight(charsToAdd);
+		} else {
+			block.msaWrapper.addCharsLeft(charsToAdd);
+		}
+	}
+
+	std::pair<size_t, size_t> seedCoords; // TODO: This currently only works with exactly matching seeds I think...
+	std::string seed;
+	for (size_t i = 0; i < nTax; ++i) {
+		if (block.hasTaxon(i)) {
+			seed = T.substr(block.getTaxonCoordsWithoutFlanks(i).first, block.getSeedSize());
+			seedCoords.first = block.msaWrapper.assembleMSA()[0].find(seed);
+			seedCoords.second = seedCoords.first + block.getSeedSize() - 1;
+			break;
+		}
+	}
+
+	Params hmmParams = prepareHmmParams(T, options);
+	bestSize = findNumGoodSitesMSA(block.msaWrapper, directionRight, seedCoords, hmmParams);
+
+	return std::make_pair(bestSize, 1);
+}
+
+std::pair<size_t, double> findPerfectFlankSizeBigGaps(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
+		const std::string& T, const Options& options, bool directionRight) {
+	throw std::runtime_error("Not implemented yet");
+}
+
+std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker,
+		const std::string& T, const Options& options, bool directionRight) {
+	if (!options.dynamicFlanks) {
+		return findPerfectFlankSizeStatic(block, nTax, presenceChecker, T, options, directionRight);
+	} else if (!options.useHMM) {
+		return findPerfectFlankSizeDelta(block, nTax, presenceChecker, T, options, directionRight);
+	} else if (!options.useBigGapsCriterion) {
+		return findPerfectFlankSizeHMM(block, nTax, presenceChecker, T, options, directionRight);
+	} else {
+		return findPerfectFlankSizeBigGaps(block, nTax, presenceChecker, T, options, directionRight);
+	}
+}
+
 ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
 		const Options& options) {
 	ExtendedBlock block(seededBlock, nTax, options.noIndels);
@@ -663,10 +741,13 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 	block.msaWrapper.shrinkDownToLeftFlank(bestLeft.first);
 	block.msaWrapper.shrinkDownToRightFlank(bestRight.first);
 
+	block.msaWrapper.clearMSADataStructures();
+
 	return block;
 }
 
-std::vector<SeededBlock> filterSeededBlocks(const std::vector<SeededBlock>& seededBlocks, PresenceChecker& presenceChecker, const Options& options) {
+std::vector<SeededBlock> filterSeededBlocks(const std::vector<SeededBlock>& seededBlocks, PresenceChecker& presenceChecker,
+		const Options& options) {
 	std::vector<SeededBlock> res;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		if (presenceChecker.isFine(seededBlocks[i])) {
@@ -700,7 +781,8 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		trivialExtension(seededBlock, T, presenceChecker, nTax);
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 		// check if the extended block can still be accepted.
-		if ( (!options.preselectSeeds && presenceChecker.isFine(extendedBlock)) || (options.preselectSeeds && presenceChecker.isFineWithoutSeed(extendedBlock)) ) {
+		if ((!options.preselectSeeds && presenceChecker.isFine(extendedBlock))
+				|| (options.preselectSeeds && presenceChecker.isFineWithoutSeed(extendedBlock))) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
 			std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
 			if (options.verboseDebug) {

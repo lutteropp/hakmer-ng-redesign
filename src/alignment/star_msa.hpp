@@ -20,6 +20,7 @@ public:
 	StarMSA();
 	void init(size_t nTax);
 	std::vector<std::string> assembleMSA();
+	void clearMSADataStructures();
 	double pairwiseDistance(size_t idx1, size_t idx2);
 	double normalizedPairwiseDistance(size_t idx1, size_t idx2);
 	void addCharsLeft(const std::vector<char>& chars);

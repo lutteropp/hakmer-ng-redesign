@@ -57,6 +57,32 @@ inline std::string pairwiseAlignmentToColumnStates(const std::string& s1Aligned,
 	return colStates;
 }
 
+inline std::string pairwiseAlignmentToColumnStates(const std::string& s1Aligned, const std::string& s2Aligned, bool directionRight,
+		const std::pair<size_t, size_t>& seedCoords) {
+	std::string colStates;
+	assert(s1Aligned.size() == s2Aligned.size());
+
+	size_t start = 0;
+	size_t end = s1Aligned.size() - 1;
+	if (directionRight) {
+		start = seedCoords.second + 1;
+	} else {
+		if (seedCoords.first > 0) {
+			end = seedCoords.first - 1;
+		} else {
+			throw std::runtime_error("This should not happen");
+		}
+	}
+
+	for (size_t i = start; i <= end; ++i) { // TODO: This only works with non-ambiguous DNA characters for now...
+		colStates += colmap[charmap[s1Aligned[i]]][charmap[s2Aligned[i]]];
+	}
+	if (!directionRight) {
+		std::reverse(colStates.begin(), colStates.end());
+	}
+	return colStates;
+}
+
 inline size_t findNumGoodSites(const std::string& s1Aligned, const std::string& s2Aligned, const Params& params) {
 	std::string colStates = pairwiseAlignmentToColumnStates(s1Aligned, s2Aligned);
 	std::string prediction = predict(colStates, params);
@@ -68,11 +94,35 @@ inline size_t findNumGoodSites(const std::string& s1Aligned, const std::string& 
 	return prediction.size();
 }
 
+inline size_t findNumGoodSites(const std::string& s1Aligned, const std::string& s2Aligned, bool directionRight,
+		const std::pair<size_t, size_t>& seedCoords, const Params& params) {
+	std::string colStates = pairwiseAlignmentToColumnStates(s1Aligned, s2Aligned, directionRight, seedCoords);
+	std::string prediction = predict(colStates, params);
+	for (size_t i = 0; i < prediction.size(); ++i) {
+		if (prediction[i] == 'N') {
+			return i;
+		}
+	}
+	return prediction.size();
+}
+
+inline size_t findNumGoodSitesMSA(MSAWrapper& msaWrapper, bool directionRight, const std::pair<size_t, size_t>& seedCoords,
+		const Params& params) {
+	size_t goodSites = std::numeric_limits<size_t>::max();
+	std::vector<std::string> msa = msaWrapper.assembleMSA();
+	for (size_t i = 0; i < msa.size(); ++i) {
+		for (size_t j = i + 1; j < msa.size(); ++j) {
+			goodSites = std::min(goodSites, findNumGoodSites(msa[i], msa[j], directionRight, seedCoords, params));
+		}
+	}
+	return goodSites;
+}
+
 inline size_t findNumGoodSitesMSA(MSAWrapper& msaWrapper, const Params& params) {
 	size_t goodSites = std::numeric_limits<size_t>::max();
 	std::vector<std::string> msa = msaWrapper.assembleMSA();
 	for (size_t i = 0; i < msa.size(); ++i) {
-		for (size_t j = i+1; j < msa.size(); ++j) {
+		for (size_t j = i + 1; j < msa.size(); ++j) {
 			goodSites = std::min(goodSites, findNumGoodSites(msa[i], msa[j], params));
 		}
 	}

@@ -18,6 +18,7 @@ void StarMSA::init(size_t nTax) {
 	pairwiseAlignments.init(nTax, nTax);
 	normalizedPairwiseDistances.init(nTax, nTax);
 }
+
 std::vector<std::string> StarMSA::assembleMSA() {
 	if (msaValid) {
 		return msa;
@@ -74,7 +75,11 @@ std::vector<std::string> StarMSA::assembleMSA() {
 		}
 	}
 	msaValid = true;
+	return msa;
+}
 
+void StarMSA::clearMSADataStructures() {
+	assembleMSA(); // just to be sure
 	// rescue the normalized pairwise distances
 	for (size_t i = 0; i < nTax; ++i) {
 		for (size_t j = 0; j < nTax; ++j) {
@@ -83,9 +88,8 @@ std::vector<std::string> StarMSA::assembleMSA() {
 	}
 	// now the pairwise alignments are not needed anymore, most likely not even the pairwise distances... free them.
 	pairwiseAlignments.shrinkDownTo(0, 0);
-
-	return msa;
 }
+
 double StarMSA::pairwiseDistance(size_t idx1, size_t idx2) {
 	if (idx1 == idx2)
 		return 0.0;
