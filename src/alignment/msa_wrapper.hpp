@@ -25,6 +25,15 @@ public:
 			starMSA.init(nTax);
 		}
 	}
+
+	void disassembleMSA() {
+		if (noGaps) {
+			return noGapsMSA.disassembleMSA();
+		} else {
+			return starMSA.disassembleMSA();
+		}
+	}
+
 	std::vector<std::string> assembleMSA() {
 		if (noGaps) {
 			return noGapsMSA.assembleMSA();
@@ -98,6 +107,20 @@ public:
 			return noGapsMSA.getAlignmentWidth();
 		} else {
 			return starMSA.getAlignmentWidth();
+		}
+	}
+	std::pair<std::string, std::string> getRightFlankAlignment(size_t taxID1, size_t taxID2) {
+		if (noGaps) {
+			return noGapsMSA.getRightFlankAlignment(taxID1, taxID2);
+		} else {
+			return starMSA.getRightFlankAlignment(taxID1, taxID2);
+		}
+	}
+	std::pair<std::string, std::string> getReversedLeftFlankAlignment(size_t taxID1, size_t taxID2) {
+		if (noGaps) {
+			return noGapsMSA.getReversedLeftFlankAlignment(taxID1, taxID2);
+		} else {
+			return starMSA.getReversedLeftFlankAlignment(taxID1, taxID2);
 		}
 	}
 private:

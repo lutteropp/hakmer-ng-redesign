@@ -30,6 +30,9 @@ public:
 	void shrinkDownToLeftFlank(size_t newLeftFlankSize);
 	void shrinkDownToRightFlank(size_t newRightFlankSize);
 	size_t getAlignmentWidth();
+	std::pair<std::string, std::string> getRightFlankAlignment(size_t taxID1, size_t taxID2);
+	std::pair<std::string, std::string> getReversedLeftFlankAlignment(size_t taxID1, size_t taxID2);
+	void disassembleMSA();
 private:
 	void addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t centerSequenceIdx);
 	size_t nTax;

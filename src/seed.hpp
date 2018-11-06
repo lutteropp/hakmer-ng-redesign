@@ -11,9 +11,13 @@
 #include <cstdlib>
 #include <string>
 
-class SeededBlock {
+/*
+ * Store seed coordinates for each included taxon
+ */
+
+class Seed {
 public:
-	SeededBlock(size_t nTax);
+	Seed(size_t nTax);
 	void addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord);
 	size_t getNTaxInBlock() const;
 	std::pair<size_t, size_t> getTaxonCoords(size_t taxID) const;
@@ -22,10 +26,10 @@ public:
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	void increaseTaxonCoordsRight();
 	void decreaseTaxonCoordsLeft();
-	bool operator <(const SeededBlock& str) const {
+	bool operator <(const Seed& str) const {
 		return n < str.n;
 	}
-	bool operator >(const SeededBlock& str) const {
+	bool operator >(const Seed& str) const {
 		return n > str.n;
 	}
 private:

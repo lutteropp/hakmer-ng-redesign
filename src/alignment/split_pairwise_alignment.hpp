@@ -26,6 +26,8 @@ public:
 	double pairwiseDistance();
 	void shrinkDownToLeftFlank(size_t newLeftFlankSize);
 	void shrinkDownToRightFlank(size_t newRightFlankSize);
+	std::pair<std::string, std::string> extractRightFlankAlignment();
+	std::pair<std::string, std::string> extractReversedLeftFlankAlignment();
 private:
 	bool singleSeed;
 	std::string singleSeedSequence;

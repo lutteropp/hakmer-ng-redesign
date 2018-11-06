@@ -100,3 +100,9 @@ void SplitPairwiseAlignment::shrinkDownToRightFlank(size_t newRightFlankSize) {
 	rightFlank.shrinkDownTo(newRightFlankSize, newRightFlankSize);
 	aliValid = false;
 }
+std::pair<std::string, std::string> SplitPairwiseAlignment::extractRightFlankAlignment() {
+	return rightFlank.extractAlignment();
+}
+std::pair<std::string, std::string> SplitPairwiseAlignment::extractReversedLeftFlankAlignment() {
+	return leftFlank.extractAlignment();
+}

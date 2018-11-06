@@ -19,6 +19,13 @@ void StarMSA::init(size_t nTax) {
 	normalizedPairwiseDistances.init(nTax, nTax);
 }
 
+std::pair<std::string, std::string> StarMSA::getRightFlankAlignment(size_t taxID1, size_t taxID2) {
+	return pairwiseAlignments.entryAt(taxID1, taxID2).extractRightFlankAlignment();
+}
+std::pair<std::string, std::string> StarMSA::getReversedLeftFlankAlignment(size_t taxID1, size_t taxID2) {
+	return pairwiseAlignments.entryAt(taxID1, taxID2).extractReversedLeftFlankAlignment();
+}
+
 std::vector<std::string> StarMSA::assembleMSA() {
 	if (msaValid) {
 		return msa;
@@ -256,4 +263,10 @@ void StarMSA::addToMSA(size_t taxonToAdd, std::vector<std::string>& msa, size_t 
 		msa[taxonToAdd] += aliSeqNewTaxon[i_ali];
 		i_ali++;
 	}
+}
+
+void StarMSA::disassembleMSA() {
+	msa.clear();
+	msa.shrink_to_fit();
+	msaValid = false;
 }

@@ -10,9 +10,9 @@
 #include <cstdlib>
 #include <vector>
 
-#include "seeded_block.hpp"
 #include "extended_block.hpp"
 #include "indexed_concat.hpp"
+#include "seed.hpp"
 
 // TODO: Make this thing thread-safe
 
@@ -24,12 +24,12 @@ public:
 	bool isFree(size_t coord) const;
 	void setTaken(size_t firstCoord, size_t lastCoord);
 	void setTaken(size_t coord);
-	void reserveSeededBlock(const SeededBlock& block);
+	void reserveSeededBlock(const Seed& block);
 	void reserveExtendedBlock(const ExtendedBlock& block);
 
 	bool isFine(const ExtendedBlock& block);
 	bool isFineWithoutSeed(const ExtendedBlock& block);
-	bool isFine(const SeededBlock& block);
+	bool isFine(const Seed& block);
 private:
 	std::vector<bool> freePos;
 	size_t nTax;

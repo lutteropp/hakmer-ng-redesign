@@ -158,3 +158,17 @@ bool NoGapsMSA::isGapCharacter(char c) {
 size_t NoGapsMSA::getAlignmentWidth() const {
 	return width;
 }
+
+std::pair<std::string, std::string> NoGapsMSA::getRightFlankAlignment(size_t taxID1, size_t taxID2) {
+	return std::make_pair(sequencesRight[taxID1], sequencesRight[taxID2]);
+}
+
+std::pair<std::string, std::string> NoGapsMSA::getReversedLeftFlankAlignment(size_t taxID1, size_t taxID2) {
+	return std::make_pair(sequencesLeft[taxID1], sequencesLeft[taxID2]);
+}
+
+void NoGapsMSA::disassembleMSA() {
+	msa.clear();
+	msa.shrink_to_fit();
+	msaValid = false;
+}

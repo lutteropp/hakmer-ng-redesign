@@ -84,8 +84,15 @@ inline std::string pairwiseAlignmentToColumnStates(const std::string& s1Aligned,
 }
 
 inline size_t findNumGoodSites(const std::string& s1Aligned, const std::string& s2Aligned, const Params& params) {
+	if (s1Aligned == s2Aligned) {
+		return s1Aligned.size();
+	}
 	std::string colStates = pairwiseAlignmentToColumnStates(s1Aligned, s2Aligned);
 	std::string prediction = predict(colStates, params);
+	std::cout << s1Aligned << "\n";
+	std::cout << s2Aligned << "\n";
+	std::cout << "prediction:\n";
+	std::cout << prediction << "\n";
 	for (size_t i = 0; i < prediction.size(); ++i) {
 		if (prediction[i] == 'N') {
 			return i;
@@ -98,6 +105,10 @@ inline size_t findNumGoodSites(const std::string& s1Aligned, const std::string& 
 		const std::pair<size_t, size_t>& seedCoords, const Params& params) {
 	std::string colStates = pairwiseAlignmentToColumnStates(s1Aligned, s2Aligned, directionRight, seedCoords);
 	std::string prediction = predict(colStates, params);
+	std::cout << s1Aligned << "\n";
+	std::cout << s2Aligned << "\n";
+	std::cout << "prediction:\n";
+	std::cout << prediction << "\n";
 	for (size_t i = 0; i < prediction.size(); ++i) {
 		if (prediction[i] == 'N') {
 			return i;
@@ -127,6 +138,43 @@ inline size_t findNumGoodSitesMSA(MSAWrapper& msaWrapper, const Params& params) 
 		}
 	}
 	return goodSites;
+}
+
+inline bool isEntirePairHomologous(const std::string& s1, const std::string& s2, const Params& params) {
+	assert(s1.size() == s2.size());
+	std::vector<size_t> gapSitesPrefixSum(s1.size(), 0);
+	std::string colStates = "";
+	if (s1[0] == '-' && s2[0] == '-') {
+		gapSitesPrefixSum[0] = 1;
+	} else {
+		colStates += colmap[charmap[s1[0]]][charmap[s2[0]]];
+	}
+	for (size_t i = 1; i < s1.size(); ++i) {
+		gapSitesPrefixSum[i] = gapSitesPrefixSum[i-1];
+		if (s1[i] == '-' && s2[i] == '-') {
+			gapSitesPrefixSum[i]++;
+		} else {
+			colStates += colmap[charmap[s1[i]]][charmap[s2[i]]];
+		}
+	}
+	size_t nGoodSites = s1.size();
+	std::string prediction = predict(colStates, params);
+	if (prediction.find('N') != std::string::npos) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
+inline bool isEntireMSAHomologous(MSAWrapper& msaWrapper, const Params& params) {
+	for (size_t i = 0; i < msaWrapper.assembleMSA().size(); ++i) {
+		for (size_t j = i + 1; j < msaWrapper.assembleMSA().size(); ++j) {
+			if (!isEntirePairHomologous(msaWrapper.assembleMSA()[i], msaWrapper.assembleMSA()[j], params)) {
+				return false;
+			}
+		}
+	}
+	return true;
 }
 
 inline Params prepareHmmParams(const std::string& concat, const Options& options) {

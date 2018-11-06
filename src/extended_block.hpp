@@ -10,8 +10,8 @@
 #include <cmath>
 
 #include "alignment/msa_wrapper.hpp"
-#include "seeded_block.hpp"
 #include "options.hpp"
+#include "seed.hpp"
 
 inline double jukesCantorCorrection(double dist) {
 	if (dist >= 0.75) { // Jukes Cantor Correction doesn't work if dist >= 0.75. In this case, it would return infinity. We change it to 1 here.
@@ -22,7 +22,7 @@ inline double jukesCantorCorrection(double dist) {
 
 class ExtendedBlock {
 public:
-	ExtendedBlock(const SeededBlock& seededBlock, size_t nTax, bool noGaps);
+	ExtendedBlock(const Seed& seededBlock, size_t nTax, bool noGaps);
 	size_t getLeftFlankSize() const;
 	size_t getRightFlankSize() const;
 	void setLeftFlankSize(size_t val);
@@ -41,7 +41,7 @@ public:
 	std::vector<double> getPairwiseNormalizedDistances(const Options& options);
 	MSAWrapper msaWrapper;
 private:
-	SeededBlock mySeededBlock;
+	Seed mySeededBlock;
 	size_t leftFlankSize;
 	size_t rightFlankSize;
 };

@@ -219,7 +219,7 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 	return matchCount;
 }
 
-bool canGoLeftAll(const SeededBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
+bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
@@ -232,7 +232,7 @@ bool canGoLeftAll(const SeededBlock& block, const PresenceChecker& presenceCheck
 	return canGo;
 }
 
-bool canGoRightAll(const SeededBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
+bool canGoRightAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
@@ -245,7 +245,7 @@ bool canGoRightAll(const SeededBlock& block, const PresenceChecker& presenceChec
 	return canGo;
 }
 
-bool allLeftSame(const SeededBlock& seededBlock, const std::string& T, size_t nTax, size_t offset = 1) {
+bool allLeftSame(const Seed& seededBlock, const std::string& T, size_t nTax, size_t offset = 1) {
 	std::vector<size_t> taxIDs = seededBlock.getTaxonIDsInBlock();
 	char leftChar = T[seededBlock.getTaxonCoords(taxIDs[0]).first - offset];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
@@ -256,7 +256,7 @@ bool allLeftSame(const SeededBlock& seededBlock, const std::string& T, size_t nT
 	return true;
 }
 
-bool allRightSame(const SeededBlock& seededBlock, const std::string& T, size_t nTax, size_t offset = 1) {
+bool allRightSame(const Seed& seededBlock, const std::string& T, size_t nTax, size_t offset = 1) {
 	std::vector<size_t> taxIDs = seededBlock.getTaxonIDsInBlock();
 	char rightChar = T[seededBlock.getTaxonCoords(taxIDs[0]).second + offset];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
@@ -267,7 +267,7 @@ bool allRightSame(const SeededBlock& seededBlock, const std::string& T, size_t n
 	return true;
 }
 
-std::pair<size_t, size_t> computeBestCaseMaxSizes(SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker,
+std::pair<size_t, size_t> computeBestCaseMaxSizes(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker,
 		size_t nTax) {
 	size_t maxSizeLeft = 0;
 	size_t maxSizeRight = 0;
@@ -300,7 +300,7 @@ std::pair<size_t, size_t> computeBestCaseMaxSizes(SeededBlock& seededBlock, cons
 	return std::make_pair(maxSizeLeft, maxSizeRight);
 }
 
-void trivialExtension(SeededBlock& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
+void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
 	// first, perform trivial extension of the seeded block
 	std::pair<size_t, size_t> bestCaseMaxSize = computeBestCaseMaxSizes(seededBlock, T, presenceChecker, nTax);
 	for (size_t i = 1; i <= bestCaseMaxSize.first; ++i) {
@@ -319,10 +319,10 @@ void trivialExtension(SeededBlock& seededBlock, const std::string& T, PresenceCh
 }
 
 // TODO: Re-add mismatches and indels in seeds
-std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
+std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
 		const Options& options) {
-	std::vector<SeededBlock> res;
+	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
 
@@ -377,7 +377,7 @@ std::vector<SeededBlock> extractSeededBlocks(const std::string& T, size_t nTax, 
 					}
 				}
 
-				SeededBlock block(nTax);
+				Seed block(nTax);
 				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
 					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
 				}
@@ -633,6 +633,8 @@ std::pair<size_t, double> findPerfectFlankSizeHMM(ExtendedBlock& block, size_t n
 	size_t nTaxBlock = block.getNTaxInBlock();
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 
+	Params hmmParams = prepareHmmParams(T, options);
+
 	for (size_t i = 1; i <= options.maximumExtensionWidth; ++i) {
 		if (directionRight) {
 			if (!canGoRightAll(block, presenceChecker, nTax, i)) {
@@ -661,27 +663,50 @@ std::pair<size_t, double> findPerfectFlankSizeHMM(ExtendedBlock& block, size_t n
 		} else {
 			block.msaWrapper.addCharsLeft(charsToAdd);
 		}
-
-		// TODO: Run the HomologyHMM on the pairwise alignments to check if we should already stop the extension...
+		bestSize++;
 	}
 
-	std::pair<size_t, size_t> seedCoords; // TODO: This currently only works with exactly matching seeds I think...
-	std::string seed;
-	for (size_t i = 0; i < nTax; ++i) {
-		if (block.hasTaxon(i)) { // TODO: ALso, this is super sloooow!!!
-			seed = T.substr(block.getTaxonCoordsWithoutFlanks(i).first, block.getSeedSize());
-			seedCoords.first = block.msaWrapper.assembleMSA()[0].find(seed);
-			seedCoords.second = seedCoords.first + block.getSeedSize() - 1;
-			break;
+	// Run the HomologyHMM on the pairwise alignments to check if we should already stop the extension...
+	if (bestSize > 0) {
+		if (isEntireMSAHomologous(block.msaWrapper, hmmParams)) {
+			std::cout << "Homo\n";
+		} else {
+			std::cout << "No homo ;-P\n";
 		}
+
+
+		/*for (size_t t1 = 0; t1 < block.getNTaxInBlock(); t1++) {
+			for (size_t t2 = t1 + 1; t2 < block.getNTaxInBlock(); t2++) {
+				size_t goodSites;
+				if (directionRight) {
+					goodSites = findNumGoodSites(block.msaWrapper.getRightFlankAlignment(t1, t2).first,
+							block.msaWrapper.getRightFlankAlignment(t1, t2).second, hmmParams);
+				} else {
+					goodSites = findNumGoodSites(block.msaWrapper.getReversedLeftFlankAlignment(t1, t2).first,
+							block.msaWrapper.getReversedLeftFlankAlignment(t1, t2).second, hmmParams);
+				}
+				bestSize = std::min(bestSize, goodSites);
+			}
+		}*/
 	}
 
-	Params hmmParams = prepareHmmParams(T, options);
-	if (!directionRight && seedCoords.first == 0) {
-		bestSize = 0;
-	} else {
-		bestSize = findNumGoodSitesMSA(block.msaWrapper, directionRight, seedCoords, hmmParams);
-	}
+	/*std::pair<size_t, size_t> seedCoords; // TODO: This currently only works with exactly matching seeds I think...
+	 std::string seed;
+	 for (size_t i = 0; i < nTax; ++i) {
+	 if (block.hasTaxon(i)) { // TODO: ALso, this is super sloooow!!!
+	 seed = T.substr(block.getTaxonCoordsWithoutFlanks(i).first, block.getSeedSize());
+	 seedCoords.first = block.msaWrapper.assembleMSA()[0].find(seed);
+	 seedCoords.second = seedCoords.first + block.getSeedSize() - 1;
+	 break;
+	 }
+	 }
+	 if (!directionRight && seedCoords.first == 0) {
+	 bestSize = 0;
+	 } else {
+	 bestSize = findNumGoodSitesMSA(block.msaWrapper, directionRight, seedCoords, hmmParams);
+	 }*/
+
+	block.msaWrapper.disassembleMSA();
 
 	return std::make_pair(bestSize, 1);
 }
@@ -704,7 +729,7 @@ std::pair<size_t, double> findPerfectFlankSize(ExtendedBlock& block, size_t nTax
 	}
 }
 
-ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
+ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
 		const Options& options) {
 	ExtendedBlock block(seededBlock, nTax, options.noIndels);
 
@@ -753,9 +778,9 @@ ExtendedBlock extendBlock(const SeededBlock& seededBlock, const std::string& T, 
 	return block;
 }
 
-std::vector<SeededBlock> filterSeededBlocks(const std::vector<SeededBlock>& seededBlocks, PresenceChecker& presenceChecker,
+std::vector<Seed> filterSeededBlocks(const std::vector<Seed>& seededBlocks, PresenceChecker& presenceChecker,
 		const Options& options) {
-	std::vector<SeededBlock> res;
+	std::vector<Seed> res;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		if (presenceChecker.isFine(seededBlocks[i])) {
 			res.push_back(seededBlocks[i]);
@@ -771,8 +796,8 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	std::vector<ExtendedBlock> res;
 	if (!options.quartetFlavor)
 		std::cout << "Extracting seeded blocks...\n";
-	std::vector<SeededBlock> seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
-	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<SeededBlock>());
+	std::vector<Seed> seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
 
 	if (options.preselectSeeds) {
 		seededBlocks = filterSeededBlocks(seededBlocks, presenceChecker, options);
@@ -782,7 +807,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		std::cout << "Assembling extended blocks...\n";
 	double lastP = 0;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
-		SeededBlock seededBlock = seededBlocks[i];
+		Seed seededBlock = seededBlocks[i];
 		if (!options.preselectSeeds && !presenceChecker.isFine(seededBlock))
 			continue;
 		trivialExtension(seededBlock, T, presenceChecker, nTax);

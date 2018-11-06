@@ -5,11 +5,11 @@
  *      Author: Sarah Lutteropp
  */
 
-#include "seeded_block.hpp"
 #include <stdexcept>
 #include <iostream>
+#include "seed.hpp"
 
-SeededBlock::SeededBlock(size_t nTax) {
+Seed::Seed(size_t nTax) {
 	taxonCoords.resize(nTax);
 	for (size_t i = 0; i < nTax; ++i) {
 		taxonCoords[i].first = std::string::npos;
@@ -19,7 +19,7 @@ SeededBlock::SeededBlock(size_t nTax) {
 	k = 0;
 }
 
-void SeededBlock::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
+void Seed::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 	if (taxID >= taxonCoords.size()) {
 		throw std::runtime_error("Trying to add taxon ID that belongs to no taxon");
 	}
@@ -38,34 +38,34 @@ void SeededBlock::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 	taxIDs.push_back(taxID);
 }
 
-size_t SeededBlock::getNTaxInBlock() const {
+size_t Seed::getNTaxInBlock() const {
 	return n;
 }
 
-std::pair<size_t, size_t> SeededBlock::getTaxonCoords(size_t taxID) const {
+std::pair<size_t, size_t> Seed::getTaxonCoords(size_t taxID) const {
 	return taxonCoords[taxID];
 }
 
-bool SeededBlock::hasTaxon(size_t taxID) const {
+bool Seed::hasTaxon(size_t taxID) const {
 	return taxonCoords[taxID].first != std::string::npos;
 }
 
-size_t SeededBlock::getSeedSize() const {
+size_t Seed::getSeedSize() const {
 	return k;
 }
 
-std::vector<size_t> SeededBlock::getTaxonIDsInBlock() const {
+std::vector<size_t> Seed::getTaxonIDsInBlock() const {
 	return taxIDs;
 }
 
-void SeededBlock::increaseTaxonCoordsRight() {
+void Seed::increaseTaxonCoordsRight() {
 	for (size_t i = 0; i < taxIDs.size(); ++i) {
 		taxonCoords[taxIDs[i]].second++;
 	}
 	k++;
 }
 
-void SeededBlock::decreaseTaxonCoordsLeft() {
+void Seed::decreaseTaxonCoordsLeft() {
 	for (size_t i = 0; i < taxIDs.size(); ++i) {
 		taxonCoords[taxIDs[i]].first--;
 	}

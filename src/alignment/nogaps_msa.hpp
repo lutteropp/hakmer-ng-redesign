@@ -25,6 +25,9 @@ public:
 	void shrinkDownToLeftFlank(size_t newLeftFlankSize);
 	void shrinkDownToRightFlank(size_t newRightFlankSize);
 	size_t getAlignmentWidth() const;
+	std::pair<std::string, std::string> getRightFlankAlignment(size_t taxID1, size_t taxID2);
+	std::pair<std::string, std::string> getReversedLeftFlankAlignment(size_t taxID1, size_t taxID2);
+	void disassembleMSA();
 private:
 	bool isGapCharacter(char c);
 	size_t nTax;

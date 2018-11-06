@@ -7,8 +7,8 @@
 
 #include "block_helper_functions.hpp"
 #include "extended_block.hpp"
-#include "seeded_block.hpp"
 #include <iostream>
+#include "seed.hpp"
 
 std::string createMissingString(size_t len) {
 	std::string res;
@@ -36,7 +36,7 @@ std::string extractTaxonSequence(ExtendedBlock& block, size_t taxID) {
 }
 
 
-std::string extractTaxonSequence(const SeededBlock& block, size_t taxID, const std::string& T) {
+std::string extractTaxonSequence(const Seed& block, size_t taxID, const std::string& T) {
 	std::string res;
 	if (block.hasTaxon(taxID)) {
 		std::pair<size_t, size_t> coord = block.getTaxonCoords(taxID);
