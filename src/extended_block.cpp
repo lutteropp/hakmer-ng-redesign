@@ -7,7 +7,7 @@
 
 #include "extended_block.hpp"
 
-ExtendedBlock::ExtendedBlock(const SeededBlock& seededBlock, size_t nTax, bool noGaps) :
+ExtendedBlock::ExtendedBlock(const Seed& seededBlock, size_t nTax, bool noGaps) :
 		mySeededBlock(seededBlock), msaWrapper(noGaps) {
 	leftFlankSize = 0;
 	rightFlankSize = 0;
