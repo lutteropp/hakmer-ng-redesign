@@ -24,7 +24,7 @@ public:
 			}
 		}
 	}
-	void addSeed(Seed& seedToAdd) { // TODO: The interaction between reverse-complement and the merged taxon coordinates seems to be still wrong.
+	void addSeed(const Seed& seedToAdd) { // TODO: The interaction between reverse-complement and the merged taxon coordinates seems to be still wrong.
 		for (size_t i = 0; i < taxonCoords.size(); ++i) {
 			if (seedToAdd.hasTaxon(i)) {
 				if (taxonCoords[i].first == std::string::npos) {
@@ -101,8 +101,11 @@ public:
 		return true;
 	}
 
-	double score(const Superseed& otherSeed, size_t revCompStartIdx) const {
+	double score(const Superseed& otherSeed, size_t revCompStartIdx, size_t maxAllowedDistance) const {
 		size_t dist = distance(otherSeed, revCompStartIdx);
+		if (dist > maxAllowedDistance) {
+			dist = std::numeric_limits<size_t>::infinity();
+		}
 		if (dist == std::numeric_limits<size_t>::infinity()) {
 			return std::numeric_limits<double>::infinity();
 		} else {
@@ -160,6 +163,13 @@ public:
 	}
 	double pSharedTax(const Superseed& otherSeed) const {
 		return (double) 2 * nSharedTax(otherSeed) / (this->getNTaxInBlock() + otherSeed.getNTaxInBlock());
+	}
+	void clear() {
+		mySeeds.clear();
+		mySeeds.shrink_to_fit();
+		taxonCoords.clear();
+		taxonCoords.shrink_to_fit();
+		taxIDs.clear();
 	}
 private:
 	std::vector<Seed> mySeeds;

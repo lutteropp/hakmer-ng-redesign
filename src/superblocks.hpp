@@ -11,4 +11,4 @@
 #include "superseed.hpp"
 #include "presence_checker.hpp"
 
-std::vector<Superseed> buildSuperseeds(const std::vector<Seed>& seeds, const std::string& T, const PresenceChecker& presenceChecker, const Options& options);
+std::vector<Superseed> buildSuperseeds(const std::vector<Seed>& seeds, const std::string& T, const PresenceChecker& presenceChecker, size_t nTax, const Options& options);

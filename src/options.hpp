@@ -66,5 +66,6 @@ public:
 	size_t earlyStopCount = 50; // stop flank extension if earlyStopCount extra bases didn't improve the delta score
 	bool fixedFlanks = false; // in non-dynamic extension mode: Enforce that the entire flank width is present?
 	bool preselectSeeds = false;
+	size_t maxAllowedSuperseedDistance = 30;
 };
 
