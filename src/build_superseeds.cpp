@@ -53,6 +53,7 @@ std::vector<Superseed> buildSuperseeds(const std::vector<Seed>& seeds, const std
 
 	std::priority_queue<std::tuple<size_t, size_t, double>, std::vector<std::tuple<size_t, size_t, double>>, MyComparator> pq;
 	// initially fill the priority queue
+#pragma omp parallel for schedule(dynamic)
 	for (size_t i = 0; i < superseeds.size(); ++i) {
 		if (!active[i]) {
 			continue;
@@ -64,6 +65,7 @@ std::vector<Superseed> buildSuperseeds(const std::vector<Seed>& seeds, const std
 			double dist = superseeds[i].score(superseeds[j], revCompStartIdx, options.maxAllowedSuperseedDistance);
 			if (dist < std::numeric_limits<double>::infinity()) { // can be merged
 				std::tuple<size_t, size_t, double> entry = std::make_tuple(i, j, dist);
+#pragma omp critical
 				pq.push(entry);
 			}
 		}

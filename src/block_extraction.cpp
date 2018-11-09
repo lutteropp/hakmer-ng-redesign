@@ -225,7 +225,7 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 // TODO: Re-add mismatches and indels in seeds
 std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
-		const Options& options) {
+		const Options& options, size_t minMatches) {
 	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
@@ -242,7 +242,7 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 		size_t matchCount = countMatches(sIdx, lcp, k);
 		std::vector<std::pair<size_t, size_t> > extraOccs;
 
-		while (matchCount + extraOccs.size() >= options.minTaxaPerBlock) {
+		while (matchCount + extraOccs.size() >= std::max(options.minTaxaPerBlock, minMatches)) {
 			//we can stop if at least one of the exact matches we've found occurs before the current match in the suffix array... if we don't do that, we don't find all matches!
 			bool stopEarly = false;
 			if (lcp[sIdx] >= k) {
@@ -341,30 +341,40 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	std::vector<ExtendedBlock> res;
 	if (!options.quartetFlavor)
 		std::cout << "Extracting seeded blocks...\n";
-	std::vector<Seed> seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+
+	std::vector<Seed> seededBlocks;
+	if (options.iterativeSeeding) { // TODO: This option should probably require preselectSeeds option...
+		for (size_t i = nTax; i >= options.minTaxaPerBlock; i--) {
+			std::vector<Seed> actSeededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, i);
+			actSeededBlocks = filterSeededBlocks(actSeededBlocks, presenceChecker, options);
+			std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with at least " << i << " matches.\n";
+			for (size_t j = 0; j < actSeededBlocks.size(); ++j) {
+				seededBlocks.push_back(actSeededBlocks[j]);
+			}
+		}
+	} else {
+		seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, options.minBlocksPerQuartet);
+	}
+
+	std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
 
 	// TODO: Remove me again, this is just out of curiosity
-	std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
-
+	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
 
 	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
-
-	if (options.preselectSeeds) {
-		seededBlocks = filterSeededBlocks(seededBlocks, presenceChecker, options);
-	}
 
 	if (!options.quartetFlavor)
 		std::cout << "Assembling extended blocks...\n";
 	double lastP = 0;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		Seed seededBlock = seededBlocks[i];
-		if (!options.preselectSeeds && !presenceChecker.isFine(seededBlock))
+		if (!options.iterativeSeeding && !presenceChecker.isFine(seededBlock))
 			continue;
 		trivialExtension(seededBlock, T, presenceChecker, nTax);
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 		// check if the extended block can still be accepted.
-		if ((!options.preselectSeeds && presenceChecker.isFine(extendedBlock))
-				|| (options.preselectSeeds && presenceChecker.isFineWithoutSeed(extendedBlock))) {
+		if ((!options.iterativeSeeding && presenceChecker.isFine(extendedBlock))
+				|| (options.iterativeSeeding && presenceChecker.isFineWithoutSeed(extendedBlock))) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
 			std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
 			if (options.verboseDebug) {
