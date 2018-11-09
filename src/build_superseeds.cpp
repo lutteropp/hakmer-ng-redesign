@@ -5,7 +5,8 @@
  *      Author: sarah
  */
 
-#include "superblocks.hpp"
+#include "build_superseeds.hpp"
+
 #include <queue>
 
 class MyComparator {

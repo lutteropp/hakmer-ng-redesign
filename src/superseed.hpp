@@ -15,7 +15,7 @@
 
 class Superseed {
 public:
-	Superseed(size_t nTax, Seed& mySeed) {
+	Superseed(size_t nTax, const Seed& mySeed) {
 		taxonCoords.resize(nTax);
 		for (size_t i = 0; i < nTax; ++i) {
 			taxonCoords[i] = mySeed.getTaxonCoords(i);

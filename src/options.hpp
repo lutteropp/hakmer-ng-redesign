@@ -8,6 +8,7 @@
 #pragma once
 
 #include <limits>
+#include <string>
 
 class Options {
 public:
