@@ -9,7 +9,7 @@
 
 #include <unordered_set>
 #include "seed.hpp"
-#include "msa_wrapper.hpp"
+#include "alignment/msa_wrapper.hpp"
 
 /* stores a set of merged seed regions. */
 
@@ -24,7 +24,7 @@ public:
 			}
 		}
 	}
-	void addSeed(Seed& seedToAdd) {
+	void addSeed(Seed& seedToAdd) { // TODO: The interaction between reverse-complement and the merged taxon coordinates seems to be still wrong.
 		for (size_t i = 0; i < taxonCoords.size(); ++i) {
 			if (seedToAdd.hasTaxon(i)) {
 				if (taxonCoords[i].first == std::string::npos) {
@@ -99,6 +99,18 @@ public:
 			}
 		}
 		return true;
+	}
+
+	double score(const Superseed& otherSeed, size_t revCompStartIdx) const {
+		size_t dist = distance(otherSeed, revCompStartIdx);
+		if (dist == std::numeric_limits<size_t>::infinity()) {
+			return std::numeric_limits<double>::infinity();
+		} else {
+			size_t sharedTaxa = nSharedTax(otherSeed);
+			size_t nTaxA = this->getNTaxInBlock();
+			size_t nTaxB = otherSeed.getNTaxInBlock();
+			return (1.0 - (2.0 * sharedTaxa / (nTaxA + nTaxB))) * dist;
+		}
 	}
 
 	size_t distance(const Superseed& otherSeed, size_t revCompStartIdx) const {
