@@ -6,6 +6,8 @@
  */
 
 #include "block_extension.hpp"
+#include "seed.hpp"
+#include "presence_checker.hpp"
 
 #include "hmm_classification.hpp"
 #include "block_helper_functions.hpp"
