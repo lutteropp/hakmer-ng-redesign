@@ -320,11 +320,12 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 	return res;
 }
 
-std::vector<Seed> filterSeededBlocks(const std::vector<Seed>& seededBlocks, PresenceChecker& presenceChecker, const Options& options) {
+std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std::string& T, size_t nTax, PresenceChecker& presenceChecker, const Options& options) {
 	std::vector<Seed> res;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		if (presenceChecker.isFine(seededBlocks[i])) {
 			res.push_back(seededBlocks[i]);
+			trivialExtension(seededBlocks[i], T, presenceChecker, nTax);
 			presenceChecker.reserveSeededBlock(seededBlocks[i]);
 		}
 	}
@@ -343,7 +344,8 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		PresenceChecker seedingPresenceChecker(presenceChecker);
 		for (size_t i = nTax; i >= options.minTaxaPerBlock; i--) {
 			std::vector<Seed> actSeededBlocks = extractSeededBlocks(T, nTax, SA, lcp, seedingPresenceChecker, taxonCoords, options, i);
-			actSeededBlocks = filterSeededBlocks(actSeededBlocks, seedingPresenceChecker, options);
+			actSeededBlocks = filterSeededBlocks(actSeededBlocks, T, nTax, seedingPresenceChecker, options);
+			std::sort(actSeededBlocks.begin(), actSeededBlocks.end(), std::greater<Seed>());
 			std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with at least " << i << " matches.\n";
 
 			if (options.iterativeExtension) {
@@ -352,7 +354,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 					Seed seededBlock = actSeededBlocks[i];
 					if (!presenceChecker.isFine(seededBlock))
 						continue;
-					trivialExtension(seededBlock, T, presenceChecker, nTax);
+					//trivialExtension(seededBlock, T, presenceChecker, nTax);
 					ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 					// check if the extended block can still be accepted.
 					if (presenceChecker.isFine(extendedBlock)) {

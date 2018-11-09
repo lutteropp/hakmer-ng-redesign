@@ -27,10 +27,18 @@ public:
 	void increaseTaxonCoordsRight();
 	void decreaseTaxonCoordsLeft();
 	bool operator <(const Seed& str) const {
-		return n < str.n;
+		if (n == str.n) {
+			return k < str.k;
+		} else {
+			return n < str.n;
+		}
 	}
 	bool operator >(const Seed& str) const {
-		return n > str.n;
+		if (n == str.n) {
+			return k > str.k;
+		} else {
+			return n > str.n;
+		}
 	}
 	bool orderCompatible(const Seed& other, size_t revCompStartPos) const;
 	bool overlap(const Seed& other, size_t revCompStartPos) const;
