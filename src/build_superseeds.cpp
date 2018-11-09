@@ -6,9 +6,12 @@
  */
 
 #include "build_superseeds.hpp"
+#include "seed.hpp"
+#include "presence_checker.hpp"
 
 #include <queue>
 #include <iostream>
+#include <vector>
 
 class MyComparator {
 public:
@@ -72,7 +75,7 @@ std::vector<Superseed> buildSuperseeds(const std::vector<Seed>& seeds, const std
 			// merge the two blocks
 			size_t firstIdx = std::get<0>(entry);
 			size_t secondIdx = std::get<1>(entry);
-			//std::cout << "Merging blocks with indices " << firstIdx << " and " << secondIdx << "...\n";
+			std::cout << "Merging blocks with indices " << firstIdx << " and " << secondIdx << "...\n";
 			Superseed mergedSeed = mergeSuperseeds(superseeds[firstIdx], superseeds[secondIdx], nTax, options);
 			active[firstIdx] = false;
 			active[secondIdx] = false;

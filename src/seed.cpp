@@ -134,6 +134,10 @@ bool Seed::overlap(const Seed& other, size_t revCompStartPos) const {
 				return true;
 			} else if (i2 >= j1 && i2 <= j2) {
 				return true;
+			} else if (i1 <= j1 && j2 <= i2) {
+				return true;
+			} else if (j1 < i1 && i2 <= j2) {
+				return true;
 			}
 		}
 	}

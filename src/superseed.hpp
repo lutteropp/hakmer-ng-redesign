@@ -8,6 +8,7 @@
 #pragma once
 
 #include <unordered_set>
+#include <iostream>
 #include "seed.hpp"
 #include "alignment/msa_wrapper.hpp"
 
@@ -23,6 +24,7 @@ public:
 				taxIDs.insert(i);
 			}
 		}
+		mySeeds.push_back(mySeed);
 	}
 	void addSeed(const Seed& seedToAdd) { // TODO: The interaction between reverse-complement and the merged taxon coordinates seems to be still wrong.
 		for (size_t i = 0; i < taxonCoords.size(); ++i) {
@@ -36,6 +38,7 @@ public:
 				}
 			}
 		}
+		mySeeds.push_back(seedToAdd);
 	}
 	std::pair<size_t, size_t> getTaxonCoords(size_t taxID) const {
 		return taxonCoords[taxID];
@@ -93,6 +96,16 @@ public:
 		}
 	}
 
+	std::pair<size_t, size_t> computeForwardStrandCoordinates(const std::pair<size_t, size_t>& coords, size_t revCompStartPos) const {
+		size_t thisForwardFirst = coords.first;
+		size_t thisForwardSecond = coords.second;
+		if (thisForwardFirst >= revCompStartPos) {
+			thisForwardFirst = revCompStartPos - (thisForwardFirst - revCompStartPos);
+			thisForwardSecond = revCompStartPos - (thisForwardSecond - revCompStartPos);
+		}
+		return std::make_pair(std::min(thisForwardFirst, thisForwardSecond), std::max(thisForwardFirst, thisForwardSecond));
+	}
+
 	size_t distance(const Superseed& otherSeed, size_t revCompStartIdx) const {
 		if (nSharedTax(otherSeed) == 0) {
 			return std::numeric_limits<size_t>::infinity();
@@ -100,28 +113,37 @@ public:
 			if (!orderCompatible(otherSeed, revCompStartIdx) || overlap(otherSeed, revCompStartIdx)) {
 				return std::numeric_limits<size_t>::infinity();
 			}
+
 			size_t maxDist = 0;
 			for (size_t i = 0; i < taxonCoords.size(); ++i) {
 				if (this->hasTaxon(i) && otherSeed.hasTaxon(i)) {
 					size_t actDist;
-					size_t thisFirstForward = taxonCoords[i].first;
-					size_t thisSecondForward = taxonCoords[i].second;
-					if (thisFirstForward >= revCompStartIdx) { // this is on reverse-complement strand
-						thisFirstForward = revCompStartIdx - (thisFirstForward - revCompStartIdx);
-						thisSecondForward = revCompStartIdx - (thisSecondForward - revCompStartIdx);
-					}
-					size_t otherFirstForward = otherSeed.taxonCoords[i].first;
-					size_t otherSecondForward = otherSeed.taxonCoords[i].second;
-					if (otherFirstForward >= revCompStartIdx) { // other is on reverse-complement strand
-						otherFirstForward = revCompStartIdx - (otherFirstForward - revCompStartIdx);
-						otherSecondForward = revCompStartIdx - (otherSecondForward - revCompStartIdx);
-					}
-					if (thisSecondForward < otherFirstForward) {
-						actDist = otherFirstForward - thisSecondForward;
-					} else if (otherSecondForward < thisFirstForward) {
-						actDist = thisFirstForward - otherSecondForward;
+					std::pair<size_t, size_t> thisForward = computeForwardStrandCoordinates(taxonCoords[i], revCompStartIdx);
+					std::pair<size_t, size_t> otherForward = computeForwardStrandCoordinates(otherSeed.taxonCoords[i], revCompStartIdx);
+
+					if (thisForward.second < otherForward.first) {
+						actDist = otherForward.first - thisForward.second;
+					} else if (otherForward.second < thisForward.first) {
+						actDist = thisForward.first - otherForward.second;
 					} else {
-						throw std::runtime_error("This should not happen - do the seeds overlap?");
+						actDist = 0;
+						//throw std::runtime_error("This should not happen - do the seeds overlap?");
+						std::cout << "my seeds for this taxon:" << "\n";
+						for (size_t j = 0; j < mySeeds.size(); ++j) {
+							if (mySeeds[j].hasTaxon(i)) {
+								std::pair<size_t, size_t> coords = computeForwardStrandCoordinates(mySeeds[j].getTaxonCoords(i),
+										revCompStartIdx);
+								std::cout << coords.first << " - " << coords.second << "\n";
+							}
+						}
+						std::cout << "other seeds for this taxon: " << "\n";
+						for (size_t j = 0; j < otherSeed.mySeeds.size(); ++j) {
+							if (mySeeds[j].hasTaxon(i)) {
+								std::pair<size_t, size_t> coords = computeForwardStrandCoordinates(otherSeed.mySeeds[j].getTaxonCoords(i),
+										revCompStartIdx);
+								std::cout << coords.first << " - " << coords.second << "\n";
+							}
+						}
 					}
 					maxDist = std::max(maxDist, actDist);
 				}
