@@ -8,6 +8,7 @@
 #include "build_superseeds.hpp"
 
 #include <queue>
+#include <iostream>
 
 class MyComparator {
 public:

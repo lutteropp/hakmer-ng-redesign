@@ -32,6 +32,9 @@ public:
 	bool operator >(const Seed& str) const {
 		return n > str.n;
 	}
+	bool orderCompatible(const Seed& other, size_t revCompStartPos) const;
+	bool overlap(const Seed& other, size_t revCompStartPos) const;
+	size_t distance(const Seed& other, size_t revCompStartPos) const;
 private:
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
 	std::vector<size_t> taxIDs;

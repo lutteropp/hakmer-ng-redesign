@@ -50,55 +50,32 @@ public:
 		return mySeeds;
 	}
 
-	const bool orderCompatible(const Superseed& otherSeed, size_t revCompStartIdx) const {
-		// This has to also take into account reverse complement matches.
+	bool orderCompatible(const Superseed& otherSeed, size_t revCompStartIdx) const {
 		if (nSharedTax(otherSeed) == 0) {
 			return true;
 		}
-		bool orderSet = false;
-		bool thisComesFirst;
-		for (size_t i = 0; i < taxonCoords.size(); ++i) {
-			if (hasTaxon(i) && otherSeed.hasTaxon(i)) {
-				bool thisIsFirstNow;
-				if (taxonCoords[i].first < revCompStartIdx && otherSeed.taxonCoords[i].first < revCompStartIdx) { // both are on forward strand
-					if (taxonCoords[i].first < otherSeed.taxonCoords[i].first) {
-						thisIsFirstNow = true;
-					} else {
-						thisIsFirstNow = false;
-					}
-				} else if (taxonCoords[i].first >= revCompStartIdx && otherSeed.taxonCoords[i].first >= revCompStartIdx) { // both are on reverse-complement strand
-					if (taxonCoords[i].first > otherSeed.taxonCoords[i].first) {
-						thisIsFirstNow = true;
-					} else {
-						thisIsFirstNow = false;
-					}
-				} else if (taxonCoords[i].first < revCompStartIdx && otherSeed.taxonCoords[i].first >= revCompStartIdx) { // this on forward strand, the other one on reverse-complement strand
-					size_t rcBackToForward = revCompStartIdx - (otherSeed.taxonCoords[i].first - revCompStartIdx);
-					if (taxonCoords[i].first < rcBackToForward) {
-						thisIsFirstNow = true;
-					} else {
-						thisIsFirstNow = false;
-					}
-				} else { // this is on reverse-complement strand, the other one is on forward strand
-					size_t rcBackToForward = revCompStartIdx - (taxonCoords[i].first - revCompStartIdx);
-					if (rcBackToForward < otherSeed.taxonCoords[i].first) {
-						thisIsFirstNow = true;
-					} else {
-						thisIsFirstNow = false;
-					}
-				}
-
-				if (!orderSet) {
-					thisComesFirst = thisIsFirstNow;
-					orderSet = true;
-				} else {
-					if (thisIsFirstNow != thisComesFirst) {
-						return false;
-					}
+		for (size_t i = 0; i < this->mySeeds.size(); ++i) {
+			for (size_t j = 0; j < otherSeed.mySeeds.size(); ++j) {
+				if (!mySeeds[i].orderCompatible(otherSeed.mySeeds[j], revCompStartIdx)) {
+					return false;
 				}
 			}
 		}
 		return true;
+	}
+
+	bool overlap(const Superseed& otherSeed, size_t revCompStartIdx) const {
+		if (nSharedTax(otherSeed) == 0) {
+			return false;
+		}
+		for (size_t i = 0; i < this->mySeeds.size(); ++i) {
+			for (size_t j = 0; j < otherSeed.mySeeds.size(); ++j) {
+				if (mySeeds[i].overlap(otherSeed.mySeeds[j], revCompStartIdx)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	double score(const Superseed& otherSeed, size_t revCompStartIdx, size_t maxAllowedDistance) const {
@@ -120,7 +97,7 @@ public:
 		if (nSharedTax(otherSeed) == 0) {
 			return std::numeric_limits<size_t>::infinity();
 		} else {
-			if (!orderCompatible(otherSeed, revCompStartIdx)) {
+			if (!orderCompatible(otherSeed, revCompStartIdx) || overlap(otherSeed, revCompStartIdx)) {
 				return std::numeric_limits<size_t>::infinity();
 			}
 			size_t maxDist = 0;

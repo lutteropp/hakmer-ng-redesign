@@ -17,7 +17,7 @@
 
 #include "indexing/suffix_array_classic.hpp"
 
-#include "superseed.hpp"
+#include "build_superseeds.hpp"
 #include "block_extension.hpp"
 
 size_t posToTaxon(size_t pos, const std::vector<IndexedTaxonCoords>& taxonCoords, size_t concatSize, bool revComp) {
@@ -342,6 +342,11 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	if (!options.quartetFlavor)
 		std::cout << "Extracting seeded blocks...\n";
 	std::vector<Seed> seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options);
+
+	// TODO: Remove me again, this is just out of curiosity
+	std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
+
+
 	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
 
 	if (options.preselectSeeds) {
