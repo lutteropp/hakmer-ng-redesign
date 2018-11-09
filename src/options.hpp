@@ -68,5 +68,6 @@ public:
 	bool fixedFlanks = false; // in non-dynamic extension mode: Enforce that the entire flank width is present?
 	size_t maxAllowedSuperseedDistance = 30;
 	bool iterativeSeeding = true;
+	bool iterativeExtension = true;
 };
 

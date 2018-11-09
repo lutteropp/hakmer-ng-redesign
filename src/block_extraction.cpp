@@ -220,12 +220,9 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 	return matchCount;
 }
 
-
-
 // TODO: Re-add mismatches and indels in seeds
-std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
-		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
-		const Options& options, size_t minMatches) {
+std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA, const std::vector<size_t>& lcp,
+		PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords, const Options& options, size_t minMatches) {
 	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
@@ -323,8 +320,7 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 	return res;
 }
 
-std::vector<Seed> filterSeededBlocks(const std::vector<Seed>& seededBlocks, PresenceChecker& presenceChecker,
-		const Options& options) {
+std::vector<Seed> filterSeededBlocks(const std::vector<Seed>& seededBlocks, PresenceChecker& presenceChecker, const Options& options) {
 	std::vector<Seed> res;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		if (presenceChecker.isFine(seededBlocks[i])) {
@@ -343,53 +339,87 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		std::cout << "Extracting seeded blocks...\n";
 
 	std::vector<Seed> seededBlocks;
-	if (options.iterativeSeeding) { // TODO: This option should probably require preselectSeeds option...
+	if (options.iterativeSeeding) {
+		PresenceChecker seedingPresenceChecker(presenceChecker);
 		for (size_t i = nTax; i >= options.minTaxaPerBlock; i--) {
-			std::vector<Seed> actSeededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, i);
-			actSeededBlocks = filterSeededBlocks(actSeededBlocks, presenceChecker, options);
+			std::vector<Seed> actSeededBlocks = extractSeededBlocks(T, nTax, SA, lcp, seedingPresenceChecker, taxonCoords, options, i);
+			actSeededBlocks = filterSeededBlocks(actSeededBlocks, seedingPresenceChecker, options);
 			std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with at least " << i << " matches.\n";
-			for (size_t j = 0; j < actSeededBlocks.size(); ++j) {
-				seededBlocks.push_back(actSeededBlocks[j]);
+
+			if (options.iterativeExtension) {
+				double lastP = 0;
+				for (size_t i = 0; i < actSeededBlocks.size(); ++i) {
+					Seed seededBlock = actSeededBlocks[i];
+					if (!presenceChecker.isFine(seededBlock))
+						continue;
+					trivialExtension(seededBlock, T, presenceChecker, nTax);
+					ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
+					// check if the extended block can still be accepted.
+					if (presenceChecker.isFine(extendedBlock)) {
+						presenceChecker.reserveExtendedBlock(extendedBlock);
+						seedingPresenceChecker.reserveExtendedBlock(extendedBlock);
+						std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
+						if (options.verboseDebug) {
+							std::cout << "Pushing back a block with alignment: \n";
+							for (size_t i = 0; i < msa.size(); ++i) {
+								std::cout << msa[i] << "\n";
+							}
+						}
+						res.push_back(extendedBlock);
+					}
+					if (!options.quartetFlavor) {
+						double progress = (double) 100 * i / actSeededBlocks.size();
+						if (progress > lastP + 1) {
+							std::cout << progress << " %\n";
+							lastP = progress;
+						}
+					}
+				}
+				std::cout << "Finished extension of the newly discovered seeded blocks with at least " << i << " matches.\n";
+				std::cout << "Current extendedBlocks.size(): " << res.size() << "\n";
+			} else {
+				for (size_t j = 0; j < actSeededBlocks.size(); ++j) {
+					seededBlocks.push_back(actSeededBlocks[j]);
+				}
 			}
 		}
 	} else {
 		seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, options.minBlocksPerQuartet);
 	}
 
-	std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
-
 	// TODO: Remove me again, this is just out of curiosity
 	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
 
-	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
-
-	if (!options.quartetFlavor)
-		std::cout << "Assembling extended blocks...\n";
-	double lastP = 0;
-	for (size_t i = 0; i < seededBlocks.size(); ++i) {
-		Seed seededBlock = seededBlocks[i];
-		if (!options.iterativeSeeding && !presenceChecker.isFine(seededBlock))
-			continue;
-		trivialExtension(seededBlock, T, presenceChecker, nTax);
-		ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
-		// check if the extended block can still be accepted.
-		if ((!options.iterativeSeeding && presenceChecker.isFine(extendedBlock))
-				|| (options.iterativeSeeding && presenceChecker.isFineWithoutSeed(extendedBlock))) {
-			presenceChecker.reserveExtendedBlock(extendedBlock);
-			std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
-			if (options.verboseDebug) {
-				std::cout << "Pushing back a block with alignment: \n";
-				for (size_t i = 0; i < msa.size(); ++i) {
-					std::cout << msa[i] << "\n";
+	if (!options.iterativeExtension) {
+		std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
+		if (!options.quartetFlavor)
+			std::cout << "Assembling extended blocks...\n";
+		double lastP = 0;
+		std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
+		for (size_t i = 0; i < seededBlocks.size(); ++i) {
+			Seed seededBlock = seededBlocks[i];
+			if (!presenceChecker.isFine(seededBlock))
+				continue;
+			trivialExtension(seededBlock, T, presenceChecker, nTax);
+			ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
+			// check if the extended block can still be accepted.
+			if (presenceChecker.isFine(extendedBlock)) {
+				presenceChecker.reserveExtendedBlock(extendedBlock);
+				std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
+				if (options.verboseDebug) {
+					std::cout << "Pushing back a block with alignment: \n";
+					for (size_t i = 0; i < msa.size(); ++i) {
+						std::cout << msa[i] << "\n";
+					}
 				}
+				res.push_back(extendedBlock);
 			}
-			res.push_back(extendedBlock);
-		}
-		if (!options.quartetFlavor) {
-			double progress = (double) 100 * i / seededBlocks.size();
-			if (progress > lastP + 1) {
-				std::cout << progress << " %\n";
-				lastP = progress;
+			if (!options.quartetFlavor) {
+				double progress = (double) 100 * i / seededBlocks.size();
+				if (progress > lastP + 1) {
+					std::cout << progress << " %\n";
+					lastP = progress;
+				}
 			}
 		}
 	}
