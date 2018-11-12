@@ -376,19 +376,22 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::rightExtend(size_t j
 		}
 		return res;
 	} else {
-		std::string text = extractText(seq, posJ + subpatterns[jIdx].size(), posJ + subpatterns[jIdx].size() + searchedPattern.size() - 1);
-		assert(text.size() == searchedPattern.size());
-		size_t mis = 0;
-		for (size_t i = 0; i < text.size(); ++i) {
-			if (!ambiguousMatch(text[i], searchedPattern[i])) {
-				mis++;
-				if (mis > maxErrors) {
-					break;
+		size_t lastTextPos = posJ + subpatterns[jIdx].size() + searchedPattern.size() - 1;
+		if (lastTextPos < seq.size()) {
+			std::string text = extractText(seq, posJ + subpatterns[jIdx].size(), lastTextPos);
+			assert(text.size() == searchedPattern.size());
+			size_t mis = 0;
+			for (size_t i = 0; i < text.size(); ++i) {
+				if (!ambiguousMatch(text[i], searchedPattern[i])) {
+					mis++;
+					if (mis > maxErrors) {
+						break;
+					}
 				}
 			}
-		}
-		if (mis <= maxErrors && mis >= minErrors) {
-			res.push_back(std::make_pair(p1Pos, posJ + subpatterns[jIdx].size() + searchedPattern.size() - 1));
+			if (mis <= maxErrors && mis >= minErrors) {
+				res.push_back(std::make_pair(p1Pos, posJ + subpatterns[jIdx].size() + searchedPattern.size() - 1));
+			}
 		}
 		return res;
 	}

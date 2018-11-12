@@ -24,17 +24,17 @@ public:
 	double maxDelta = 0.1;
 	bool largeSeeds = false;
 
-	bool noQuartets = true;
 	bool redo = false;
 
 	bool dynamicFlanks = false;
-	size_t flankWidth = 20;
+	size_t flankWidth = 100;
 	size_t minTaxaPerBlock = 4;
 	bool quickDelta = false;
 	bool useHMM = false;
 	bool hmm_gcCorrection = false;
-	bool useBigGapsCriterion = false; // TODO: This still ahs to be implemented... stop alignment extension as soon as there are too big gaps.
+	bool useBigGapsCriterion = false; // TODO: This still has to be implemented... stop alignment extension as soon as there are too big gaps.
 	size_t maxMismatches = 0;
+	bool discardNs = false;
 
 	// quartet-flavor-only parameters
 	std::string speciesTreePath = "";
@@ -59,7 +59,6 @@ public:
 	bool storeQICCounts = false;
 	double minTimesLarger = 3.0;
 	bool externalIndexing = false;
-	bool discardNs = true;
 	bool sameBlockCountAsMultiSPAM = false;
 	size_t maxTaxaPerBlock = std::numeric_limits<size_t>::max();
 	size_t maximumExtensionWidth = 1000;
