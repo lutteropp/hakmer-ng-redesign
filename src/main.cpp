@@ -247,6 +247,8 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--gcCorrection", options.hmm_gcCorrection, "Experimental: Try to correct for GC-content of the genomes.")->needs(
 			hmmOption);
 
+	app.add_flag("--decreasing", options.decreasingMinK, "Iteratively decrease values for nMin and minK");
+
 	auto quartetsMode = app.add_subcommand("quartets", "Quartets mode");
 	quartetsMode->add_option("--minblocks", options.minBlocksPerQuartet, "Minimum number of blocks to be sampled for each quartet.", true);
 	quartetsMode->add_option("--maxblocks", options.maxBlocksPerQuartet, "Maximum number of blocks to be sampled for each quartet.");

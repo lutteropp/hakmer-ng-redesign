@@ -50,7 +50,7 @@ public:
 
 	// internal parameters
 	bool verboseDebug = false;
-	size_t minK = 24;
+	size_t minK = 21;
 	size_t maxK = std::numeric_limits<size_t>::max(); // if maxK == minK, then we don't do dynamic extension
 	bool largeMem = false;
 	bool jukesCantor = true;
@@ -71,6 +71,6 @@ public:
 	bool mismatchAugmentationOnly = true;
 	bool discardNs = true;
 
-	bool decreasingMinK = true;
+	bool decreasingMinK = false;
 };
 

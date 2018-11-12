@@ -732,6 +732,7 @@ void extractExtendedBlocksDecreasingNminMinK(const IndexedConcatenatedSequence& 
 	while (nMin >= options.minTaxaPerBlock) {
 		size_t minK = findLargestK(concat.getLcpArray(), concat.getSuffixArray(), concat.getTaxonCoords(), concat.getConcatSize(),
 				options.reverseComplement, presenceChecker);
+		minK = std::min(minK, options.maxK);
 		while (minK >= options.minK) {
 			std::cout << "current minK: " << minK << "\n";
 			extractExtendedBlocks(concat, presenceChecker, writer, stats, options, minK, nMin, nMin);

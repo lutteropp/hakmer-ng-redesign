@@ -40,43 +40,69 @@ public:
 	 * @param nTotalSites
 	 * @param ltop Maximum kmer size to consider.
 	 */
-	void buildSuffixArray(const std::string& seq, size_t nTotalSites, unsigned int lTop) {
-		// First heavy lifting: build the suffix array according to Marius's code
-		std::cout << "Building suffix array...\n";
+	void buildSuffixArray(const std::string& seq, size_t nTotalSites, unsigned int lTop, const std::string& sequencesPath) {
+		std::string saPath = sequencesPath + ".sa";
+		std::string lcpPath = sequencesPath + ".lcp";
+		std::ifstream saFile(saPath);
+		std::ifstream lcpFile(lcpPath);
+		if (saFile.good() && lcpFile.good()) {
+			std::cout << "Found SA and LCP array. No need to recompute, loading them instead...\n";
+			readFromFiles(saFile, lcpFile);
+			std::cout << "Finished reading SA and LCP from file.\n";
+		} else {
+			// First heavy lifting: build the suffix array according to Marius's code
+			std::cout << "Building suffix array...\n";
 
-		size_t* SA_radix = Radix<size_t>(seq, nTotalSites, lTop).build();
-		for (size_t i = 0; i < nTotalSites; ++i) {
-			SA.push_back(SA_radix[i]);
+			size_t* SA_radix = Radix<size_t>(seq, nTotalSites, lTop).build();
+			for (size_t i = 0; i < nTotalSites; ++i) {
+				SA.push_back(SA_radix[i]);
+			}
+			delete[] SA_radix;
+
+			// Important to use ltop, the largest kmer among the range possible
+			std::cout << "Suffix array built...Working...\n";
+			_nTotalSites = nTotalSites;
+
+			std::cout << "Computing longest common prefixes...\n";
+			/*lcp.resize(nTotalSites);
+			 lcp[0] = 0;
+			 for (size_t i = 1; i < nTotalSites; ++i) {
+			 lcp[i] = longestCommonPrefix(seq, SA[i - 1], SA[i], lTop);
+			 }*/
+			computeLCP(seq);
+			std::cout << "Finished computation of longest common prefixes.\n";
+			writeToFiles(saPath, lcpPath);
 		}
-		delete[] SA_radix;
-
-		// Important to use ltop, the largest kmer among the range possible
-		std::cout << "Suffix array built...Working...\n";
-		_nTotalSites = nTotalSites;
-
-		std::cout << "Computing longest common prefixes...\n";
-		/*lcp.resize(nTotalSites);
-		 lcp[0] = 0;
-		 for (size_t i = 1; i < nTotalSites; ++i) {
-		 lcp[i] = longestCommonPrefix(seq, SA[i - 1], SA[i], lTop);
-		 }*/
-		computeLCP(seq);
-		std::cout << "Finished computation of longest common prefixes.\n";
 	}
 
 	void buildSuffixArray(const std::string& seq, size_t nTotalSites, const Options& options) {
 		unsigned int lTop = std::min(seq.size(), options.maxK);
-		buildSuffixArray(seq, nTotalSites, lTop);
-	}
-
-	void buildSuffixArray(const std::string& seq) {
-		buildSuffixArray(seq, seq.size(), seq.size());
+		buildSuffixArray(seq, nTotalSites, lTop, options.filepath);
 	}
 
 	void buildSuffixArrayFromFile(const std::string& filepath, const Options& options) {
 		std::ifstream infile(filepath);
 		std::string text { istreambuf_iterator<char>(infile), istreambuf_iterator<char>() };
 		buildSuffixArray(text, text.size(), options);
+	}
+
+	void buildSuffixArray(const std::string& seq) {
+		// First heavy lifting: build the suffix array according to Marius's code
+		std::cout << "Building suffix array...\n";
+
+		size_t* SA_radix = Radix<size_t>(seq, seq.size(), seq.size()).build();
+		for (size_t i = 0; i < seq.size(); ++i) {
+			SA.push_back(SA_radix[i]);
+		}
+		delete[] SA_radix;
+
+		// Important to use ltop, the largest kmer among the range possible
+		std::cout << "Suffix array built...Working...\n";
+		_nTotalSites = seq.size();
+
+		std::cout << "Computing longest common prefixes...\n";
+		computeLCP(seq);
+		std::cout << "Finished computation of longest common prefixes.\n";
 	}
 
 	inline size_t operator[](size_t pos) const {
@@ -93,6 +119,32 @@ public:
 	size_t countExactMatches(size_t firstSAIndex, unsigned int m);
 	size_t countExactMatches(const std::string& pattern, const std::string& text);
 private:
+	void readFromFiles(std::ifstream& saFile, std::ifstream& lcpFile) {
+		saFile >> _nTotalSites;
+		lcpFile >> _nTotalSites;
+		SA.resize(_nTotalSites);
+		lcp.resize(_nTotalSites);
+		for (size_t i = 0; i < _nTotalSites; ++i) {
+			saFile >> SA[i];
+			lcpFile >> lcp[i];
+		}
+		saFile.close();
+		lcpFile.close();
+	}
+
+	void writeToFiles(const std::string& saPath, const std::string& lcpPath) {
+		std::ofstream saOut(saPath);
+		std::ofstream lcpOut(lcpPath);
+		saOut << SA.size() << "\n";
+		lcpOut << lcp.size() << "\n";
+		for (size_t i = 0; i < SA.size(); ++i) {
+			saOut << SA[i] << "\n";
+			lcpOut << lcp[i] << "\n";
+		}
+		saOut.close();
+		lcpOut.close();
+	}
+
 	bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& res, const std::string& text);
 	bool binarySearch3Prime(size_t patternSeqStartPos, unsigned int m, std::pair<size_t, size_t>& res, const std::string& text);
 	// algorithm from http://web.cs.iastate.edu/~cs548/references/linear_lcp.pdf

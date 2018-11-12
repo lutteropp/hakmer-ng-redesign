@@ -60,8 +60,7 @@ bool allRightSame(const Seed& seededBlock, const std::string& T, size_t nTax, si
 	return true;
 }
 
-std::pair<size_t, size_t> computeBestCaseMaxSizes(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker,
-		size_t nTax) {
+std::pair<size_t, size_t> computeBestCaseMaxSizes(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
 	size_t maxSizeLeft = 0;
 	size_t maxSizeRight = 0;
 	bool canLeft = true;
@@ -366,20 +365,19 @@ std::pair<size_t, double> findPerfectFlankSizeHMM(ExtendedBlock& block, size_t n
 			std::cout << "No homo ;-P\n";
 		}
 
-
 		/*for (size_t t1 = 0; t1 < block.getNTaxInBlock(); t1++) {
-			for (size_t t2 = t1 + 1; t2 < block.getNTaxInBlock(); t2++) {
-				size_t goodSites;
-				if (directionRight) {
-					goodSites = findNumGoodSites(block.msaWrapper.getRightFlankAlignment(t1, t2).first,
-							block.msaWrapper.getRightFlankAlignment(t1, t2).second, hmmParams);
-				} else {
-					goodSites = findNumGoodSites(block.msaWrapper.getReversedLeftFlankAlignment(t1, t2).first,
-							block.msaWrapper.getReversedLeftFlankAlignment(t1, t2).second, hmmParams);
-				}
-				bestSize = std::min(bestSize, goodSites);
-			}
-		}*/
+		 for (size_t t2 = t1 + 1; t2 < block.getNTaxInBlock(); t2++) {
+		 size_t goodSites;
+		 if (directionRight) {
+		 goodSites = findNumGoodSites(block.msaWrapper.getRightFlankAlignment(t1, t2).first,
+		 block.msaWrapper.getRightFlankAlignment(t1, t2).second, hmmParams);
+		 } else {
+		 goodSites = findNumGoodSites(block.msaWrapper.getReversedLeftFlankAlignment(t1, t2).first,
+		 block.msaWrapper.getReversedLeftFlankAlignment(t1, t2).second, hmmParams);
+		 }
+		 bestSize = std::min(bestSize, goodSites);
+		 }
+		 }*/
 	}
 
 	/*std::pair<size_t, size_t> seedCoords; // TODO: This currently only works with exactly matching seeds I think...
@@ -425,9 +423,18 @@ ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t 
 		const Options& options) {
 	ExtendedBlock block(seededBlock, nTax, options.noIndels);
 
-	std::string seedSequence = extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[0], T);
-	block.msaWrapper.init(block.getNTaxInBlock());
-	block.msaWrapper.setSeeds(seedSequence);
+	if (options.maxMismatches == 0) {
+		std::string seedSequence = extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[0], T);
+		block.msaWrapper.init(block.getNTaxInBlock());
+		block.msaWrapper.setSeeds(seedSequence);
+	} else {
+		std::vector<std::string> seedSequences;
+		for (size_t i = 0; i < block.getTaxonIDsInBlock().size(); ++i) {
+			seedSequences.push_back(extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[i], T));
+		}
+		block.msaWrapper.init(block.getNTaxInBlock());
+		block.msaWrapper.setSeeds(seedSequences);
+	}
 
 	std::pair<size_t, double> bestLeft;
 	std::pair<size_t, double> bestRight;
