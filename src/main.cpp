@@ -21,12 +21,15 @@
 #include "block_extraction.hpp"
 #include "io.hpp"
 #include "indexed_concat.hpp"
+#include "block_writer.hpp"
 
 #include "quartet_topology.hpp"
 #include "block_helper_functions.hpp"
 #include "quartet_lookup_table.hpp"
 #include "mafft_raxml_wrapper.hpp"
 #include "quartet_topology_checker.hpp"
+
+#include "summary_stats.hpp"
 
 #include "quartet_indexer.hpp"
 
@@ -177,52 +180,12 @@ void quartetsCallback(const Options& options) {
 	writeQuartets(quartetTable, concat.getTaxonLabels(), options.outpath);
 }
 
-void printSummaryStatistics(const std::vector<ExtendedBlock>& blocks, size_t nTax, size_t totalSeqData, const Options& options) {
-	size_t seqDataUsed = 0;
-	size_t nMissingData = 0;
-	size_t rightFlankSum = 0;
-	size_t leftFlankSum = 0;
-	size_t seedSizeSum = 0;
-	size_t nTaxSum = 0;
-#pragma omp parallel for reduction(+:seqDataUsed,nMissingData,leftFlankSum,rightFlankSum,seedSizeSum,nTaxSum)
-	for (size_t i = 0; i < blocks.size(); ++i) {
-		size_t rowSize = blocks[i].getSeedSize() + blocks[i].getLeftFlankSize() + blocks[i].getRightFlankSize();
-		seqDataUsed += rowSize * blocks[i].getNTaxInBlock();
-		nMissingData += rowSize * (nTax - blocks[i].getNTaxInBlock());
-		leftFlankSum += blocks[i].getLeftFlankSize();
-		rightFlankSum += blocks[i].getRightFlankSize();
-		seedSizeSum += blocks[i].getSeedSize();
-		nTaxSum += blocks[i].getNTaxInBlock();
-	}
-	std::cout << "Number of extracted blocks: " << blocks.size() << "\n";
-	std::cout << "Percentage of reconstructed sequence data: " << ((double) seqDataUsed * 100) / totalSeqData << " %\n";
-	std::cout << "Percentage of missing data: " << ((double) nMissingData * 100) / (nMissingData + seqDataUsed) << " %\n";
-	std::cout << "Average left flank size: " << (double) leftFlankSum / blocks.size() << "\n";
-	std::cout << "Average right flank size: " << (double) rightFlankSum / blocks.size() << "\n";
-	std::cout << "Average seed size: " << (double) seedSizeSum / blocks.size() << "\n";
-	std::cout << "Average nTax in block: " << (double) nTaxSum / blocks.size() << "\n";
-
-	if (!options.infopath.empty()) {
-		std::ofstream info(options.infopath);
-		info << "Number of extracted blocks: " << blocks.size() << "\n";
-		info << "Percentage of reconstructed sequence data: " << ((double) seqDataUsed * 100) / totalSeqData << " %\n";
-		info << "Percentage of missing data: " << ((double) nMissingData * 100) / (nMissingData + seqDataUsed) << " %\n";
-		info << "Average left flank size: " << (double) leftFlankSum / blocks.size() << "\n";
-		info << "Average right flank size: " << (double) rightFlankSum / blocks.size() << "\n";
-		info << "Average seed size: " << (double) seedSizeSum / blocks.size() << "\n";
-		info << "Average nTax in block: " << (double) nTaxSum / blocks.size() << "\n";
-		info.close();
-	}
-}
-
 void matrixCallback(const Options& options) {
 	IndexedConcatenatedSequence concat = readConcat(options);
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
-
-	std::vector<ExtendedBlock> extendedBlocks = extractExtendedBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
-			concat.getLcpArray(), presenceChecker, concat.getTaxonCoords(), options);
-	printSummaryStatistics(extendedBlocks, concat.nTax(), concat.getSequenceDataSize(), options);
-	writeFASTASupermatrix(extendedBlocks, concat.getTaxonLabels(), options.outpath);
+	SummaryStatistics stats;
+	BlockWriter writer(concat.nTax());
+	extractExtendedBlocks(concat, presenceChecker, writer, stats, options);
 }
 
 void reportCallback(const Options& options) {

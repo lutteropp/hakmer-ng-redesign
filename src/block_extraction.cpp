@@ -320,7 +320,8 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 	return res;
 }
 
-std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std::string& T, size_t nTax, PresenceChecker& presenceChecker, const Options& options) {
+std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
+		const Options& options) {
 	std::vector<Seed> res;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		if (presenceChecker.isFine(seededBlocks[i])) {
@@ -330,6 +331,106 @@ std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std:
 		}
 	}
 	return res;
+}
+
+void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
+		SummaryStatistics& stats, const Options& options) {
+	if (!options.quartetFlavor)
+		std::cout << "Extracting seeded blocks...\n";
+	std::vector<Seed> seededBlocks;
+	if (options.iterativeSeeding) {
+		PresenceChecker seedingPresenceChecker(presenceChecker);
+		for (size_t i = concat.nTax(); i >= options.minTaxaPerBlock; i--) {
+			std::vector<Seed> actSeededBlocks = extractSeededBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
+					concat.getLcpArray(), seedingPresenceChecker, concat.getTaxonCoords(), options, i);
+			actSeededBlocks = filterSeededBlocks(actSeededBlocks, concat.getConcatenatedSeq(), concat.nTax(), seedingPresenceChecker,
+					options);
+			std::sort(actSeededBlocks.begin(), actSeededBlocks.end(), std::greater<Seed>());
+			std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with at least " << i << " matches.\n";
+
+			if (options.iterativeExtension) {
+				double lastP = 0;
+				for (size_t i = 0; i < actSeededBlocks.size(); ++i) {
+					Seed seededBlock = actSeededBlocks[i];
+					if (!presenceChecker.isFine(seededBlock))
+						continue;
+					//trivialExtension(seededBlock, T, presenceChecker, nTax);
+					ExtendedBlock extendedBlock = extendBlock(seededBlock, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker,
+							options);
+					// check if the extended block can still be accepted.
+					if (presenceChecker.isFine(extendedBlock)) {
+						presenceChecker.reserveExtendedBlock(extendedBlock);
+						seedingPresenceChecker.reserveExtendedBlock(extendedBlock);
+						std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
+						if (options.verboseDebug) {
+							std::cout << "Pushing back a block with alignment: \n";
+							for (size_t i = 0; i < msa.size(); ++i) {
+								std::cout << msa[i] << "\n";
+							}
+						}
+						stats.updateSummaryStatistics(extendedBlock, concat.nTax());
+						writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
+					}
+					if (!options.quartetFlavor) {
+						double progress = (double) 100 * i / actSeededBlocks.size();
+						if (progress > lastP + 1) {
+							std::cout << progress << " %\n";
+							lastP = progress;
+						}
+					}
+				}
+				std::cout << "Finished extension of the newly discovered seeded blocks with at least " << i << " matches.\n";
+				std::cout << "Current extendedBlocks.size(): " << stats.getCurrentNBlocks() << "\n";
+			} else {
+				for (size_t j = 0; j < actSeededBlocks.size(); ++j) {
+					seededBlocks.push_back(actSeededBlocks[j]);
+				}
+			}
+		}
+	} else {
+		seededBlocks = extractSeededBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(), concat.getLcpArray(),
+				presenceChecker, concat.getTaxonCoords(), options, options.minBlocksPerQuartet);
+	}
+
+	// TODO: Remove me again, this is just out of curiosity
+	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
+
+	if (!options.iterativeExtension) {
+		std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
+		if (!options.quartetFlavor)
+			std::cout << "Assembling extended blocks...\n";
+		double lastP = 0;
+		std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
+		for (size_t i = 0; i < seededBlocks.size(); ++i) {
+			Seed seededBlock = seededBlocks[i];
+			if (!presenceChecker.isFine(seededBlock))
+				continue;
+			trivialExtension(seededBlock, concat.getConcatenatedSeq(), presenceChecker, concat.nTax());
+			ExtendedBlock extendedBlock = extendBlock(seededBlock, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, options);
+			// check if the extended block can still be accepted.
+			if (presenceChecker.isFine(extendedBlock)) {
+				presenceChecker.reserveExtendedBlock(extendedBlock);
+				std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
+				if (options.verboseDebug) {
+					std::cout << "Pushing back a block with alignment: \n";
+					for (size_t i = 0; i < msa.size(); ++i) {
+						std::cout << msa[i] << "\n";
+					}
+				}
+				stats.updateSummaryStatistics(extendedBlock, concat.nTax());
+				writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
+			}
+			if (!options.quartetFlavor) {
+				double progress = (double) 100 * i / seededBlocks.size();
+				if (progress > lastP + 1) {
+					std::cout << progress << " %\n";
+					lastP = progress;
+				}
+			}
+		}
+	}
+	stats.printSummaryStatistics(concat.nTax(), concat.getSequenceDataSize(), options);
+	writer.assembleFinalSupermatrix(concat.getTaxonLabels(), options.outpath);
 }
 
 std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
