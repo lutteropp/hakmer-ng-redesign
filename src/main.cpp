@@ -33,6 +33,8 @@
 
 #include "quartet_indexer.hpp"
 
+#include "indexing/suffix_array_fm.hpp"
+
 QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const IndexedConcatenatedSequence& concat, const Options& options) {
 	std::vector<size_t> wantedTaxa = { a, b, c, d };
 	std::pair<std::vector<size_t>, std::vector<size_t> > shrunk = shrinkArrays(concat, concat.getTaxonCoords(), wantedTaxa, options);

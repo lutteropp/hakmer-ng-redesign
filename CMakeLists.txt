@@ -3,14 +3,13 @@ cmake_minimum_required(VERSION 3.0)
 ## Set our project name
 project(hakmer-ng-redesign CXX C)
 
-#find_library(SDSL_LIB sdsl)
-#find_library(DIVSUFSORT_LIB divsufsort)
-#find_library(DIVSUFSORT64_LIB divsufsort64)
-
 ## Use all the *.cpp files we found under this folder for the project
 
 file(GLOB_RECURSE SRCS src/*.cpp)
 file(GLOB_RECURSE HDRS src/*.hpp)
+
+INCLUDE_DIRECTORIES(include)
+LINK_DIRECTORIES(lib)
 
 add_compile_options(-std=c++14)
 
@@ -41,11 +40,10 @@ endif()
 include_directories( "src" )
 
 add_executable( hakmer-ng-redesign ${SRCS} ${HDRS} )
-#target_link_libraries( hakmer-ng-redesign "${SDSL_LIB}" )
-#target_link_libraries( hakmer-ng-redesign "${DIVSUFSORT_LIB}" )
-#target_link_libraries( hakmer-ng-redesign "${DIVSUFSORT64_LIB}" )
 
 if (NOT (CMAKE_BUILD_TYPE MATCHES Debug))
 # Link it against Genesis, and against all dependencies of Genesis.
-target_link_libraries ( hakmer-ng-redesign ${GENESIS_LINK_LIBRARIES} )
+target_link_libraries ( hakmer-ng-redesign ${GENESIS_LINK_LIBRARIES})
 endif()
+
+target_link_libraries ( hakmer-ng-redesign sdsl divsufsort divsufsort64 )
