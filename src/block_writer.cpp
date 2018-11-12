@@ -12,13 +12,13 @@
 
 #include "block_helper_functions.hpp"
 
-std::string buildTempFilename(size_t taxID) {
-	return "temporary_taxon_alignment_file_" + std::to_string(taxID);
+std::string buildTempFilename(size_t taxID, const Options& options) {
+	return options.filepath + "_temporary_taxon_alignment_file_" + std::to_string(taxID);
 }
 
-BlockWriter::BlockWriter(size_t nTax) :tempMSAFiles(nTax) {
+BlockWriter::BlockWriter(size_t nTax, const Options& options) :tempMSAFiles(nTax) {
 	for (size_t i = 0; i < nTax; ++i) {
-		std::string tempFilename = buildTempFilename(i);
+		std::string tempFilename = buildTempFilename(i, options);
 		tempMSAFiles[i].open(tempFilename);
 	}
 }
@@ -35,7 +35,7 @@ std::string slurp(std::ifstream& in) {
     return sstr.str();
 }
 
-void BlockWriter::assembleFinalSupermatrix(const std::vector<std::string>& taxonLabels, const std::string& outpath) {
+void BlockWriter::assembleFinalSupermatrix(const std::vector<std::string>& taxonLabels, const std::string& outpath, const Options& options) {
 	assert(tempMSAFiles.size() == taxonLabels.size());
 	for (size_t i = 0; i < tempMSAFiles.size(); ++i) {
 		tempMSAFiles[i].close();
@@ -43,16 +43,16 @@ void BlockWriter::assembleFinalSupermatrix(const std::vector<std::string>& taxon
 	std::ofstream outfile(outpath);
 	for (size_t i = 0; i < tempMSAFiles.size(); ++i) {
 		outfile << ">" << taxonLabels[i] << "\n";
-		std::string filename = buildTempFilename(i);
+		std::string filename = buildTempFilename(i, options);
 		std::ifstream tempAct(filename);
 		outfile << slurp(tempAct) << "\n";
 	}
 	outfile.close();
-	deleteTemporaryFiles();
+	deleteTemporaryFiles(options);
 }
-void BlockWriter::deleteTemporaryFiles() {
+void BlockWriter::deleteTemporaryFiles(const Options& options) {
 	for (size_t i = 0; i < tempMSAFiles.size(); ++i) {
-		std::string filename = buildTempFilename(i);
+		std::string filename = buildTempFilename(i, options);
 		std::remove(filename.c_str());
 	}
 	tempMSAFiles.clear();

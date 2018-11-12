@@ -184,7 +184,7 @@ void matrixCallback(const Options& options) {
 	IndexedConcatenatedSequence concat = readConcat(options);
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats;
-	BlockWriter writer(concat.nTax());
+	BlockWriter writer(concat.nTax(), options);
 	extractExtendedBlocks(concat, presenceChecker, writer, stats, options);
 }
 

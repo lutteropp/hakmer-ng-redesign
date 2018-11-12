@@ -69,5 +69,6 @@ public:
 	size_t maxAllowedSuperseedDistance = 30;
 	bool iterativeSeeding = true;
 	bool iterativeExtension = true;
+	bool preselectSeeds = false;
 };
 
