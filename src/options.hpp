@@ -34,7 +34,6 @@ public:
 	bool hmm_gcCorrection = false;
 	bool useBigGapsCriterion = false; // TODO: This still has to be implemented... stop alignment extension as soon as there are too big gaps.
 	size_t maxMismatches = 0;
-	bool discardNs = false;
 
 	// quartet-flavor-only parameters
 	std::string speciesTreePath = "";
@@ -70,5 +69,6 @@ public:
 	bool iterativeExtension = true;
 	bool preselectSeeds = false;
 	bool mismatchAugmentationOnly = true;
+	bool discardNs = true;
 };
 

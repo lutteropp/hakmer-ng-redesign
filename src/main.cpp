@@ -222,7 +222,6 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--redo", options.redo, "Redo the run, overwrite old result files.");
 	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written.")->required();
 	app.add_option("-i,--info,--infopath", options.infopath, "Path to the optional run-information file to be written.");
-	app.add_flag("--discardNs", options.discardNs, "Discard all 'N' bases when reading the sequence data.");
 
 	auto dynamicFlanksOption = app.add_flag("-d,--dynamic", options.dynamicFlanks,
 			"Dynamically extend the sequence regions flanking a kmer seed.");
