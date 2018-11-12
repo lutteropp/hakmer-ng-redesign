@@ -69,5 +69,6 @@ public:
 	bool iterativeSeeding = true;
 	bool iterativeExtension = true;
 	bool preselectSeeds = false;
+	bool mismatchAugmentationOnly = true;
 };
 

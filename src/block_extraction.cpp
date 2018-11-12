@@ -221,9 +221,119 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 }
 
 // TODO: Re-add mismatches and indels in seeds
+std::vector<Seed> extractSeededBlocksMismatchAugmentationOnly(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
+		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
+		const Options& options, size_t minMatches, size_t maxMatches) {
+	std::vector<Seed> res;
+	size_t actSAPos = 0;
+	double lastP = 0;
+
+	ApproximateMatcher approxMatcher(true);
+
+#pragma omp parallel for schedule(dynamic)
+	for (size_t sIdx = 0; sIdx < SA.size(); ++sIdx) {
+		size_t startPos = SA[sIdx];
+		size_t k = options.minK;
+		if ((startPos + k >= T.size() || !presenceChecker.isFree(startPos, startPos + k - 1))) {
+			continue;
+		}
+		size_t matchCount = countMatches(sIdx, lcp, k);
+		std::vector<std::pair<size_t, size_t> > extraOccs;
+
+		while (matchCount >= std::max(options.minTaxaPerBlock, minMatches)) {
+			//we can stop if at least one of the exact matches we've found occurs before the current match in the suffix array... if we don't do that, we don't find all matches!
+			bool stopEarly = false;
+			if (lcp[sIdx] >= k) {
+				stopEarly = true;
+			}
+
+			if (!stopEarly && acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options, maxMatches)) {
+				if (options.largeSeeds) {
+					// try to find largest seed size that still gets accepted
+					size_t bestK = k;
+					while (acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options, maxMatches)) {
+						bestK = k;
+						if (k == options.maxK || startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // no further extension of seed length, or newly added character would be already taken anyway
+							break;
+						}
+						k++;
+						matchCount = countMatches(sIdx, lcp, k);
+					}
+					k = bestK;
+					matchCount = countMatches(sIdx, lcp, k);
+				}
+
+				Seed block(nTax);
+				for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
+					block.addTaxon(posToTaxon(SA[i], taxonCoords, T.size(), options.reverseComplement), SA[i], SA[i] + k - 1);
+				}
+
+				if (options.maxMismatches > 0) {
+					std::string pattern = T.substr(startPos, k);
+					extraOccs = approxMatcher.findOccurrences(T, SA, presenceChecker, pattern, options.maxMismatches, 1, false);
+
+					// TODO: Maybe only add those approximate matches that don't collide with the exact matches we already have?
+					for (size_t i = 0; i < extraOccs.size(); ++i) {
+						size_t taxID = posToTaxon(extraOccs[i].first, taxonCoords, T.size(), options.reverseComplement);
+						if (!block.hasTaxon(taxID)) {
+							size_t flankOffset = 0;
+							if (!options.dynamicFlanks && options.fixedFlanks) {
+								flankOffset = options.flankWidth;
+							}
+							// check if the extra occurrence is fine
+							if (flankOffset > extraOccs[i].first || extraOccs[i].second + flankOffset >= T.size()) {
+								continue;
+							}
+							if (!presenceChecker.isFree(extraOccs[i].first - flankOffset, extraOccs[i].second + flankOffset)) {
+								continue;
+							}
+							block.addTaxon(posToTaxon(extraOccs[i].first, taxonCoords, T.size(), options.reverseComplement),
+									extraOccs[i].first, extraOccs[i].second);
+						}
+					}
+				}
+				computeBestCaseMaxSizes(block, T, presenceChecker, nTax);
+#pragma omp critical
+				{
+					res.push_back(block);
+					if (options.verboseDebug) {
+						std::cout << "Pushing back a seeded block with " << block.getNTaxInBlock() << " taxa and seed size "
+								<< block.getSeedSize() << "\n";
+					}
+				}
+				if (!options.quartetFlavor) {
+					double progress = (double) 100 * sIdx / SA.size(); // TODO: Fix this, this looks kinda wrong in parallel mode
+					if (progress > lastP + 1) {
+#pragma omp critical
+						{
+							if (progress > lastP + 1) {
+								std::cout << progress << " %\n";
+								lastP = progress;
+							}
+						}
+					}
+				}
+				break;
+			} else {
+				if (k == options.maxK || startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // no further extension of seed length, or newly added character would be already taken anyway
+					break;
+				}
+				k++;
+				matchCount = countMatches(sIdx, lcp, k);
+			}
+		}
+	}
+	return res;
+}
+
+// TODO: Re-add mismatches and indels in seeds
 std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA, const std::vector<size_t>& lcp,
 		PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords, const Options& options, size_t minMatches,
 		size_t maxMatches) {
+	if (options.mismatchAugmentationOnly) {
+		return extractSeededBlocksMismatchAugmentationOnly(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, minMatches, maxMatches);
+	}
+
 	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
@@ -336,7 +446,7 @@ std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std:
 
 void extractExtendedBlocksPreselectSeeds(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options) {
-	// this version assumes iterativeSeeding and preselectSeeds. It extends the blocks only after the seeds have been chosen.
+// this version assumes iterativeSeeding and preselectSeeds. It extends the blocks only after the seeds have been chosen.
 	if (!options.quartetFlavor)
 		std::cout << "Extracting seeded blocks MIAU...\n";
 	std::vector<Seed> seededBlocks;
@@ -351,8 +461,8 @@ void extractExtendedBlocksPreselectSeeds(const IndexedConcatenatedSequence& conc
 		}
 	}
 
-	// TODO: Remove me again, this is just out of curiosity
-	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
+// TODO: Remove me again, this is just out of curiosity
+//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
 
 	std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
 	if (!options.quartetFlavor)
@@ -361,9 +471,9 @@ void extractExtendedBlocksPreselectSeeds(const IndexedConcatenatedSequence& conc
 	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		Seed seededBlock = seededBlocks[i];
-		//trivialExtension(seededBlock, concat.getConcatenatedSeq(), presenceChecker, concat.nTax());
+//trivialExtension(seededBlock, concat.getConcatenatedSeq(), presenceChecker, concat.nTax());
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, options);
-		// check if the extended block can still be accepted.
+// check if the extended block can still be accepted.
 		if (presenceChecker.isFineWithoutSeed(extendedBlock)) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
 			std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
@@ -451,8 +561,8 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 				presenceChecker, concat.getTaxonCoords(), options, options.minBlocksPerQuartet, concat.nTax());
 	}
 
-	// TODO: Remove me again, this is just out of curiosity
-	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
+// TODO: Remove me again, this is just out of curiosity
+//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
 
 	if (!options.iterativeExtension) {
 		std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
@@ -549,8 +659,8 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, options.minBlocksPerQuartet, nTax);
 	}
 
-	// TODO: Remove me again, this is just out of curiosity
-	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
+// TODO: Remove me again, this is just out of curiosity
+//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
 
 	if (!options.iterativeExtension) {
 		std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
