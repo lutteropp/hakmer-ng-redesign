@@ -146,8 +146,8 @@ bool highComplexity(const std::string& seed, unsigned int Ncutoff, double lowCom
 
 bool acceptSeed(size_t actSAPos, size_t matchCount, const std::vector<std::pair<size_t, size_t> >& extraOccs, size_t k, size_t nTax,
 		const std::vector<size_t>& SA, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
-		const std::string& T, const Options& options) {
-	if (matchCount + extraOccs.size() > nTax /*|| matchCount > options.maxTaxaPerBlock*/) { // easy test for paralogy
+		const std::string& T, const Options& options, size_t maxMatches) {
+	if (matchCount + extraOccs.size() > nTax || matchCount + extraOccs.size() > maxMatches /*|| matchCount > options.maxTaxaPerBlock*/) { // easy test for paralogy
 		return false;
 	}
 	if (matchCount + extraOccs.size() < options.minTaxaPerBlock) { // easy test for not enough taxa
@@ -222,7 +222,7 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 
 // TODO: Re-add mismatches and indels in seeds
 std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA, const std::vector<size_t>& lcp,
-		PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords, const Options& options, size_t minMatches) {
+		PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords, const Options& options, size_t minMatches, size_t maxMatches) {
 	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
@@ -246,11 +246,11 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 				stopEarly = true;
 			}
 
-			if (!stopEarly && acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
+			if (!stopEarly && acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options, maxMatches)) {
 				if (options.largeSeeds) {
 					// try to find largest seed size that still gets accepted
 					size_t bestK = k;
-					while (acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
+					while (acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options, maxMatches)) {
 						bestK = k;
 						if (k == options.maxK || startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // no further extension of seed length, or newly added character would be already taken anyway
 							break;
@@ -268,7 +268,7 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 
 					// TODO: Maybe only add those approximate matches that don't collide with the exact matches we already have?
 
-					if (!acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options)) {
+					if (!acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options, maxMatches)) {
 						if (k == options.maxK || startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // no further extension of seed length, or newly added character would be already taken anyway
 							break;
 						}
@@ -342,11 +342,11 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		PresenceChecker seedingPresenceChecker(presenceChecker);
 		for (size_t i = concat.nTax(); i >= options.minTaxaPerBlock; i--) {
 			std::vector<Seed> actSeededBlocks = extractSeededBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
-					concat.getLcpArray(), seedingPresenceChecker, concat.getTaxonCoords(), options, i);
+					concat.getLcpArray(), seedingPresenceChecker, concat.getTaxonCoords(), options, i, i);
 			actSeededBlocks = filterSeededBlocks(actSeededBlocks, concat.getConcatenatedSeq(), concat.nTax(), seedingPresenceChecker,
 					options);
 			std::sort(actSeededBlocks.begin(), actSeededBlocks.end(), std::greater<Seed>());
-			std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with at least " << i << " matches.\n";
+			std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with " << i << " matches.\n";
 
 			if (options.iterativeExtension) {
 				double lastP = 0;
@@ -389,7 +389,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		}
 	} else {
 		seededBlocks = extractSeededBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(), concat.getLcpArray(),
-				presenceChecker, concat.getTaxonCoords(), options, options.minBlocksPerQuartet);
+				presenceChecker, concat.getTaxonCoords(), options, options.minBlocksPerQuartet, concat.nTax());
 	}
 
 	// TODO: Remove me again, this is just out of curiosity
@@ -444,7 +444,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	if (options.iterativeSeeding) {
 		PresenceChecker seedingPresenceChecker(presenceChecker);
 		for (size_t i = nTax; i >= options.minTaxaPerBlock; i--) {
-			std::vector<Seed> actSeededBlocks = extractSeededBlocks(T, nTax, SA, lcp, seedingPresenceChecker, taxonCoords, options, i);
+			std::vector<Seed> actSeededBlocks = extractSeededBlocks(T, nTax, SA, lcp, seedingPresenceChecker, taxonCoords, options, i, i);
 			actSeededBlocks = filterSeededBlocks(actSeededBlocks, T, nTax, seedingPresenceChecker, options);
 			std::sort(actSeededBlocks.begin(), actSeededBlocks.end(), std::greater<Seed>());
 			std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with at least " << i << " matches.\n";
@@ -487,7 +487,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 			}
 		}
 	} else {
-		seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, options.minBlocksPerQuartet);
+		seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, options.minBlocksPerQuartet, nTax);
 	}
 
 	// TODO: Remove me again, this is just out of curiosity

@@ -16,11 +16,10 @@ std::string buildTempFilename(size_t taxID) {
 	return "temporary_taxon_alignment_file_" + std::to_string(taxID);
 }
 
-BlockWriter::BlockWriter(size_t nTax) {
+BlockWriter::BlockWriter(size_t nTax) :tempMSAFiles(nTax) {
 	for (size_t i = 0; i < nTax; ++i) {
 		std::string tempFilename = buildTempFilename(i);
-		std::ofstream temp(tempFilename);
-		tempMSAFiles.push_back(std::move(temp));
+		tempMSAFiles[i].open(tempFilename);
 	}
 }
 
