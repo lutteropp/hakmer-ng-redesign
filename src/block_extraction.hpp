@@ -30,7 +30,10 @@ Seed nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax, const 
 ExtendedBlock extendBlock(const Seed& block, const std::string& T, size_t nTax, PresenceChecker& presenceChecker, const Options& options);
 std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
-		const Options& options);
+		const Options& options, size_t minK, size_t nMin, size_t nMax);
 
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
+		SummaryStatistics& stats, const Options& options, size_t minK, size_t nMin, size_t nMax);
+
+void extractExtendedBlocksDecreasingNminMinK(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options);

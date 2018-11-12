@@ -70,5 +70,7 @@ public:
 	bool preselectSeeds = false;
 	bool mismatchAugmentationOnly = true;
 	bool discardNs = true;
+
+	bool decreasingMinK = true;
 };
 

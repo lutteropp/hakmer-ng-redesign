@@ -39,7 +39,7 @@ QuartetTopology inferQuartet(size_t a, size_t b, size_t c, size_t d, const Index
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 
 	std::vector<ExtendedBlock> blocks = extractExtendedBlocks(concat.getConcatenatedSeq(), concat.nTax(), shrunk.first, shrunk.second,
-			presenceChecker, concat.getTaxonCoords(), options);
+			presenceChecker, concat.getTaxonCoords(), options, options.minK, options.minTaxaPerBlock, 4);
 	if (options.concatenatedMSA) { // this is the one that uses raxml-ng for quartet inference
 		std::array<std::string, 4> concatMSA = { "", "", "", "" };
 		for (size_t i = 0; i < blocks.size(); ++i) {
@@ -185,7 +185,13 @@ void matrixCallback(const Options& options) {
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats;
 	BlockWriter writer(concat.nTax(), options);
-	extractExtendedBlocks(concat, presenceChecker, writer, stats, options);
+	if (options.decreasingMinK) {
+		extractExtendedBlocksDecreasingNminMinK(concat, presenceChecker, writer, stats, options);
+	} else {
+		extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, options.minTaxaPerBlock, concat.nTax());
+	}
+	stats.printSummaryStatistics(concat.nTax(), concat.getSequenceDataSize(), options);
+	writer.assembleFinalSupermatrix(concat.getTaxonLabels(), options.outpath, options);
 }
 
 void reportCallback(const Options& options) {
@@ -234,10 +240,12 @@ int main(int argc, char* argv[]) {
 					dynamicFlanksOption)->check(CLI::Range(0.0, 1.0));
 	auto quickDeltaOption = app.add_flag("--quickdelta,--quickDelta", options.quickDelta,
 			"Only compute the delta score for O(n) quartets instead of all O(n^4) quartets.")->needs(dynamicFlanksOption);
-	auto hmmOption = app.add_flag("--hmm,--HMM,--useHMM", options.useHMM,
-			"Use Hidden Markov Model instead of delta score to decide when to stop alignment extension.")->needs(dynamicFlanksOption)->excludes(
-			maxDeltaOption)->excludes(quickDeltaOption);
-	app.add_flag("--gcCorrection", options.hmm_gcCorrection, "Experimental: Try to correct for GC-content of the genomes.")->needs(hmmOption);
+	auto hmmOption =
+			app.add_flag("--hmm,--HMM,--useHMM", options.useHMM,
+					"Use Hidden Markov Model instead of delta score to decide when to stop alignment extension.")->needs(
+					dynamicFlanksOption)->excludes(maxDeltaOption)->excludes(quickDeltaOption);
+	app.add_flag("--gcCorrection", options.hmm_gcCorrection, "Experimental: Try to correct for GC-content of the genomes.")->needs(
+			hmmOption);
 
 	auto quartetsMode = app.add_subcommand("quartets", "Quartets mode");
 	quartetsMode->add_option("--minblocks", options.minBlocksPerQuartet, "Minimum number of blocks to be sampled for each quartet.", true);
