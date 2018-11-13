@@ -96,16 +96,16 @@ void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& 
 	// first, perform trivial extension of the seeded block
 	std::pair<size_t, size_t> bestCaseMaxSize = computeBestCaseMaxSizes(seededBlock, T, presenceChecker, nTax);
 	for (size_t i = 1; i <= bestCaseMaxSize.first; ++i) {
-		if (!canGoLeftAll(seededBlock, presenceChecker, nTax, 1)) {
+		/*if (!canGoLeftAll(seededBlock, presenceChecker, nTax, 1)) {
 			break;
-		}
+		}*/
 		seededBlock.decreaseTaxonCoordsLeft();
 	}
 
 	for (size_t i = 1; i <= bestCaseMaxSize.second; ++i) {
-		if (!canGoRightAll(seededBlock, presenceChecker, nTax, 1)) {
+		/*if (!canGoRightAll(seededBlock, presenceChecker, nTax, 1)) {
 			break;
-		}
+		}*/
 		seededBlock.increaseTaxonCoordsRight();
 	}
 }

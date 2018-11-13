@@ -22,14 +22,17 @@ Seed::Seed(size_t nTax) {
 
 void Seed::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 	if (taxID >= taxonCoords.size()) {
-		throw std::runtime_error("Trying to add taxon ID that belongs to no taxon");
+		throw std::runtime_error(
+				"Trying to add taxon ID that belongs to no taxon");
 	}
 	if (taxonCoords[taxID].first != std::string::npos) {
 		std::cout << "taxID: " << taxID << "\n";
 		std::cout << "firstCoord: " << firstCoord << "\n";
 		std::cout << "lastCoord: " << lastCoord << "\n";
-		std::cout << "old taxonCoords[taxID].first: " << taxonCoords[taxID].first << "\n";
-		std::cout << "old taxonCoords[taxID].second: " << taxonCoords[taxID].second << "\n";
+		std::cout << "old taxonCoords[taxID].first: "
+				<< taxonCoords[taxID].first << "\n";
+		std::cout << "old taxonCoords[taxID].second: "
+				<< taxonCoords[taxID].second << "\n";
 		throw std::runtime_error("This taxon is already present in the block");
 	}
 	n++;
@@ -73,14 +76,31 @@ void Seed::decreaseTaxonCoordsLeft() {
 	k++;
 }
 
-std::pair<size_t, size_t> computeForwardStrandCoordinates(const std::pair<size_t, size_t>& coords, size_t revCompStartPos) {
+void Seed::decreaseTaxonCoordsRight() {
+	for (size_t i = 0; i < taxIDs.size(); ++i) {
+		taxonCoords[taxIDs[i]].second--;
+	}
+	k--;
+}
+void Seed::increaseTaxonCoordsLeft() {
+	for (size_t i = 0; i < taxIDs.size(); ++i) {
+		taxonCoords[taxIDs[i]].first++;
+	}
+	k--;
+}
+
+std::pair<size_t, size_t> computeForwardStrandCoordinates(
+		const std::pair<size_t, size_t>& coords, size_t revCompStartPos) {
 	size_t thisForwardFirst = coords.first;
 	size_t thisForwardSecond = coords.second;
 	if (thisForwardFirst >= revCompStartPos) {
-		thisForwardFirst = revCompStartPos - (thisForwardFirst - revCompStartPos);
-		thisForwardSecond = revCompStartPos - (thisForwardSecond - revCompStartPos);
+		thisForwardFirst = revCompStartPos
+				- (thisForwardFirst - revCompStartPos);
+		thisForwardSecond = revCompStartPos
+				- (thisForwardSecond - revCompStartPos);
 	}
-	return std::make_pair(std::min(thisForwardFirst, thisForwardSecond), std::max(thisForwardFirst, thisForwardSecond));
+	return std::make_pair(std::min(thisForwardFirst, thisForwardSecond),
+			std::max(thisForwardFirst, thisForwardSecond));
 }
 
 bool Seed::orderCompatible(const Seed& other, size_t revCompStartPos) const {
@@ -92,11 +112,13 @@ bool Seed::orderCompatible(const Seed& other, size_t revCompStartPos) const {
 			bool thisIsFirstNow;
 			size_t thisForwardFirst = taxonCoords[i].first;
 			if (thisForwardFirst >= revCompStartPos) {
-				thisForwardFirst = revCompStartPos - (thisForwardFirst - revCompStartPos);
+				thisForwardFirst = revCompStartPos
+						- (thisForwardFirst - revCompStartPos);
 			}
 			size_t otherForwardFirst = other.taxonCoords[i].first;
 			if (otherForwardFirst >= revCompStartPos) {
-				otherForwardFirst = revCompStartPos - (otherForwardFirst - revCompStartPos);
+				otherForwardFirst = revCompStartPos
+						- (otherForwardFirst - revCompStartPos);
 			}
 			thisIsFirstNow = (thisForwardFirst < otherForwardFirst);
 			if (!orderSet) {
@@ -116,14 +138,18 @@ bool Seed::overlap(const Seed& other, size_t revCompStartPos) const {
 			size_t thisForwardFirst = taxonCoords[i].first;
 			size_t thisForwardSecond = taxonCoords[i].second;
 			if (thisForwardFirst >= revCompStartPos) {
-				thisForwardFirst = revCompStartPos - (thisForwardFirst - revCompStartPos);
-				thisForwardSecond = revCompStartPos - (thisForwardSecond - revCompStartPos);
+				thisForwardFirst = revCompStartPos
+						- (thisForwardFirst - revCompStartPos);
+				thisForwardSecond = revCompStartPos
+						- (thisForwardSecond - revCompStartPos);
 			}
 			size_t otherForwardFirst = other.taxonCoords[i].first;
 			size_t otherForwardSecond = other.taxonCoords[i].second;
 			if (otherForwardFirst >= revCompStartPos) {
-				otherForwardFirst = revCompStartPos - (otherForwardFirst - revCompStartPos);
-				otherForwardSecond = revCompStartPos - (otherForwardSecond - revCompStartPos);
+				otherForwardFirst = revCompStartPos
+						- (otherForwardFirst - revCompStartPos);
+				otherForwardSecond = revCompStartPos
+						- (otherForwardSecond - revCompStartPos);
 			}
 			// check for overlap
 			size_t i1 = std::min(thisForwardFirst, thisForwardSecond);
@@ -145,14 +171,19 @@ bool Seed::overlap(const Seed& other, size_t revCompStartPos) const {
 }
 
 size_t Seed::distance(const Seed& other, size_t revCompStartPos) const {
-	if (overlap(other, revCompStartPos) || !orderCompatible(other, revCompStartPos)) {
+	if (overlap(other, revCompStartPos)
+			|| !orderCompatible(other, revCompStartPos)) {
 		return std::numeric_limits<size_t>::infinity();
 	}
 	size_t dist = 0;
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		if (this->hasTaxon(i) && other.hasTaxon(i)) {
-			std::pair<size_t, size_t> thisForwardSorted = computeForwardStrandCoordinates(taxonCoords[i], revCompStartPos);
-			std::pair<size_t, size_t> otherForwardSorted = computeForwardStrandCoordinates(other.taxonCoords[i], revCompStartPos);
+			std::pair<size_t, size_t> thisForwardSorted =
+					computeForwardStrandCoordinates(taxonCoords[i],
+							revCompStartPos);
+			std::pair<size_t, size_t> otherForwardSorted =
+					computeForwardStrandCoordinates(other.taxonCoords[i],
+							revCompStartPos);
 			size_t actDist;
 			if (thisForwardSorted.first > otherForwardSorted.second) {
 				actDist = thisForwardSorted.first - otherForwardSorted.second;
