@@ -11,20 +11,17 @@
 #include <iostream>
 #include "seed.hpp"
 #include "alignment/msa_wrapper.hpp"
-#include "external/bitvector.hpp"
 
 /* stores a set of merged seed regions. */
 
 class Superseed {
 public:
-	Superseed(size_t nTax, const Seed& mySeed) :
-			taxonPresence(nTax) {
+	Superseed(size_t nTax, const Seed& mySeed) {
 		taxonCoords.resize(nTax);
 		for (size_t i = 0; i < nTax; ++i) {
 			taxonCoords[i] = mySeed.getTaxonCoords(i);
 			if (mySeed.hasTaxon(i)) {
 				taxIDs.insert(i);
-				taxonPresence.set(i);
 			}
 		}
 		mySeeds.push_back(mySeed);
@@ -35,7 +32,6 @@ public:
 				if (taxonCoords[i].first == std::string::npos) {
 					taxonCoords[i] = seedToAdd.getTaxonCoords(i);
 					taxIDs.insert(i);
-					taxonPresence.set(i);
 				} else {
 					taxonCoords[i].first = std::min(taxonCoords[i].first, seedToAdd.getTaxonCoords(i).first);
 					taxonCoords[i].second = std::max(taxonCoords[i].second, seedToAdd.getTaxonCoords(i).second);
@@ -51,7 +47,7 @@ public:
 		return taxIDs.size();
 	}
 	bool hasTaxon(size_t taxID) const {
-		return taxonPresence.get(taxID);
+		return (taxIDs.find(taxID) != taxIDs.end());
 	}
 	const std::vector<Seed>& getMySeeds() const {
 		return mySeeds;
@@ -85,12 +81,15 @@ public:
 		return false;
 	}
 
-	double score(const Superseed& otherSeed, size_t revCompStartIdx, size_t maxAllowedDistance) const {
-		size_t dist = distance(otherSeed, revCompStartIdx, maxAllowedDistance);
+	double score(const Superseed& otherSeed, size_t revCompStartIdx, size_t maxAllowedDistance, size_t minSharedTax) const {
+		size_t sharedTaxa = nSharedTax(otherSeed);
+		if (sharedTaxa < minSharedTax) {
+			return std::numeric_limits<double>::infinity();
+		}
+		size_t dist = distance(otherSeed, revCompStartIdx, maxAllowedDistance, sharedTaxa);
 		if (dist == std::numeric_limits<size_t>::infinity()) {
 			return std::numeric_limits<double>::infinity();
 		} else {
-			size_t sharedTaxa = nSharedTax(otherSeed);
 			size_t nTaxA = this->getNTaxInBlock();
 			size_t nTaxB = otherSeed.getNTaxInBlock();
 			return (1.0 - (2.0 * sharedTaxa / (nTaxA + nTaxB))) * dist;
@@ -107,8 +106,8 @@ public:
 		return std::make_pair(std::min(thisForwardFirst, thisForwardSecond), std::max(thisForwardFirst, thisForwardSecond));
 	}
 
-	size_t distance(const Superseed& otherSeed, size_t revCompStartIdx, size_t maximumDistance) const {
-		if (nSharedTax(otherSeed) == 0) {
+	size_t distance(const Superseed& otherSeed, size_t revCompStartIdx, size_t maximumDistance, size_t sharedTax) const {
+		if (sharedTax == 0) {
 			return std::numeric_limits<size_t>::infinity();
 		} else {
 			if (!orderCompatible(otherSeed, revCompStartIdx) || overlap(otherSeed, revCompStartIdx)) {
@@ -156,9 +155,13 @@ public:
 		}
 	}
 	size_t nSharedTax(const Superseed& otherSeed) const {
-		Bitvector andVec = taxonPresence;
-		andVec &= otherSeed.taxonPresence;
-		return andVec.count();
+		size_t cnt = 0;
+		for (size_t tID: taxIDs) {
+			if (otherSeed.taxIDs.find(tID) != otherSeed.taxIDs.end()) {
+				cnt++;
+			}
+		}
+		return cnt;
 	}
 	double pSharedTax(const Superseed& otherSeed) const {
 		return (double) 2 * nSharedTax(otherSeed) / (this->getNTaxInBlock() + otherSeed.getNTaxInBlock());
@@ -174,5 +177,4 @@ private:
 	std::vector<Seed> mySeeds;
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
 	std::unordered_set<size_t> taxIDs;
-	Bitvector taxonPresence;
 };

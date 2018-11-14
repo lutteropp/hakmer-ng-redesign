@@ -151,6 +151,13 @@ bool Seed::overlap(const Seed& other, size_t revCompStartPos) const {
 				otherForwardSecond = revCompStartPos
 						- (otherForwardSecond - revCompStartPos);
 			}
+
+			// check for overlap, faster version as in this blogpost: https://fgiesen.wordpress.com/2011/10/16/checking-for-interval-overlap/
+			if (thisForwardFirst <= otherForwardSecond && otherForwardFirst <= thisForwardSecond) {
+				return true;
+			}
+
+			/*
 			// check for overlap
 			size_t i1 = std::min(thisForwardFirst, thisForwardSecond);
 			size_t i2 = std::max(thisForwardFirst, thisForwardSecond);
@@ -164,7 +171,7 @@ bool Seed::overlap(const Seed& other, size_t revCompStartPos) const {
 				return true;
 			} else if (j1 < i1 && i2 <= j2) {
 				return true;
-			}
+			}*/
 		}
 	}
 	return false;

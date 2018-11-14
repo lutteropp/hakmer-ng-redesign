@@ -62,7 +62,7 @@ std::vector<Superseed> buildSuperseeds(const std::vector<Seed>& seeds, const std
 			if (!active[j]) {
 				continue;
 			}
-			double dist = superseeds[i].score(superseeds[j], revCompStartIdx, options.maxAllowedSuperseedDistance);
+			double dist = superseeds[i].score(superseeds[j], revCompStartIdx, options.maxAllowedSuperseedDistance, options.minSharedSuperseedTax);
 			if (dist < std::numeric_limits<double>::infinity()) { // can be merged
 				std::tuple<size_t, size_t, double> entry = std::make_tuple(i, j, dist);
 #pragma omp critical
@@ -90,7 +90,7 @@ std::vector<Superseed> buildSuperseeds(const std::vector<Seed>& seeds, const std
 				if (!active[j]) {
 					continue;
 				}
-				double dist = superseeds[i].score(superseeds[j], revCompStartIdx, options.maxAllowedSuperseedDistance);
+				double dist = superseeds[i].score(superseeds[j], revCompStartIdx, options.maxAllowedSuperseedDistance, options.minSharedSuperseedTax);
 				if (dist < std::numeric_limits<double>::infinity()) { // can be merged
 					std::tuple<size_t, size_t, double> entry = std::make_tuple(i, j, dist);
 					pq.push(entry);
