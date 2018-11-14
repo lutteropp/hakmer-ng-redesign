@@ -172,3 +172,7 @@ void NoGapsMSA::disassembleMSA() {
 	msa.shrink_to_fit();
 	msaValid = false;
 }
+
+std::vector<std::string> NoGapsMSA::alignSequences(const std::vector<std::string>& seqs) {
+	return seqs;
+}

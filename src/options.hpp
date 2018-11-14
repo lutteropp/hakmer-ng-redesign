@@ -27,7 +27,7 @@ public:
 	bool redo = false;
 
 	bool dynamicFlanks = false;
-	size_t flankWidth = 100;
+	size_t flankWidth = 50;
 	size_t minTaxaPerBlock = 4;
 	bool quickDelta = false;
 	bool useHMM = false;
@@ -65,8 +65,13 @@ public:
 	size_t earlyStopCount = 50; // stop flank extension if earlyStopCount extra bases didn't improve the delta score
 	bool fixedFlanks = false; // in non-dynamic extension mode: Enforce that the entire flank width is present?
 	size_t maxAllowedSuperseedDistance = 30;
-	bool iterativeSeeding = true;
-	bool iterativeExtension = true;
+
+	//bool iterativeSeeding = true;
+	//bool iterativeExtension = true;
+
+	bool iterativeSeeding = false;
+		bool iterativeExtension = false;
+
 	bool preselectSeeds = false;
 	bool mismatchAugmentationOnly = true;
 	bool discardNs = true;

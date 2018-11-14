@@ -28,6 +28,7 @@ public:
 	std::pair<std::string, std::string> getRightFlankAlignment(size_t taxID1, size_t taxID2);
 	std::pair<std::string, std::string> getReversedLeftFlankAlignment(size_t taxID1, size_t taxID2);
 	void disassembleMSA();
+	std::vector<std::string> alignSequences(const std::vector<std::string>& seqs);
 private:
 	bool isGapCharacter(char c);
 	size_t nTax;
