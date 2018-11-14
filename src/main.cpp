@@ -182,8 +182,20 @@ void quartetsCallback(const Options& options) {
 	writeQuartets(quartetTable, concat.getTaxonLabels(), options.outpath);
 }
 
+size_t estimateMinK(const IndexedConcatenatedSequence& concat) {
+	// as in Mauve
+	double sum = 0;
+	for (size_t i = 0; i < concat.nTax(); ++i) {
+		sum += (double) concat.getTaxonCoords(i).getTotalLength() / concat.nTax();
+	}
+	return log(sum);
+}
+
 void matrixCallback(const Options& options) {
 	IndexedConcatenatedSequence concat = readConcat(options);
+
+	std::cout << "Estimated minK: " << estimateMinK(concat) << "\n";
+
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats;
 	BlockWriter writer(concat.nTax(), options);

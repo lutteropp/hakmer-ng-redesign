@@ -26,6 +26,8 @@ public:
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	void increaseTaxonCoordsRight();
 	void decreaseTaxonCoordsLeft();
+	void decreaseTaxonCoordsRight();
+	void increaseTaxonCoordsLeft();
 	bool operator <(const Seed& str) const {
 		if (n == str.n) {
 			return k < str.k;

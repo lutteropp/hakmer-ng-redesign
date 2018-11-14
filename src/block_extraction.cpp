@@ -221,13 +221,24 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 }
 
 size_t findLargestK(const std::vector<size_t>& lcp, const std::vector<size_t>& sa, const std::vector<IndexedTaxonCoords>& taxonCoords,
-		size_t concatSize, bool rc, const PresenceChecker& presenceChecker) {
+		size_t concatSize, bool rc, const PresenceChecker& presenceChecker, size_t nMin) {
 	size_t max = 0;
-	for (size_t i = 0; i < lcp.size() - 4; ++i) {
-		size_t act = std::min(std::min(std::min(lcp[i], lcp[i + 1]), lcp[i + 2]), lcp[i + 3]);
+	for (size_t i = 1; i < lcp.size() - nMin; ++i) {
+		size_t act = lcp[i];
+		for (size_t j = 1; j < nMin; ++j) {
+			act = std::min(act, lcp[i + j]);
+		}
 		if (act < max)
 			continue;
 		size_t nMatches = countMatches(i, lcp, act);
+
+		if (lcp[i-1] >= act) {
+			continue;
+		}
+
+		if (nMatches != nMin) {
+			continue;
+		}
 
 		// check for presence/absence of the whole region, including flanks
 		for (size_t j = i; j < i + nMatches; ++j) {
@@ -247,7 +258,8 @@ size_t findLargestK(const std::vector<size_t>& lcp, const std::vector<size_t>& s
 			max = act;
 		}
 	}
-	return std::min((size_t) 150, max);
+	return max;
+	//return std::min((size_t) 150, max);
 }
 
 // TODO: Re-add mismatches and indels in seeds
@@ -322,7 +334,6 @@ std::vector<Seed> extractSeededBlocksMismatchAugmentationOnly(const std::string&
 						}
 					}
 				}
-				computeBestCaseMaxSizes(block, T, presenceChecker, nTax);
 #pragma omp critical
 				{
 					res.push_back(block);
@@ -427,7 +438,6 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 					block.addTaxon(posToTaxon(extraOccs[i].first, taxonCoords, T.size(), options.reverseComplement), extraOccs[i].first,
 							extraOccs[i].second);
 				}
-				computeBestCaseMaxSizes(block, T, presenceChecker, nTax);
 #pragma omp critical
 				{
 					res.push_back(block);
@@ -466,8 +476,8 @@ std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std:
 	std::vector<Seed> res;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		if (presenceChecker.isFine(seededBlocks[i])) {
-			res.push_back(seededBlocks[i]);
 			trivialExtension(seededBlocks[i], T, presenceChecker, nTax);
+			res.push_back(seededBlocks[i]);
 			presenceChecker.reserveSeededBlock(seededBlocks[i]);
 		}
 	}
@@ -732,7 +742,7 @@ void extractExtendedBlocksDecreasingNminMinK(const IndexedConcatenatedSequence& 
 	size_t nMin = concat.nTax();
 	while (nMin >= options.minTaxaPerBlock) {
 		size_t minK = findLargestK(concat.getLcpArray(), concat.getSuffixArray(), concat.getTaxonCoords(), concat.getConcatSize(),
-				options.reverseComplement, presenceChecker);
+				options.reverseComplement, presenceChecker, nMin);
 		minK = std::min(minK, options.maxK);
 		while (minK >= options.minK) {
 			std::cout << "current minK: " << minK << "\n";

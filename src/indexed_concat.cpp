@@ -18,6 +18,9 @@ IndexedTaxonCoords::IndexedTaxonCoords(const std::string& label, const std::vect
 		lastCoord = std::max(lastCoord, contigCoords[i].second);
 	}
 }
+size_t IndexedTaxonCoords::getTotalLength() const {
+	return 1 + lastCoord - firstCoord;
+}
 std::string IndexedTaxonCoords::getLabel() const {
 	return label;
 }
