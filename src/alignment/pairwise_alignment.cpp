@@ -56,6 +56,26 @@ void PairwiseAlignment::addChars(char a, char b) {
 	update(matrix.getN() - 1, matrix.getM() - 1);
 	aliValid = false;
 }
+
+void PairwiseAlignment::addCharS1(char c) {
+	matrix.addRow();
+	s1 += c;
+	// update the new row
+	for (size_t j = 0; j < matrix.getM(); ++j) {
+		update(matrix.getN() - 1, j);
+	}
+	aliValid = false;
+}
+void PairwiseAlignment::addCharS2(char c) {
+	matrix.addColumn();
+	s2 += c;
+	// update the new column
+	for (size_t i = 0; i < matrix.getN(); ++i) {
+		update(i, matrix.getM() - 1);
+	}
+	aliValid = false;
+}
+
 double PairwiseAlignment::pairwiseDistance() {
 	return matrix.entryAt(s1.size(), s2.size());
 }

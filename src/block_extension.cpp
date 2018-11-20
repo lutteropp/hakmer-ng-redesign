@@ -97,16 +97,16 @@ void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& 
 	std::pair<size_t, size_t> bestCaseMaxSize = computeBestCaseMaxSizes(seededBlock, T, presenceChecker, nTax);
 	for (size_t i = 1; i <= bestCaseMaxSize.first; ++i) {
 		/*if (!canGoLeftAll(seededBlock, presenceChecker, nTax, 1)) {
-			break;
-		}*/
-		seededBlock.decreaseTaxonCoordsLeft();
+		 break;
+		 }*/
+		seededBlock.decreaseAllTaxonCoordsLeft();
 	}
 
 	for (size_t i = 1; i <= bestCaseMaxSize.second; ++i) {
 		/*if (!canGoRightAll(seededBlock, presenceChecker, nTax, 1)) {
-			break;
-		}*/
-		seededBlock.increaseTaxonCoordsRight();
+		 break;
+		 }*/
+		seededBlock.increaseAllTaxonCoordsRight();
 	}
 }
 
@@ -423,7 +423,7 @@ ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t 
 		const Options& options) {
 	ExtendedBlock block(seededBlock, nTax, options.noIndels);
 
-	if (options.maxMismatches == 0) {
+	if (options.maxMismatches == 0 && (!options.trimSeeds || !options.simpleTrimming)) {
 		std::string seedSequence = extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[0], T);
 		block.msaWrapper.init(block.getNTaxInBlock());
 		block.msaWrapper.setSeeds(seedSequence);

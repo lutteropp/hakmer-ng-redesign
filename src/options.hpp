@@ -64,17 +64,18 @@ public:
 	bool lowComplexity = false; // keep low complexity k-mers?
 	size_t earlyStopCount = 50; // stop flank extension if earlyStopCount extra bases didn't improve the delta score
 	bool fixedFlanks = false; // in non-dynamic extension mode: Enforce that the entire flank width is present?
-	size_t maxAllowedSuperseedDistance = 30;
+	size_t maxAllowedSuperseedDistance = 50;
+	size_t minSharedSuperseedTax = 4;
 
-	//bool iterativeSeeding = true;
-	//bool iterativeExtension = true;
-
-	bool iterativeSeeding = false;
-		bool iterativeExtension = false;
+	bool iterativeSeeding = true;
+	bool iterativeExtension = true;
 
 	bool preselectSeeds = false;
 	bool mismatchAugmentationOnly = true;
 	bool discardNs = true;
+
+	bool trimSeeds = true;
+	bool simpleTrimming = false; // trim seeds in all taxa if only one taxon is affected?
 
 	bool decreasingMinK = false;
 };

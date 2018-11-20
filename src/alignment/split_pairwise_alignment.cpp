@@ -25,10 +25,17 @@ void SplitPairwiseAlignment::addCharsRight(char a, char b) {
 }
 void SplitPairwiseAlignment::setSeed(const std::string& seed1, const std::string& seed2) {
 	if (seed1.size() != seed2.size()) {
-		throw std::runtime_error("Different-sized seeds not supported yet");
-	}
-	for (size_t i = 0; i < seed1.size(); ++i) {
-		seed.addChars(seed1[i], seed2[i]);
+		//throw std::runtime_error("Different-sized seeds not supported yet");
+		for (size_t i = 0; i < seed1.size(); ++i) {
+			seed.addCharS1(seed1[i]);
+		}
+		for (size_t i = 0; i < seed2.size(); ++i) {
+			seed.addCharS2(seed2[i]);
+		}
+	} else {
+		for (size_t i = 0; i < seed1.size(); ++i) {
+			seed.addChars(seed1[i], seed2[i]);
+		}
 	}
 	singleSeed = false;
 	aliValid = false;

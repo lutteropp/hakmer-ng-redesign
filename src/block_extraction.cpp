@@ -144,6 +144,38 @@ bool highComplexity(const std::string& seed, unsigned int Ncutoff, double lowCom
 	}
 }
 
+bool noOverlap(size_t actSAPos, size_t matchCount, const std::vector<std::pair<size_t, size_t> >& extraOccs, size_t k, size_t nTax,
+		const std::vector<size_t>& SA, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
+		const std::string& T, const Options& options, size_t maxMatches) {
+	size_t concatSize = T.size();
+
+	size_t flankOffset = 0;
+	if (!options.dynamicFlanks && options.fixedFlanks) {
+		flankOffset = options.flankWidth;
+	}
+
+	// check for presence/absence of the whole region, including flanks
+	for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
+		if (flankOffset > SA[i] || SA[i] + k - 1 + flankOffset >= concatSize) {
+			return false;
+		}
+		if (!presenceChecker.isFree(SA[i] - flankOffset, SA[i] + k - 1 + flankOffset)) {
+			return false;
+		}
+	}
+
+	for (size_t i = 0; i < extraOccs.size(); ++i) {
+		if (flankOffset > extraOccs[i].first || extraOccs[i].second + flankOffset >= concatSize) {
+			return false;
+		}
+		if (!presenceChecker.isFree(extraOccs[i].first - flankOffset, extraOccs[i].second + flankOffset)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool acceptSeed(size_t actSAPos, size_t matchCount, const std::vector<std::pair<size_t, size_t> >& extraOccs, size_t k, size_t nTax,
 		const std::vector<size_t>& SA, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
 		const std::string& T, const Options& options, size_t maxMatches) {
@@ -182,30 +214,11 @@ bool acceptSeed(size_t actSAPos, size_t matchCount, const std::vector<std::pair<
 		takenTaxa.insert(taxID);
 	}
 
-	size_t flankOffset = 0;
-	if (!options.dynamicFlanks && options.fixedFlanks) {
-		flankOffset = options.flankWidth;
+	if (!options.trimSeeds) {
+		return noOverlap(actSAPos, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options, maxMatches);
+	} else {
+		return true;
 	}
-
-	// check for presence/absence of the whole region, including flanks
-	for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
-		if (flankOffset > SA[i] || SA[i] + k - 1 + flankOffset >= concatSize) {
-			return false;
-		}
-		if (!presenceChecker.isFree(SA[i] - flankOffset, SA[i] + k - 1 + flankOffset)) {
-			return false;
-		}
-	}
-
-	for (size_t i = 0; i < extraOccs.size(); ++i) {
-		if (flankOffset > extraOccs[i].first || extraOccs[i].second + flankOffset >= concatSize) {
-			return false;
-		}
-		if (!presenceChecker.isFree(extraOccs[i].first - flankOffset, extraOccs[i].second + flankOffset)) {
-			return false;
-		}
-	}
-	return true;
 }
 
 size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
@@ -232,7 +245,7 @@ size_t findLargestK(const std::vector<size_t>& lcp, const std::vector<size_t>& s
 			continue;
 		size_t nMatches = countMatches(i, lcp, act);
 
-		if (lcp[i-1] >= act) {
+		if (lcp[i - 1] >= act) {
 			continue;
 		}
 
@@ -260,6 +273,74 @@ size_t findLargestK(const std::vector<size_t>& lcp, const std::vector<size_t>& s
 	}
 	return max;
 	//return std::min((size_t) 150, max);
+}
+
+void trimSeededBlockSimple(Seed& block, PresenceChecker& presenceChecker) {
+	// first, trim the left side
+	while (block.getSeedSize() > 0) {
+		bool ok = true;
+		for (size_t i = 0; i < block.getTaxonIDsInBlock().size(); ++i) {
+			size_t coord = block.getTaxonCoords(block.getTaxonIDsInBlock()[i]).first;
+			if (!presenceChecker.isFree(coord)) {
+				ok = false;
+				break;
+			}
+		}
+		if (ok) {
+			break;
+		} else {
+			// trim back the left side by 1
+			block.increaseAllTaxonCoordsLeft();
+		}
+	}
+	// then, trim the right side (if seed.size() is not already zero)
+	while (block.getSeedSize() > 0) {
+		bool ok = true;
+		for (size_t i = 0; i < block.getTaxonIDsInBlock().size(); ++i) {
+			size_t coord = block.getTaxonCoords(block.getTaxonIDsInBlock()[i]).second;
+			if (!presenceChecker.isFree(coord)) {
+				ok = false;
+				break;
+			}
+		}
+		if (ok) {
+			break;
+		} else {
+			// trim back the rightz side by 1
+			block.decreaseAllTaxonCoordsRight();
+		}
+	}
+}
+
+void trimSeededBlock(Seed& block, PresenceChecker& presenceChecker, const Options& options) {
+	if (options.simpleTrimming) {
+		return trimSeededBlockSimple(block, presenceChecker);
+	} else {
+		std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
+		for (size_t i = 0; i < taxIDs.size(); ++i) {
+			size_t tID = taxIDs[i];
+			while (block.hasTaxon(tID)) {
+				size_t leftCoord = block.getTaxonCoords(tID).first;
+				if (!presenceChecker.isFree(leftCoord)) {
+					block.increaseTaxonCoordLeft(tID);
+				} else {
+					break;
+				}
+			}
+			while (block.hasTaxon(tID)) {
+				size_t rightCoord = block.getTaxonCoords(tID).second;
+				if (!presenceChecker.isFree(rightCoord)) {
+					block.decreaseTaxonCoordRight(tID);
+				} else {
+					break;
+				}
+			}
+			if (!block.hasTaxon(tID)) {
+				block.removeTaxon(tID);
+			}
+		}
+		assert(block.getTaxonIDsInBlock().size() == block.getNTaxInBlock());
+	}
 }
 
 // TODO: Re-add mismatches and indels in seeds
@@ -334,27 +415,36 @@ std::vector<Seed> extractSeededBlocksMismatchAugmentationOnly(const std::string&
 						}
 					}
 				}
-#pragma omp critical
-				{
-					res.push_back(block);
-					if (options.verboseDebug) {
-						std::cout << "Pushing back a seeded block with " << block.getNTaxInBlock() << " taxa and seed size "
-								<< block.getSeedSize() << "\n";
-					}
+
+				if (options.trimSeeds) {
+					trimSeededBlock(block, presenceChecker, options);
 				}
-				if (!options.quartetFlavor) {
-					double progress = (double) 100 * sIdx / SA.size(); // TODO: Fix this, this looks kinda wrong in parallel mode
-					if (progress > lastP + 1) {
+
+				if (block.getSeedSize() > 0 && block.getNTaxInBlock() >= options.minTaxaPerBlock) {
 #pragma omp critical
-						{
-							if (progress > lastP + 1) {
-								std::cout << progress << " %\n";
-								lastP = progress;
+					{
+						res.push_back(block);
+						if (options.verboseDebug) {
+							std::cout << "Pushing back a seeded block with " << block.getNTaxInBlock() << " taxa and seed size "
+									<< block.getSeedSize() << "\n";
+						}
+					}
+					if (!options.quartetFlavor) {
+						double progress = (double) 100 * sIdx / SA.size(); // TODO: Fix this, this looks kinda wrong in parallel mode
+						if (progress > lastP + 1) {
+#pragma omp critical
+							{
+								if (progress > lastP + 1) {
+									std::cout << progress << " %\n";
+									lastP = progress;
+								}
 							}
 						}
 					}
+					break;
+				} else {
+					break;
 				}
-				break;
 			} else {
 				if (k == options.maxK || startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // no further extension of seed length, or newly added character would be already taken anyway
 					break;
@@ -369,10 +459,11 @@ std::vector<Seed> extractSeededBlocksMismatchAugmentationOnly(const std::string&
 
 // TODO: Re-add mismatches and indels in seeds
 std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA, const std::vector<size_t>& lcp,
-		PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords, const Options& options, size_t minK, size_t minMatches,
-		size_t maxMatches) {
+		PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords, const Options& options, size_t minK,
+		size_t minMatches, size_t maxMatches) {
 	if (options.mismatchAugmentationOnly) {
-		return extractSeededBlocksMismatchAugmentationOnly(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, minK, minMatches, maxMatches);
+		return extractSeededBlocksMismatchAugmentationOnly(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, minK, minMatches,
+				maxMatches);
 	}
 
 	std::vector<Seed> res;
@@ -600,8 +691,8 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	}
 
 // TODO: Remove me again, this is just out of curiosity
-	std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-	std::cout << "We have made " << superseeds.size() << " superseeds out of " << seededBlocks.size() << " seeded blocks.\n";
+	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
+	//std::cout << "We have made " << superseeds.size() << " superseeds out of " << seededBlocks.size() << " seeded blocks.\n";
 
 	if (!options.iterativeExtension) {
 		std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
@@ -651,7 +742,8 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 	if (options.iterativeSeeding) {
 		PresenceChecker seedingPresenceChecker(presenceChecker);
 		for (size_t i = nMax; i >= nMin; i--) {
-			std::vector<Seed> actSeededBlocks = extractSeededBlocks(T, nTax, SA, lcp, seedingPresenceChecker, taxonCoords, options, minK, i, i);
+			std::vector<Seed> actSeededBlocks = extractSeededBlocks(T, nTax, SA, lcp, seedingPresenceChecker, taxonCoords, options, minK, i,
+					i);
 			actSeededBlocks = filterSeededBlocks(actSeededBlocks, T, nTax, seedingPresenceChecker, options);
 			std::sort(actSeededBlocks.begin(), actSeededBlocks.end(), std::greater<Seed>());
 			std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with at least " << i << " matches.\n";
@@ -694,8 +786,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 			}
 		}
 	} else {
-		seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, nMin, nTax,
-				minK);
+		seededBlocks = extractSeededBlocks(T, nTax, SA, lcp, presenceChecker, taxonCoords, options, nMin, nTax, minK);
 	}
 
 // TODO: Remove me again, this is just out of curiosity

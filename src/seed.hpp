@@ -19,15 +19,20 @@ class Seed {
 public:
 	Seed(size_t nTax);
 	void addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord);
+	void removeTaxon(size_t taxID);
 	size_t getNTaxInBlock() const;
 	std::pair<size_t, size_t> getTaxonCoords(size_t taxID) const;
 	bool hasTaxon(size_t taxID) const;
 	size_t getSeedSize() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
-	void increaseTaxonCoordsRight();
-	void decreaseTaxonCoordsLeft();
-	void decreaseTaxonCoordsRight();
-	void increaseTaxonCoordsLeft();
+	void increaseAllTaxonCoordsRight();
+	void decreaseAllTaxonCoordsLeft();
+	void decreaseAllTaxonCoordsRight();
+	void increaseAllTaxonCoordsLeft();
+	void increaseTaxonCoordsRight(size_t taxID);
+	void decreaseTaxonCoordsLeft(size_t taxID);
+	void decreaseTaxonCoordRight(size_t taxID);
+	void increaseTaxonCoordLeft(size_t taxID);
 	bool operator <(const Seed& str) const {
 		if (n == str.n) {
 			return k < str.k;
@@ -45,6 +50,8 @@ public:
 	bool orderCompatible(const Seed& other, size_t revCompStartPos) const;
 	bool overlap(const Seed& other, size_t revCompStartPos) const;
 	size_t distance(const Seed& other, size_t revCompStartPos) const;
+	bool allSeedsSameSize() const;
+	size_t getSeedSize(size_t taxonID) const;
 private:
 	std::vector<std::pair<size_t, size_t> > taxonCoords;
 	std::vector<size_t> taxIDs;

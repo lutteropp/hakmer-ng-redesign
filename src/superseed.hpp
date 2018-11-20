@@ -127,7 +127,9 @@ public:
 						actDist = thisForward.first - otherForward.second;
 					} else {
 						actDist = 0;
-						//throw std::runtime_error("This should not happen - do the seeds overlap?");
+						// this can happen if a seed lies between two seeds from a superblock
+
+						/*
 						std::cout << "my seeds for this taxon:" << "\n";
 						for (size_t j = 0; j < mySeeds.size(); ++j) {
 							if (mySeeds[j].hasTaxon(i)) {
@@ -143,7 +145,7 @@ public:
 										revCompStartIdx);
 								std::cout << coords.first << " - " << coords.second << "\n";
 							}
-						}
+						}*/
 					}
 					maxDist = std::max(maxDist, actDist);
 					if (maxDist >= maximumDistance) {

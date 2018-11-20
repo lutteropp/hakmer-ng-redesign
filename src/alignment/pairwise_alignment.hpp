@@ -26,6 +26,8 @@ public:
 	std::pair<std::string, std::string> extractAlignment();
 	void printAlignment();
 	void addChars(char a, char b);
+	void addCharS1(char c);
+	void addCharS2(char c);
 	double pairwiseDistance();
 	size_t getAlignmentWidth();
 	void shrinkDownTo(size_t newS1Size, size_t newS2Size);
