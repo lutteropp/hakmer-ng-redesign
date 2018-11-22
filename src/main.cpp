@@ -27,7 +27,7 @@
 #include "indexing/suffix_array_fm.hpp"
 
 size_t estimateMinK(const IndexedConcatenatedSequence& concat) {
-	// as in Mauve, but we double the resulting number just to be sure
+	// as in Mauve
 	double sum = 0;
 	for (size_t i = 0; i < concat.nTax(); ++i) {
 		sum += (double) concat.getTaxonCoords(i).getTotalLength() / concat.nTax();
@@ -51,7 +51,10 @@ void matrixCallback(Options& options) {
 	BlockWriter writer(concat.nTax(), options);
 	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, options.minTaxaPerBlock, concat.nTax());
 	stats.printSummaryStatistics(concat.nTax(), concat.getSequenceDataSize(), options);
-	writer.assembleFinalSupermatrix(concat.getTaxonLabels(), options.outpath, options);
+	if (!options.outpath.empty()) {
+		writer.assembleFinalSupermatrix(concat.getTaxonLabels(), options.outpath, options);
+		std::cout << "Supermatrix written to: " << options.outpath << "\n";
+	}
 }
 
 void reportCallback(const Options& options) {
@@ -86,11 +89,12 @@ int main(int argc, char* argv[]) {
 	app.add_option("-t,--threads", nThreads, "Maximum number of threads to use.");
 
 	app.add_flag("--redo", options.redo, "Redo the run, overwrite old result files.");
-	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written.")->required();
+	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written."); //->required();
 	app.add_option("-i,--info,--infopath", options.infopath, "Path to the optional run-information file to be written.");
 
 	app.add_option("--flankwidth", options.flankWidth,
-			"Maximum size of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is at most 2*flankwidth+k.", true);
+			"Maximum size of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is at most 2*flankwidth+k.",
+			true);
 
 	app.add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
 

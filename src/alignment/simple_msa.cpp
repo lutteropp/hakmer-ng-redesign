@@ -5,6 +5,8 @@
  *      Author: sarah
  */
 
+#include <stdexcept>
+
 #include "simple_msa.hpp"
 #include "msa_wrapper.hpp"
 
@@ -23,8 +25,9 @@ std::string createGapString(size_t len) {
 	return res;
 }
 
-std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, const std::string& T) {
+std::vector<std::string> prepareSeqs(const std::vector<SimpleCoords>& seqCoords, const std::string& T) {
 	std::vector<std::string> seqs;
+	size_t concatSize = 0;
 	for (size_t i = 0; i < seqCoords.size(); ++i) {
 		if (seqCoords[i].size() == 0) {
 			seqs.push_back("");
@@ -32,9 +35,27 @@ std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, 
 			std::string leftTrim = createGapString(seqCoords[i].leftGapSize);
 			std::string middle = T.substr(seqCoords[i].first, seqCoords[i].second + 1 - seqCoords[i].first);
 			std::string rightTrim = createGapString(seqCoords[i].rightGapSize);
-			seqs.push_back(leftTrim + middle + rightTrim);
+			std::string concat = leftTrim + middle + rightTrim;
+			seqs.push_back(concat);
+			if (concatSize > 0) {
+				if (concat.size() != concatSize) {
+					throw std::runtime_error("This should not happen");
+				}
+			} else {
+				concatSize = concat.size();
+			}
 		}
 	}
+	for (size_t i = 0; i < seqs.size(); ++i) {
+		if (seqs[i].empty()) {
+			seqs[i] = createGapString(concatSize);
+		}
+	}
+	return seqs;
+}
+
+std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, const std::string& T) {
+	std::vector<std::string> seqs = prepareSeqs(seqCoords, T);
 	return computeMSA(seqs);
 }
 
@@ -46,10 +67,15 @@ std::string createMissingString(size_t len) {
 	return res;
 }
 
-std::vector<std::string> computeMSA(const ExtendedBlock& block, const std::string& T, size_t nTax) {
+std::vector<std::string> computeMSA(const ExtendedBlock& block, const std::string& T, size_t nTax, const Options& options) {
 	std::vector<std::string> res;
 	std::vector<std::string> leftFlankMSA = computeMSA(block.getLeftFlankCoords(), T);
-	std::vector<std::string> seedMSA = computeMSA(block.getSeedCoords(), T);
+	std::vector<std::string> seedMSA;
+	if (options.mismatchesOnly) {
+		seedMSA = prepareSeqs(block.getSeedCoords(), T);
+	} else {
+		seedMSA = computeMSA(block.getSeedCoords(), T);
+	}
 	std::vector<std::string> rightFlankMSA = computeMSA(block.getRightFlankCoords(), T);
 
 	for (size_t i = 0; i < nTax; ++i) {

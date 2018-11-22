@@ -395,7 +395,8 @@ void processBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& p
 				seedingPresenceChecker.reserveExtendedBlock(extendedBlock);
 			}
 			stats.updateSummaryStatistics(extendedBlock, concat.nTax());
-			writer.writeTemporaryBlockMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax());
+			if (!options.outpath.empty())
+				writer.writeTemporaryBlockMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
 		}
 		double progress = (double) 100 * i / seededBlocks.size();
 		if (progress > lastP + 1) {

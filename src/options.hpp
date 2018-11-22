@@ -42,7 +42,8 @@ public:
 	bool mismatchAugmentationOnly = true;
 	bool discardNs = true;
 	bool trimSeeds = true;
-	bool simpleTrimming = false; // trim seeds in all taxa if only one taxon is affected?
+	bool simpleTrimming = true; // trim seeds in all taxa if only one taxon is affected?
 	bool simpleExtension = true; // stop extending as soon as one taxon can't be further extended?
+	bool mismatchesOnly = true;
 };
 
