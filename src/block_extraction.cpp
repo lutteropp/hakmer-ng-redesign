@@ -263,9 +263,9 @@ void trimSeededBlock(Seed& block, PresenceChecker& presenceChecker, const Option
 	}
 }
 
-std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA,
-		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
-		const Options& options, size_t minK, size_t minMatches, size_t maxMatches) {
+std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA, const std::vector<size_t>& lcp,
+		PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords, const Options& options, size_t minK,
+		size_t minMatches, size_t maxMatches) {
 	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
@@ -428,61 +428,55 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 
 	std::cout << "Extracting seeded blocks...\n";
 	std::vector<Seed> seededBlocks;
-	if (options.iterativeSeeding) {
-		PresenceChecker seedingPresenceChecker(presenceChecker);
-		for (size_t i = nMax; i >= nMin; i--) {
-			std::vector<Seed> actSeededBlocks = extractSeededBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
-					concat.getLcpArray(), seedingPresenceChecker, concat.getTaxonCoords(), options, minK, i, i);
-			actSeededBlocks = filterSeededBlocks(actSeededBlocks, concat.getConcatenatedSeq(), concat.nTax(), seedingPresenceChecker,
-					options);
-			std::sort(actSeededBlocks.begin(), actSeededBlocks.end(), std::greater<Seed>());
-			std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with " << i << " matches.\n";
+	PresenceChecker seedingPresenceChecker(presenceChecker);
+	for (size_t i = nMax; i >= nMin; i--) {
+		std::vector<Seed> actSeededBlocks = extractSeededBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
+				concat.getLcpArray(), seedingPresenceChecker, concat.getTaxonCoords(), options, minK, i, i);
+		actSeededBlocks = filterSeededBlocks(actSeededBlocks, concat.getConcatenatedSeq(), concat.nTax(), seedingPresenceChecker, options);
+		std::sort(actSeededBlocks.begin(), actSeededBlocks.end(), std::greater<Seed>());
+		std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with " << i << " matches.\n";
 
-			if (options.iterativeExtension) {
-				double lastP = 0;
-				for (size_t i = 0; i < actSeededBlocks.size(); ++i) {
-					Seed seededBlock = actSeededBlocks[i];
-					if (!presenceChecker.isFine(seededBlock))
-						continue;
-					//trivialExtension(seededBlock, T, presenceChecker, nTax);
-					ExtendedBlock extendedBlock = extendBlock(seededBlock, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker,
-							options);
-					// check if the extended block can still be accepted.
-					if (presenceChecker.isFine(extendedBlock)) {
-						presenceChecker.reserveExtendedBlock(extendedBlock);
-						seedingPresenceChecker.reserveExtendedBlock(extendedBlock);
-						std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
-						if (options.verboseDebug) {
-							std::cout << "Pushing back a block with alignment: \n";
-							for (size_t i = 0; i < msa.size(); ++i) {
-								std::cout << msa[i] << "\n";
-							}
+		if (options.iterativeExtension) {
+			double lastP = 0;
+			for (size_t i = 0; i < actSeededBlocks.size(); ++i) {
+				Seed seededBlock = actSeededBlocks[i];
+				if (!presenceChecker.isFine(seededBlock))
+					continue;
+				//trivialExtension(seededBlock, T, presenceChecker, nTax);
+				ExtendedBlock extendedBlock = extendBlock(seededBlock, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker,
+						options);
+				// check if the extended block can still be accepted.
+				if (presenceChecker.isFine(extendedBlock)) {
+					presenceChecker.reserveExtendedBlock(extendedBlock);
+					seedingPresenceChecker.reserveExtendedBlock(extendedBlock);
+					std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
+					if (options.verboseDebug) {
+						std::cout << "Pushing back a block with alignment: \n";
+						for (size_t i = 0; i < msa.size(); ++i) {
+							std::cout << msa[i] << "\n";
 						}
-						stats.updateSummaryStatistics(extendedBlock, concat.nTax());
-						writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
 					}
-					double progress = (double) 100 * i / actSeededBlocks.size();
-					if (progress > lastP + 1) {
-						std::cout << progress << " %\n";
-						lastP = progress;
-					}
+					stats.updateSummaryStatistics(extendedBlock, concat.nTax());
+					writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
 				}
-				std::cout << "Finished extension of the newly discovered seeded blocks with at least " << i << " matches.\n";
-				std::cout << "Current extendedBlocks.size(): " << stats.getCurrentNBlocks() << "\n";
-			} else {
-				for (size_t j = 0; j < actSeededBlocks.size(); ++j) {
-					seededBlocks.push_back(actSeededBlocks[j]);
+				double progress = (double) 100 * i / actSeededBlocks.size();
+				if (progress > lastP + 1) {
+					std::cout << progress << " %\n";
+					lastP = progress;
 				}
 			}
+			std::cout << "Finished extension of the newly discovered seeded blocks with at least " << i << " matches.\n";
+			std::cout << "Current extendedBlocks.size(): " << stats.getCurrentNBlocks() << "\n";
+		} else {
+			for (size_t j = 0; j < actSeededBlocks.size(); ++j) {
+				seededBlocks.push_back(actSeededBlocks[j]);
+			}
 		}
-	} else {
-		seededBlocks = extractSeededBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(), concat.getLcpArray(),
-				presenceChecker, concat.getTaxonCoords(), options, minK, nMin, nMax);
 	}
 
 // TODO: Remove me again, this is just out of curiosity
-	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-	//std::cout << "We have made " << superseeds.size() << " superseeds out of " << seededBlocks.size() << " seeded blocks.\n";
+//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
+//std::cout << "We have made " << superseeds.size() << " superseeds out of " << seededBlocks.size() << " seeded blocks.\n";
 
 	if (!options.iterativeExtension) {
 		std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";

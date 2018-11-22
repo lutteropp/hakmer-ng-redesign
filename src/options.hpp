@@ -42,7 +42,6 @@ public:
 	size_t minSharedSuperseedTax = 4;
 	bool jukesCantor = true;
 
-	bool iterativeSeeding = true;
 	bool iterativeExtension = true;
 
 	bool preselectSeeds = false;
