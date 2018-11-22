@@ -13,7 +13,6 @@
 #include <algorithm>
 #include <unordered_map>
 
-#include "block_helper_functions.hpp"
 #include "dna_functions.hpp"
 
 /**
@@ -248,20 +247,6 @@ void writeFASTASupermatrix(const std::vector<std::string>& msa, const std::vecto
 	for (size_t i = 0; i < taxonLabels.size(); ++i) {
 		outfile << ">" + taxonLabels[i] << "\n";
 		outfile << msa[i] << "\n";
-	}
-	outfile.close();
-}
-
-void writeFASTASupermatrix(std::vector<ExtendedBlock>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath) {
-	std::ofstream outfile(filepath);
-	std::cout << "writing to file: " << filepath << "\n";
-	for (size_t i = 0; i < taxonLabels.size(); ++i) {
-		outfile << ">" + taxonLabels[i] << "\n";
-		std::string concat = "";
-		for (size_t j = 0; j < blocks.size(); ++j) {
-			concat += extractTaxonSequence(blocks[j], i);
-		}
-		outfile << concat << "\n";
 	}
 	outfile.close();
 }

@@ -11,13 +11,12 @@
 #include <utility>
 #include <vector>
 
-#include "alignment/msa_wrapper.hpp"
 #include "alignment/simple_coords.hpp"
 #include "seed.hpp"
 
 class ExtendedBlock {
 public:
-	ExtendedBlock(const Seed& seededBlock, size_t nTax, bool noGaps);
+	ExtendedBlock(const Seed& seededBlock, size_t nTax);
 	double getAverageLeftFlankSize() const;
 	double getAverageRightFlankSize() const;
 	void setLeftFlankSize(size_t val);
@@ -37,8 +36,6 @@ public:
 	std::vector<SimpleCoords> getLeftFlankCoords() const;
 	std::vector<SimpleCoords> getSeedCoords() const;
 	std::vector<SimpleCoords> getRightFlankCoords() const;
-
-	MSAWrapper msaWrapper;
 private:
 	Seed mySeededBlock;
 	std::vector<SimpleCoords> leftFlankCoords;

@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <string>
+
 class SimpleCoords {
 public:
 	size_t first = std::string::npos;

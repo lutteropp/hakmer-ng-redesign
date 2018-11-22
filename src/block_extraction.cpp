@@ -6,7 +6,6 @@
  */
 
 #include "block_extraction.hpp"
-#include "block_helper_functions.hpp"
 #include "dna_functions.hpp"
 #include "indexing/approx_matching.hpp"
 
@@ -395,15 +394,8 @@ void processBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& p
 			if (!useSeedngPresenceChecker) {
 				seedingPresenceChecker.reserveExtendedBlock(extendedBlock);
 			}
-			std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
-			if (options.verboseDebug) {
-				std::cout << "Pushing back a block with alignment: \n";
-				for (size_t i = 0; i < msa.size(); ++i) {
-					std::cout << msa[i] << "\n";
-				}
-			}
 			stats.updateSummaryStatistics(extendedBlock, concat.nTax());
-			writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
+			writer.writeTemporaryBlockMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax());
 		}
 		double progress = (double) 100 * i / seededBlocks.size();
 		if (progress > lastP + 1) {

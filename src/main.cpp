@@ -22,8 +22,6 @@
 #include "indexed_concat.hpp"
 #include "block_writer.hpp"
 
-#include "block_helper_functions.hpp"
-
 #include "summary_stats.hpp"
 
 #include "indexing/suffix_array_fm.hpp"

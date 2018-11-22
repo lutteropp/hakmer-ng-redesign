@@ -15,7 +15,6 @@
 
 #include "alignment/msa_wrapper.hpp"
 #include "alignment/simple_coords.hpp"
-#include "block_helper_functions.hpp"
 #include "dna_functions.hpp"
 
 bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
@@ -217,40 +216,9 @@ size_t findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChe
 			}
 			charsToAdd[j] = T[coord];
 		}
-
-		if (directionRight) {
-			block.msaWrapper.addCharsRight(charsToAdd);
-		} else {
-			block.msaWrapper.addCharsLeft(charsToAdd);
-		}
 		finalFlankSize = i;
 	}
 	return finalFlankSize;
-}
-
-std::vector<char> findCharsToAdd(ExtendedBlock& block, const std::vector<size_t>& taxIDsPresent, const std::vector<size_t>& allTaxIDs,
-		const std::string& T, bool leftDirection) {
-	std::vector<char> charsToAdd;
-	charsToAdd.resize(allTaxIDs.size());
-	std::vector<bool> presence(allTaxIDs.size(), false);
-	for (size_t tID : taxIDsPresent) {
-		presence[tID] = true;
-	}
-
-	for (size_t i = 0; i < allTaxIDs.size(); ++i) {
-		char c = '-';
-		if (presence[i]) {
-			size_t coord;
-			if (leftDirection) {
-				coord = block.getTaxonCoordsWithFlanks(allTaxIDs[i]).first - 1;
-			} else {
-				coord = block.getTaxonCoordsWithFlanks(allTaxIDs[i]).second + 1;
-			}
-			c = T[coord];
-		}
-		charsToAdd[i] = c;
-	}
-	return charsToAdd;
 }
 
 void extendBlockPartial(ExtendedBlock& block, const std::string& T, size_t nTax, PresenceChecker& presenceChecker, const Options& options,
@@ -308,33 +276,12 @@ void extendBlockPartial(ExtendedBlock& block, const std::string& T, size_t nTax,
 				}
 			}
 		}
-
-		// we still need to add the chars to the MSA
-		std::vector<char> charsToAdd = findCharsToAdd(block, taxIDsLeft, block.getTaxonIDsInBlock(), T, leftDirection);
-		if (leftDirection) {
-			block.msaWrapper.addCharsLeft(charsToAdd);
-		} else {
-			block.msaWrapper.addCharsRight(charsToAdd);
-		}
 	}
 }
 
 ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
 		const Options& options) {
-	ExtendedBlock block(seededBlock, nTax, options.noIndels);
-
-	if (options.maxMismatches == 0 && (!options.trimSeeds || !options.simpleTrimming) && options.simpleExtension) {
-		std::string seedSequence = extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[0], T);
-		block.msaWrapper.init(block.getNTaxInBlock());
-		block.msaWrapper.setSeeds(seedSequence);
-	} else {
-		std::vector<std::string> seedSequences;
-		for (size_t i = 0; i < block.getTaxonIDsInBlock().size(); ++i) {
-			seedSequences.push_back(extractTaxonSequence(seededBlock, seededBlock.getTaxonIDsInBlock()[i], T));
-		}
-		block.msaWrapper.init(block.getNTaxInBlock());
-		block.msaWrapper.setSeeds(seedSequences);
-	}
+	ExtendedBlock block(seededBlock, nTax);
 
 	size_t bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
 	size_t bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
@@ -342,15 +289,9 @@ ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t 
 	block.setLeftFlankSize(bestLeft);
 	block.setRightFlankSize(bestRight);
 
-	block.msaWrapper.shrinkDownToLeftFlank(bestLeft);
-	block.msaWrapper.shrinkDownToRightFlank(bestRight);
-
 	if (!options.simpleExtension) {
 		extendBlockPartial(block, T, nTax, presenceChecker, options, true, block.getAverageLeftFlankSize());
 		extendBlockPartial(block, T, nTax, presenceChecker, options, false, block.getAverageRightFlankSize());
 	}
-
-	block.msaWrapper.clearMSADataStructures();
-
 	return block;
 }

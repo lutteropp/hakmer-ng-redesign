@@ -12,7 +12,7 @@
 #include <cstdio>
 #include <sstream>
 
-#include "block_helper_functions.hpp"
+#include "alignment/simple_msa.hpp"
 
 std::string buildTempFilename(size_t taxID, const Options& options) {
 	return options.filepath + "_temporary_taxon_alignment_file_" + std::to_string(taxID);
@@ -25,9 +25,11 @@ BlockWriter::BlockWriter(size_t nTax, const Options& options) :tempMSAFiles(nTax
 	}
 }
 
-void BlockWriter::writeTemporaryBlockMSA(ExtendedBlock& block, size_t nTax) {
+void BlockWriter::writeTemporaryBlockMSA(ExtendedBlock& block, const std::string& T, size_t nTax) {
+	std::vector<std::string> msa = computeMSA(block, T, nTax);
 	for (size_t i = 0; i < nTax; ++i) {
-		tempMSAFiles[i] << extractTaxonSequence(block, i);
+		//tempMSAFiles[i] << extractTaxonSequence(block, i);
+		tempMSAFiles[i] << msa[i];
 	}
 }
 

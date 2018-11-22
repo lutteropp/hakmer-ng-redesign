@@ -6,8 +6,9 @@
  */
 
 #include "simple_msa.hpp"
+#include "msa_wrapper.hpp"
 
-inline std::vector<std::string> computeMSA(const std::vector<std::string>& seqs) {
+std::vector<std::string> computeMSA(const std::vector<std::string>& seqs) {
 	MSAWrapper wrapper(false);
 	wrapper.init(seqs.size());
 	wrapper.setSeeds(seqs);
@@ -22,7 +23,7 @@ std::string createGapString(size_t len) {
 	return res;
 }
 
-inline std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, const std::string& T) {
+std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, const std::string& T) {
 	std::vector<std::string> seqs;
 	for (size_t i = 0; i < seqCoords.size(); ++i) {
 		if (seqCoords[i].size() == 0) {
@@ -45,7 +46,7 @@ std::string createMissingString(size_t len) {
 	return res;
 }
 
-inline std::vector<std::string> computeMSA(const ExtendedBlock& block, const std::string& T, size_t nTax) {
+std::vector<std::string> computeMSA(const ExtendedBlock& block, const std::string& T, size_t nTax) {
 	std::vector<std::string> res;
 	std::vector<std::string> leftFlankMSA = computeMSA(block.getLeftFlankCoords(), T);
 	std::vector<std::string> seedMSA = computeMSA(block.getSeedCoords(), T);
