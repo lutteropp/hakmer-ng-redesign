@@ -35,28 +35,31 @@ inline std::unordered_map<char, char> createRevcompMapping() {
 	mapping['X'] = 'X';
 	// delimiters stay unchanged
 	mapping['$'] = '$';
+	// gaps stay unchanged
+	mapping['-'] = '-';
 	return mapping;
 }
 
 inline std::unordered_map<char, std::unordered_set<char> > createAmbiguityMappings() {
 	std::unordered_map<char, std::unordered_set<char> > map;
-	map['A'] = {'A', 'R', 'W', 'M', 'D', 'V', 'H', 'X', 'N'};
-	map['T'] = {'T', 'U', 'Y', 'W', 'K', 'D', 'H', 'B', 'X', 'N'};
-	map['U'] = {'T', 'U', 'Y', 'W', 'K', 'D', 'H', 'B', 'X', 'N'};
-	map['C'] = {'C', 'Y', 'S', 'M', 'V', 'H', 'B', 'X', 'N'};
-	map['G'] = {'G', 'R', 'S', 'K', 'D', 'V', 'B', 'X', 'N'};
-	map['Y'] = {'C', 'T', 'U', 'Y', 'W', 'S', 'K', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['R'] = {'A', 'G', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['W'] = {'A', 'T', 'U', 'Y', 'R', 'W', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['S'] = {'G', 'C', 'Y', 'R', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['K'] = {'T', 'U', 'G', 'Y', 'R', 'W', 'S', 'K', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['M'] = {'C', 'A', 'Y', 'R', 'W', 'S', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['D'] = {'A', 'G', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['V'] = {'A', 'C', 'G', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['H'] = {'A', 'C', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['B'] = {'G', 'C', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['X'] = {'A', 'G', 'C', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['N'] = {'A', 'C', 'G', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
+	map['A'] = {'A', 'R', 'W', 'M', 'D', 'V', 'H', 'X', 'N', '-'};
+	map['T'] = {'T', 'U', 'Y', 'W', 'K', 'D', 'H', 'B', 'X', 'N', '-'};
+	map['U'] = {'T', 'U', 'Y', 'W', 'K', 'D', 'H', 'B', 'X', 'N', '-'};
+	map['C'] = {'C', 'Y', 'S', 'M', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['G'] = {'G', 'R', 'S', 'K', 'D', 'V', 'B', 'X', 'N', '-'};
+	map['Y'] = {'C', 'T', 'U', 'Y', 'W', 'S', 'K', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['R'] = {'A', 'G', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['W'] = {'A', 'T', 'U', 'Y', 'R', 'W', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['S'] = {'G', 'C', 'Y', 'R', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['K'] = {'T', 'U', 'G', 'Y', 'R', 'W', 'S', 'K', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['M'] = {'C', 'A', 'Y', 'R', 'W', 'S', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['D'] = {'A', 'G', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['V'] = {'A', 'C', 'G', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['H'] = {'A', 'C', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['B'] = {'G', 'C', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['X'] = {'A', 'G', 'C', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['N'] = {'A', 'C', 'G', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
+	map['-'] = {'A', 'C', 'G', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N', '-'};
 	return map;
 }
 

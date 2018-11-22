@@ -13,6 +13,8 @@
 #include "options.hpp"
 #include "seed.hpp"
 
+#include "alignment/simple_msa.hpp"
+
 class ExtendedBlock {
 public:
 	ExtendedBlock(const Seed& seededBlock, size_t nTax, bool noGaps);
@@ -20,8 +22,10 @@ public:
 	double getAverageRightFlankSize() const;
 	void setLeftFlankSize(size_t val);
 	void setRightFlankSize(size_t val);
-	void decrementLeftFlank(size_t tID);
-	void incrementRightFlank(size_t tID);
+	void growLeftFlank(size_t tID);
+	void growRightFlank(size_t tID);
+	void addLeftFlankGap(size_t tID);
+	void addRightFlankGap(size_t tID);
 	std::pair<size_t, size_t> getTaxonCoordsWithFlanks(size_t taxID) const;
 	std::pair<size_t, size_t> getTaxonCoordsWithoutFlanks(size_t taxID) const;
 	bool hasTaxon(size_t taxID) const;
@@ -29,9 +33,14 @@ public:
 	size_t getNTaxInBlock() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	size_t getTotalBasesUsed() const;
+
+	std::vector<SimpleCoords> getLeftFlankCoords() const;
+	std::vector<SimpleCoords> getSeedCoords() const;
+	std::vector<SimpleCoords> getRightFlankCoords() const;
+
 	MSAWrapper msaWrapper;
 private:
 	Seed mySeededBlock;
-	std::vector<size_t> leftFlankSizes;
-	std::vector<size_t> rightFlankSizes;;
+	std::vector<SimpleCoords> leftFlankCoords;
+	std::vector<SimpleCoords> rightFlankCoords;
 };

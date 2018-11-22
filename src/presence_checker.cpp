@@ -72,7 +72,7 @@ void PresenceChecker::setTaken(size_t firstCoord, size_t lastCoord) {
 void PresenceChecker::reserveSeededBlock(const Seed& block) {
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
-			std::pair<size_t, size_t> coords = block.getTaxonCoords(i);
+			SimpleCoords coords = block.getSeedCoords(i);
 			setTaken(coords.first, coords.second);
 		}
 	}
@@ -118,7 +118,7 @@ bool PresenceChecker::isFineWithoutSeed(const ExtendedBlock& block) {
 bool PresenceChecker::isFine(const Seed& block) {
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
-			std::pair<size_t, size_t> coords = block.getTaxonCoords(i);
+			SimpleCoords coords = block.getSeedCoords(i);
 			if (!isFree(coords.first, coords.second)) {
 				return false;
 			}

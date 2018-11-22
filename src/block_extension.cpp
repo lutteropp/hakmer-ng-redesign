@@ -18,7 +18,7 @@ bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, siz
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
-			if (!presenceChecker.isFree(block.getTaxonCoords(i).first - offset)) {
+			if (!presenceChecker.isFree(block.getSeedCoords(i).first - offset)) {
 				canGo = false;
 				break;
 			}
@@ -31,7 +31,7 @@ bool canGoRightAll(const Seed& block, const PresenceChecker& presenceChecker, si
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
-			if (!presenceChecker.isFree(block.getTaxonCoords(i).second + offset)) {
+			if (!presenceChecker.isFree(block.getSeedCoords(i).second + offset)) {
 				canGo = false;
 				break;
 			}
@@ -41,9 +41,9 @@ bool canGoRightAll(const Seed& block, const PresenceChecker& presenceChecker, si
 }
 
 bool allLeftSame(const Seed& seededBlock, const std::string& T, const std::vector<size_t>& taxIDs) {
-	char leftChar = T[seededBlock.getTaxonCoords(taxIDs[0]).first - 1];
+	char leftChar = T[seededBlock.getSeedCoords(taxIDs[0]).first - 1];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
-		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).first - 1];
+		char actChar = T[seededBlock.getSeedCoords(taxIDs[i]).first - 1];
 		if (!ambiguousMatch(actChar, leftChar))
 			return false;
 	}
@@ -51,9 +51,9 @@ bool allLeftSame(const Seed& seededBlock, const std::string& T, const std::vecto
 }
 
 bool allRightSame(const Seed& seededBlock, const std::string& T, const std::vector<size_t>& taxIDs) {
-	char rightChar = T[seededBlock.getTaxonCoords(taxIDs[0]).second + 1];
+	char rightChar = T[seededBlock.getSeedCoords(taxIDs[0]).second + 1];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
-		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).second + 1];
+		char actChar = T[seededBlock.getSeedCoords(taxIDs[i]).second + 1];
 		if (!ambiguousMatch(actChar, rightChar))
 			return false;
 	}
@@ -62,9 +62,9 @@ bool allRightSame(const Seed& seededBlock, const std::string& T, const std::vect
 
 bool allLeftSame(const Seed& seededBlock, const std::string& T, size_t nTax, size_t offset = 1) {
 	std::vector<size_t> taxIDs = seededBlock.getTaxonIDsInBlock();
-	char leftChar = T[seededBlock.getTaxonCoords(taxIDs[0]).first - offset];
+	char leftChar = T[seededBlock.getSeedCoords(taxIDs[0]).first - offset];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
-		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).first - offset];
+		char actChar = T[seededBlock.getSeedCoords(taxIDs[i]).first - offset];
 		if (!ambiguousMatch(actChar, leftChar))
 			return false;
 	}
@@ -73,9 +73,9 @@ bool allLeftSame(const Seed& seededBlock, const std::string& T, size_t nTax, siz
 
 bool allRightSame(const Seed& seededBlock, const std::string& T, size_t nTax, size_t offset = 1) {
 	std::vector<size_t> taxIDs = seededBlock.getTaxonIDsInBlock();
-	char rightChar = T[seededBlock.getTaxonCoords(taxIDs[0]).second + offset];
+	char rightChar = T[seededBlock.getSeedCoords(taxIDs[0]).second + offset];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
-		char actChar = T[seededBlock.getTaxonCoords(taxIDs[i]).second + offset];
+		char actChar = T[seededBlock.getSeedCoords(taxIDs[i]).second + offset];
 		if (!ambiguousMatch(actChar, rightChar))
 			return false;
 	}
@@ -92,7 +92,7 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 		leftok = 0;
 		std::vector<size_t> taxIDsToRemove;
 		for (size_t tID : taxIDsLeft) {
-			if (seededBlock.getTaxonCoords(tID).first > 0 && presenceChecker.isFree(seededBlock.getTaxonCoords(tID).first - 1)) {
+			if (seededBlock.getSeedCoords(tID).first > 0 && presenceChecker.isFree(seededBlock.getSeedCoords(tID).first - 1)) {
 				leftok++;
 			} else {
 				taxIDsToRemove.push_back(tID);
@@ -106,8 +106,8 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 		}
 		if (allLeftSame(seededBlock, T, taxIDsLeft)) {
 			for (size_t tID : taxIDsLeft) {
-				assert(seededBlock.getTaxonCoords(tID).first <= 2 * T.size());
-				assert(seededBlock.getTaxonCoords(tID).second <= 2 * T.size());
+				assert(seededBlock.getSeedCoords(tID).first <= 2 * T.size());
+				assert(seededBlock.getSeedCoords(tID).second <= 2 * T.size());
 				seededBlock.decreaseTaxonCoordsLeft(tID);
 			}
 		} else {
@@ -119,7 +119,7 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 		rightok = 0;
 		std::vector<size_t> taxIDsToRemove;
 		for (size_t tID : taxIDsRight) {
-			if (presenceChecker.isFree(seededBlock.getTaxonCoords(tID).second + 1)) {
+			if (presenceChecker.isFree(seededBlock.getSeedCoords(tID).second + 1)) {
 				rightok++;
 			} else {
 				taxIDsToRemove.push_back(tID);
@@ -249,25 +249,34 @@ std::vector<char> findCharsToAdd(ExtendedBlock& block, const std::vector<size_t>
 	return charsToAdd;
 }
 
-ExtendedBlock extendBlockPartial(ExtendedBlock& block, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
-		const Options& options, size_t startingLeftFlankSize = 0, size_t startingRightFlankSize = 0) {
+void extendBlockPartial(ExtendedBlock& block, const std::string& T, size_t nTax, PresenceChecker& presenceChecker, const Options& options,
+		bool leftDirection, size_t startingFlankSize = 0) {
 	size_t minTaxaToBeOk = options.minTaxaPerBlock;
 
 	std::vector<size_t> taxIDsLeft = block.getTaxonIDsInBlock();
-	std::vector<size_t> taxIDsRight = block.getTaxonIDsInBlock();
+	std::vector<bool> stillOk(nTax, false);
+	for (size_t tID: taxIDsLeft) {
+		stillOk[tID] = true;
+	}
+
 	size_t leftok = block.getNTaxInBlock();
-	size_t rightok = block.getNTaxInBlock();
-	size_t leftFlankSize = startingLeftFlankSize;
-	size_t rightFlankSize = startingRightFlankSize;
-	while (leftFlankSize < options.flankWidth) { // partial left extension
+	size_t flankSize = startingFlankSize;
+	while (flankSize < options.flankWidth) { // partial left extension
 		leftok = 0;
-		leftFlankSize++;
+		flankSize++;
 		std::vector<size_t> taxIDsToRemove;
 		for (size_t tID : taxIDsLeft) {
-			if (presenceChecker.isFree(block.getTaxonCoordsWithFlanks(tID).first - 1)) {
+			size_t coord;
+			if (leftDirection) {
+				coord = block.getTaxonCoordsWithFlanks(tID).first - 1;
+			} else {
+				coord = block.getTaxonCoordsWithFlanks(tID).second + 1;
+			}
+			if (presenceChecker.isFree(coord)) {
 				leftok++;
 			} else {
 				taxIDsToRemove.push_back(tID);
+				stillOk[tID] = false;
 			}
 		}
 		if (leftok < minTaxaToBeOk) {
@@ -276,42 +285,34 @@ ExtendedBlock extendBlockPartial(ExtendedBlock& block, const std::string& T, siz
 		for (size_t tID : taxIDsToRemove) {
 			taxIDsLeft.erase(std::remove(taxIDsLeft.begin(), taxIDsLeft.end(), tID));
 		}
-		for (size_t tID : taxIDsLeft) {
-			block.decrementLeftFlank(tID);
-		}
 
-		// we still need to add the chars to the MSA
-		std::vector<char> charsToAdd = findCharsToAdd(block, taxIDsLeft, block.getTaxonIDsInBlock(), T, true);
-		block.msaWrapper.addCharsLeft(charsToAdd);
-	}
-
-	while (rightFlankSize < options.flankWidth) { // partial trivial right extension
-		rightFlankSize++;
-		rightok = 0;
-		std::vector<size_t> taxIDsToRemove;
-		for (size_t tID : taxIDsRight) {
-			if (presenceChecker.isFree(block.getTaxonCoordsWithFlanks(tID).second + 1)) {
-				rightok++;
+		for (size_t i = 0; i < nTax; ++i) {
+			if (!block.hasTaxon(i)) {
+				continue;
+			}
+			if (stillOk[i]) {
+				if (leftDirection) {
+					block.growLeftFlank(i);
+				} else {
+					block.growRightFlank(i);
+				}
 			} else {
-				taxIDsToRemove.push_back(tID);
+				if (leftDirection) {
+					block.addLeftFlankGap(i);
+				} else {
+					block.addRightFlankGap(i);
+				}
 			}
 		}
-		if (rightok < minTaxaToBeOk) {
-			break;
-		}
-		for (size_t tID : taxIDsToRemove) {
-			taxIDsRight.erase(std::remove(taxIDsRight.begin(), taxIDsRight.end(), tID));
-		}
-		for (size_t tID : taxIDsRight) {
-			block.incrementRightFlank(tID);
-		}
 
 		// we still need to add the chars to the MSA
-		std::vector<char> charsToAdd = findCharsToAdd(block, taxIDsRight, block.getTaxonIDsInBlock(), T, false);
-		block.msaWrapper.addCharsRight(charsToAdd);
+		std::vector<char> charsToAdd = findCharsToAdd(block, taxIDsLeft, block.getTaxonIDsInBlock(), T, leftDirection);
+		if (leftDirection) {
+			block.msaWrapper.addCharsLeft(charsToAdd);
+		} else {
+			block.msaWrapper.addCharsRight(charsToAdd);
+		}
 	}
-
-	return block;
 }
 
 ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
@@ -341,8 +342,8 @@ ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t 
 	block.msaWrapper.shrinkDownToRightFlank(bestRight);
 
 	if (!options.simpleExtension) {
-		return extendBlockPartial(block, T, nTax, presenceChecker, options, block.getAverageLeftFlankSize(),
-				block.getAverageRightFlankSize());
+		extendBlockPartial(block, T, nTax, presenceChecker, options, true, block.getAverageLeftFlankSize());
+		extendBlockPartial(block, T, nTax, presenceChecker, options, false, block.getAverageRightFlankSize());
 	}
 
 	block.msaWrapper.clearMSADataStructures();

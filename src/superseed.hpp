@@ -19,7 +19,7 @@ public:
 	Superseed(size_t nTax, const Seed& mySeed) {
 		taxonCoords.resize(nTax);
 		for (size_t i = 0; i < nTax; ++i) {
-			taxonCoords[i] = mySeed.getTaxonCoords(i);
+			taxonCoords[i] = mySeed.getSeedCoords(i);
 			if (mySeed.hasTaxon(i)) {
 				taxIDs.insert(i);
 			}
@@ -30,17 +30,17 @@ public:
 		for (size_t i = 0; i < taxonCoords.size(); ++i) {
 			if (seedToAdd.hasTaxon(i)) {
 				if (taxonCoords[i].first == std::string::npos) {
-					taxonCoords[i] = seedToAdd.getTaxonCoords(i);
+					taxonCoords[i] = seedToAdd.getSeedCoords(i);
 					taxIDs.insert(i);
 				} else {
-					taxonCoords[i].first = std::min(taxonCoords[i].first, seedToAdd.getTaxonCoords(i).first);
-					taxonCoords[i].second = std::max(taxonCoords[i].second, seedToAdd.getTaxonCoords(i).second);
+					taxonCoords[i].first = std::min(taxonCoords[i].first, seedToAdd.getSeedCoords(i).first);
+					taxonCoords[i].second = std::max(taxonCoords[i].second, seedToAdd.getSeedCoords(i).second);
 				}
 			}
 		}
 		mySeeds.push_back(seedToAdd);
 	}
-	std::pair<size_t, size_t> getTaxonCoords(size_t taxID) const {
+	SimpleCoords getTaxonCoords(size_t taxID) const {
 		return taxonCoords[taxID];
 	}
 	size_t getNTaxInBlock() const {
@@ -96,7 +96,7 @@ public:
 		}
 	}
 
-	std::pair<size_t, size_t> computeForwardStrandCoordinates(const std::pair<size_t, size_t>& coords, size_t revCompStartPos) const {
+	std::pair<size_t, size_t> computeForwardStrandCoordinates(const SimpleCoords& coords, size_t revCompStartPos) const {
 		size_t thisForwardFirst = coords.first;
 		size_t thisForwardSecond = coords.second;
 		if (thisForwardFirst >= revCompStartPos) {
@@ -177,6 +177,6 @@ public:
 	}
 private:
 	std::vector<Seed> mySeeds;
-	std::vector<std::pair<size_t, size_t> > taxonCoords;
+	std::vector<SimpleCoords> taxonCoords;
 	std::unordered_set<size_t> taxIDs;
 };

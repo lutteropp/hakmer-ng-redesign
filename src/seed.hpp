@@ -11,6 +11,8 @@
 #include <cstdlib>
 #include <string>
 
+#include "alignment/simple_msa.hpp"
+
 /*
  * Store seed coordinates for each included taxon
  */
@@ -21,7 +23,7 @@ public:
 	void addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord);
 	void removeTaxon(size_t taxID);
 	size_t getNTaxInBlock() const;
-	std::pair<size_t, size_t> getTaxonCoords(size_t taxID) const;
+	SimpleCoords getSeedCoords(size_t taxID) const;
 	bool hasTaxon(size_t taxID) const;
 	double getAverageSeedSize() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
@@ -52,8 +54,12 @@ public:
 	size_t distance(const Seed& other, size_t revCompStartPos) const;
 	bool allSeedsSameSize() const;
 	size_t getSeedSize(size_t taxonID) const;
+
+	void addGapLeft(size_t taxonID);
+	void addGapRight(size_t taxonID);
+	std::vector<SimpleCoords> getSeedCoords() const;
 private:
-	std::vector<std::pair<size_t, size_t> > taxonCoords;
+	std::vector<SimpleCoords> seedCoords;
 	std::vector<size_t> taxIDs;
 	size_t n;
 	size_t k;

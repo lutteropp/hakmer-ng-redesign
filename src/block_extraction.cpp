@@ -199,7 +199,7 @@ void trimSeededBlockSimple(Seed& block, PresenceChecker& presenceChecker) {
 	while (block.getAverageSeedSize() > 0) {
 		bool ok = true;
 		for (size_t i = 0; i < block.getTaxonIDsInBlock().size(); ++i) {
-			size_t coord = block.getTaxonCoords(block.getTaxonIDsInBlock()[i]).first;
+			size_t coord = block.getSeedCoords(block.getTaxonIDsInBlock()[i]).first;
 			if (!presenceChecker.isFree(coord)) {
 				ok = false;
 				break;
@@ -216,7 +216,7 @@ void trimSeededBlockSimple(Seed& block, PresenceChecker& presenceChecker) {
 	while (block.getAverageSeedSize() > 0) {
 		bool ok = true;
 		for (size_t i = 0; i < block.getTaxonIDsInBlock().size(); ++i) {
-			size_t coord = block.getTaxonCoords(block.getTaxonIDsInBlock()[i]).second;
+			size_t coord = block.getSeedCoords(block.getTaxonIDsInBlock()[i]).second;
 			if (!presenceChecker.isFree(coord)) {
 				ok = false;
 				break;
@@ -232,24 +232,25 @@ void trimSeededBlockSimple(Seed& block, PresenceChecker& presenceChecker) {
 }
 
 void trimSeededBlock(Seed& block, PresenceChecker& presenceChecker, const Options& options) {
-	if (options.simpleTrimming) {
-		return trimSeededBlockSimple(block, presenceChecker);
-	} else {
+	trimSeededBlockSimple(block, presenceChecker);
+	if (!options.simpleTrimming) {
 		std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 		for (size_t i = 0; i < taxIDs.size(); ++i) {
 			size_t tID = taxIDs[i];
 			while (block.hasTaxon(tID)) {
-				size_t leftCoord = block.getTaxonCoords(tID).first;
+				size_t leftCoord = block.getSeedCoords(tID).first;
 				if (!presenceChecker.isFree(leftCoord)) {
 					block.increaseTaxonCoordLeft(tID);
+					block.addGapLeft(tID);
 				} else {
 					break;
 				}
 			}
 			while (block.hasTaxon(tID)) {
-				size_t rightCoord = block.getTaxonCoords(tID).second;
+				size_t rightCoord = block.getSeedCoords(tID).second;
 				if (!presenceChecker.isFree(rightCoord)) {
 					block.decreaseTaxonCoordRight(tID);
+					block.addGapRight(tID);
 				} else {
 					break;
 				}
@@ -357,8 +358,8 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 	return res;
 }
 
-std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std::string& T, size_t nTax, PresenceChecker& seedingPresenceChecker,
-		const Options& options) {
+std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std::string& T, size_t nTax,
+		PresenceChecker& seedingPresenceChecker, const Options& options) {
 	std::vector<Seed> res;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		if (seedingPresenceChecker.isFine(seededBlocks[i])) {
@@ -367,7 +368,8 @@ std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std:
 			seedingPresenceChecker.reserveSeededBlock(seededBlocks[i]);
 		} else if (options.trimSeeds) {
 			trimSeededBlock(seededBlocks[i], seedingPresenceChecker, options);
-			if (seededBlocks[i].getNTaxInBlock() >= options.minTaxaPerBlock && seededBlocks[i].getAverageSeedSize() > 0 && seedingPresenceChecker.isFine(seededBlocks[i])) {
+			if (seededBlocks[i].getNTaxInBlock() >= options.minTaxaPerBlock && seededBlocks[i].getAverageSeedSize() > 0
+					&& seedingPresenceChecker.isFine(seededBlocks[i])) {
 				trivialExtension(seededBlocks[i], T, seedingPresenceChecker, nTax, options);
 				res.push_back(seededBlocks[i]);
 				seedingPresenceChecker.reserveSeededBlock(seededBlocks[i]);
