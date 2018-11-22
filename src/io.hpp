@@ -12,7 +12,6 @@
 #include <fstream>
 #include "options.hpp"
 #include "indexed_concat.hpp"
-#include "quartet_lookup_table.hpp"
 
 #include "extended_block.hpp"
 #include "seed.hpp"
@@ -71,10 +70,5 @@ void writeFASTASupermatrix(const std::vector<Seed>& blocks, const std::vector<st
 void writeFASTASupermatrix(const std::vector<std::string>& msa, const std::vector<std::string>& taxonLabels, const std::string& filepath);
 // optional: write block coords
 // optional: write blocks separately
-
-// read quartet topologies
-// write quartet topologies
-QuartetLookupTable<size_t> readQuartets(const std::string& filepath);
-void writeQuartets(const QuartetLookupTable<size_t>& table, const std::vector<std::string>& taxonLabels, const std::string& filepath);
 
 // that's probably all...

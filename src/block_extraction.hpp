@@ -19,9 +19,6 @@
 #include "block_writer.hpp"
 #include "summary_stats.hpp"
 
-std::pair<std::vector<size_t>, std::vector<size_t> > shrinkArrays(const IndexedConcatenatedSequence& concat,
-		const std::vector<IndexedTaxonCoords>& taxonCoords, const std::vector<size_t>& wantedTaxa, const Options& options);
-
 std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const std::vector<size_t>& SA, const std::vector<size_t>& lcp,
 		PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords, const Options& options);
 Seed nextSeededBlock(size_t& actSAPos, const std::string& T, size_t nTax, const std::vector<size_t>& SA, const std::vector<size_t>& lcp,

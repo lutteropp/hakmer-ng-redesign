@@ -150,9 +150,6 @@ bool noOverlap(size_t actSAPos, size_t matchCount, const std::vector<std::pair<s
 	size_t concatSize = T.size();
 
 	size_t flankOffset = 0;
-	if (!options.dynamicFlanks && options.fixedFlanks) {
-		flankOffset = options.flankWidth;
-	}
 
 	// check for presence/absence of the whole region, including flanks
 	for (size_t i = actSAPos; i < actSAPos + matchCount; ++i) {
@@ -400,9 +397,6 @@ std::vector<Seed> extractSeededBlocksMismatchAugmentationOnly(const std::string&
 						size_t taxID = posToTaxon(extraOccs[i].first, taxonCoords, T.size(), options.reverseComplement);
 						if (!block.hasTaxon(taxID)) {
 							size_t flankOffset = 0;
-							if (!options.dynamicFlanks && options.fixedFlanks) {
-								flankOffset = options.flankWidth;
-							}
 							// check if the extra occurrence is fine
 							if (flankOffset > extraOccs[i].first || extraOccs[i].second + flankOffset >= T.size()) {
 								continue;
@@ -429,18 +423,18 @@ std::vector<Seed> extractSeededBlocksMismatchAugmentationOnly(const std::string&
 									<< block.getAverageSeedSize() << "\n";
 						}
 					}
-					if (!options.quartetFlavor) {
-						double progress = (double) 100 * sIdx / SA.size(); // TODO: Fix this, this looks kinda wrong in parallel mode
-						if (progress > lastP + 1) {
+
+					double progress = (double) 100 * sIdx / SA.size(); // TODO: Fix this, this looks kinda wrong in parallel mode
+					if (progress > lastP + 1) {
 #pragma omp critical
-							{
-								if (progress > lastP + 1) {
-									std::cout << progress << " %\n";
-									lastP = progress;
-								}
+						{
+							if (progress > lastP + 1) {
+								std::cout << progress << " %\n";
+								lastP = progress;
 							}
 						}
 					}
+
 					break;
 				} else {
 					break;
@@ -537,15 +531,13 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 								<< block.getAverageSeedSize() << "\n";
 					}
 				}
-				if (!options.quartetFlavor) {
-					double progress = (double) 100 * sIdx / SA.size(); // TODO: Fix this, this looks kinda wrong in parallel mode
-					if (progress > lastP + 1) {
+				double progress = (double) 100 * sIdx / SA.size(); // TODO: Fix this, this looks kinda wrong in parallel mode
+				if (progress > lastP + 1) {
 #pragma omp critical
-						{
-							if (progress > lastP + 1) {
-								std::cout << progress << " %\n";
-								lastP = progress;
-							}
+					{
+						if (progress > lastP + 1) {
+							std::cout << progress << " %\n";
+							lastP = progress;
 						}
 					}
 				}
@@ -578,8 +570,8 @@ std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std:
 void extractExtendedBlocksPreselectSeeds(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options, size_t minK, size_t nMin, size_t nMax) {
 // this version assumes iterativeSeeding and preselectSeeds. It extends the blocks only after the seeds have been chosen.
-	if (!options.quartetFlavor)
-		std::cout << "Extracting seeded blocks MIAU...\n";
+
+	std::cout << "Extracting seeded blocks MIAU...\n";
 	std::vector<Seed> seededBlocks;
 	for (size_t i = nMax; i >= nMin; i--) {
 		std::vector<Seed> actSeededBlocks = extractSeededBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
@@ -596,8 +588,7 @@ void extractExtendedBlocksPreselectSeeds(const IndexedConcatenatedSequence& conc
 //std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
 
 	std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
-	if (!options.quartetFlavor)
-		std::cout << "Assembling extended blocks...\n";
+	std::cout << "Assembling extended blocks...\n";
 	double lastP = 0;
 	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
@@ -617,12 +608,10 @@ void extractExtendedBlocksPreselectSeeds(const IndexedConcatenatedSequence& conc
 			stats.updateSummaryStatistics(extendedBlock, concat.nTax());
 			writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
 		}
-		if (!options.quartetFlavor) {
-			double progress = (double) 100 * i / seededBlocks.size();
-			if (progress > lastP + 1) {
-				std::cout << progress << " %\n";
-				lastP = progress;
-			}
+		double progress = (double) 100 * i / seededBlocks.size();
+		if (progress > lastP + 1) {
+			std::cout << progress << " %\n";
+			lastP = progress;
 		}
 	}
 }
@@ -633,8 +622,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		return extractExtendedBlocksPreselectSeeds(concat, presenceChecker, writer, stats, options, minK, nMin, nMax);
 	}
 
-	if (!options.quartetFlavor)
-		std::cout << "Extracting seeded blocks...\n";
+	std::cout << "Extracting seeded blocks...\n";
 	std::vector<Seed> seededBlocks;
 	if (options.iterativeSeeding) {
 		PresenceChecker seedingPresenceChecker(presenceChecker);
@@ -669,12 +657,10 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 						stats.updateSummaryStatistics(extendedBlock, concat.nTax());
 						writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
 					}
-					if (!options.quartetFlavor) {
-						double progress = (double) 100 * i / actSeededBlocks.size();
-						if (progress > lastP + 1) {
-							std::cout << progress << " %\n";
-							lastP = progress;
-						}
+					double progress = (double) 100 * i / actSeededBlocks.size();
+					if (progress > lastP + 1) {
+						std::cout << progress << " %\n";
+						lastP = progress;
 					}
 				}
 				std::cout << "Finished extension of the newly discovered seeded blocks with at least " << i << " matches.\n";
@@ -696,8 +682,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 
 	if (!options.iterativeExtension) {
 		std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
-		if (!options.quartetFlavor)
-			std::cout << "Assembling extended blocks...\n";
+		std::cout << "Assembling extended blocks...\n";
 		double lastP = 0;
 		std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
 		for (size_t i = 0; i < seededBlocks.size(); ++i) {
@@ -719,12 +704,10 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 				stats.updateSummaryStatistics(extendedBlock, concat.nTax());
 				writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
 			}
-			if (!options.quartetFlavor) {
-				double progress = (double) 100 * i / seededBlocks.size();
-				if (progress > lastP + 1) {
-					std::cout << progress << " %\n";
-					lastP = progress;
-				}
+			double progress = (double) 100 * i / seededBlocks.size();
+			if (progress > lastP + 1) {
+				std::cout << progress << " %\n";
+				lastP = progress;
 			}
 		}
 	}
@@ -735,8 +718,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 		const std::vector<size_t>& lcp, PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords,
 		const Options& options, size_t minK, size_t nMin, size_t nMax) {
 	std::vector<ExtendedBlock> res;
-	if (!options.quartetFlavor)
-		std::cout << "Extracting seeded blocks...\n";
+	std::cout << "Extracting seeded blocks...\n";
 
 	std::vector<Seed> seededBlocks;
 	if (options.iterativeSeeding) {
@@ -769,12 +751,10 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 						}
 						res.push_back(extendedBlock);
 					}
-					if (!options.quartetFlavor) {
-						double progress = (double) 100 * i / actSeededBlocks.size();
-						if (progress > lastP + 1) {
-							std::cout << progress << " %\n";
-							lastP = progress;
-						}
+					double progress = (double) 100 * i / actSeededBlocks.size();
+					if (progress > lastP + 1) {
+						std::cout << progress << " %\n";
+						lastP = progress;
 					}
 				}
 				std::cout << "Finished extension of the newly discovered seeded blocks with at least " << i << " matches.\n";
@@ -794,8 +774,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 
 	if (!options.iterativeExtension) {
 		std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
-		if (!options.quartetFlavor)
-			std::cout << "Assembling extended blocks...\n";
+		std::cout << "Assembling extended blocks...\n";
 		double lastP = 0;
 		std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
 		for (size_t i = 0; i < seededBlocks.size(); ++i) {
@@ -816,12 +795,10 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 				}
 				res.push_back(extendedBlock);
 			}
-			if (!options.quartetFlavor) {
-				double progress = (double) 100 * i / seededBlocks.size();
-				if (progress > lastP + 1) {
-					std::cout << progress << " %\n";
-					lastP = progress;
-				}
+			double progress = (double) 100 * i / seededBlocks.size();
+			if (progress > lastP + 1) {
+				std::cout << progress << " %\n";
+				lastP = progress;
 			}
 		}
 	}

@@ -22,14 +22,14 @@ if (OPENMP_FOUND)
 endif()
 
 # Add Genesis as dependency.
-add_subdirectory(${PROJECT_SOURCE_DIR}/genesis)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/genesis)
 # Use everything that Genesis exports, just to be sure that we use the same setup.
-add_definitions( ${GENESIS_DEFINITIONS} )
-include_directories( ${GENESIS_INCLUDE_DIR} )
-set( CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${GENESIS_C_FLAGS}")
-set( CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${GENESIS_CXX_FLAGS}" )
-set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GENESIS_EXE_LINKER_FLAGS}" )
-add_definitions(-DWITH_GENESIS -DWITH_OPENMP)
+#add_definitions( ${GENESIS_DEFINITIONS} )
+#include_directories( ${GENESIS_INCLUDE_DIR} )
+#set( CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${GENESIS_C_FLAGS}")
+#set( CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${GENESIS_CXX_FLAGS}" )
+#set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GENESIS_EXE_LINKER_FLAGS}" )
+#add_definitions(-DWITH_GENESIS -DWITH_OPENMP)
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
