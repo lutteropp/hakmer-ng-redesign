@@ -45,5 +45,6 @@ public:
 	bool simpleTrimming = true; // trim seeds in all taxa if only one taxon is affected?
 	bool simpleExtension = true; // stop extending as soon as one taxon can't be further extended?
 	bool mismatchesOnly = true;
+	size_t bufferSize = 200;
 };
 

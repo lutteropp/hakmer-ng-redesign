@@ -382,6 +382,7 @@ void processBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& p
 		BlockWriter& writer, SummaryStatistics& stats, const Options& options, const std::vector<Seed>& seededBlocks,
 		bool useSeedngPresenceChecker) {
 	double lastP = 0;
+	std::vector<ExtendedBlock> buffer;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		Seed seededBlock = seededBlocks[i];
 		if (!presenceChecker.isFine(seededBlock))
@@ -395,14 +396,32 @@ void processBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& p
 				seedingPresenceChecker.reserveExtendedBlock(extendedBlock);
 			}
 			stats.updateSummaryStatistics(extendedBlock, concat.nTax());
-			if (!options.outpath.empty())
-				writer.writeTemporaryBlockMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
+
+			if (!options.outpath.empty()) {
+				buffer.push_back(extendedBlock);
+				if (buffer.size() >= options.bufferSize) {
+#pragma omp parallel for schedule(dynamic)
+					for (size_t bIdx = 0; bIdx < buffer.size(); ++bIdx) {
+						writer.writeTemporaryBlockMSA(buffer[bIdx], concat.getConcatenatedSeq(), concat.nTax(), options);
+					}
+					buffer.clear();
+				}
+			}
 		}
 		double progress = (double) 100 * i / seededBlocks.size();
 		if (progress > lastP + 1) {
 			std::cout << progress << " %\n";
 			lastP = progress;
 		}
+	}
+
+	if (!options.outpath.empty()) {
+		// process the remaining buffer items
+#pragma omp parallel for schedule(dynamic)
+		for (size_t bIdx = 0; bIdx < buffer.size(); ++bIdx) {
+			writer.writeTemporaryBlockMSA(buffer[bIdx], concat.getConcatenatedSeq(), concat.nTax(), options);
+		}
+		buffer.clear();
 	}
 }
 
