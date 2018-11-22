@@ -82,38 +82,6 @@ bool allRightSame(const Seed& seededBlock, const std::string& T, size_t nTax, si
 	return true;
 }
 
-std::pair<size_t, size_t> computeBestCaseMaxSizes(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
-	size_t maxSizeLeft = 0;
-	size_t maxSizeRight = 0;
-	bool canLeft = true;
-	bool canRight = true;
-	size_t leftOffset = 1;
-	size_t rightOffset = 1;
-	while (canLeft || canRight) {
-		if (!canGoLeftAll(seededBlock, presenceChecker, nTax, leftOffset)) {
-			canLeft = false;
-		}
-		if (!canGoRightAll(seededBlock, presenceChecker, nTax, rightOffset)) {
-			canRight = false;
-		}
-		if (canLeft && !allLeftSame(seededBlock, T, nTax, leftOffset)) {
-			canLeft = false;
-		}
-		if (canRight && !allRightSame(seededBlock, T, nTax, rightOffset)) {
-			canRight = false;
-		}
-		if (canLeft) {
-			maxSizeLeft++;
-			leftOffset++;
-		}
-		if (canRight) {
-			maxSizeRight++;
-			rightOffset++;
-		}
-	}
-	return std::make_pair(maxSizeLeft, maxSizeRight);
-}
-
 void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
 	// we perform trivial extension as long as at least 4 taxa are still availabe in the current direction
 	std::vector<size_t> taxIDsLeft = seededBlock.getTaxonIDsInBlock();
@@ -141,7 +109,6 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 				assert(seededBlock.getTaxonCoords(tID).first <= 2 * T.size());
 				assert(seededBlock.getTaxonCoords(tID).second <= 2 * T.size());
 				seededBlock.decreaseTaxonCoordsLeft(tID);
-				presenceChecker.setTaken(seededBlock.getTaxonCoords(tID).first);
 			}
 		} else {
 			break;
@@ -167,7 +134,6 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 		if (allRightSame(seededBlock, T, taxIDsRight)) {
 			for (size_t tID : taxIDsRight) {
 				seededBlock.increaseTaxonCoordsRight(tID);
-				presenceChecker.setTaken(seededBlock.getTaxonCoords(tID).second);
 			}
 		} else {
 			break;
@@ -179,27 +145,16 @@ void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& 
 	if (!options.simpleExtension) {
 		return trivialExtensionPartial(seededBlock, T, presenceChecker, nTax);
 	}
-
-	std::pair<size_t, size_t> bestCaseMaxSize = computeBestCaseMaxSizes(seededBlock, T, presenceChecker, nTax);
-	for (size_t i = 1; i <= bestCaseMaxSize.first; ++i) {
-		/*if (!canGoLeftAll(seededBlock, presenceChecker, nTax, 1)) {
-		 break;
-		 }*/
+	size_t leftOffset = 1;
+	while (canGoLeftAll(seededBlock, presenceChecker, nTax, leftOffset) && allLeftSame(seededBlock, T, nTax, leftOffset)) {
 		seededBlock.decreaseAllTaxonCoordsLeft();
+		leftOffset++;
 	}
-
-	for (size_t i = 1; i <= bestCaseMaxSize.second; ++i) {
-		/*if (!canGoRightAll(seededBlock, presenceChecker, nTax, 1)) {
-		 break;
-		 }*/
+	size_t rightOffset = 1;
+	while (canGoRightAll(seededBlock, presenceChecker, nTax, rightOffset) && allRightSame(seededBlock, T, nTax, rightOffset)) {
 		seededBlock.increaseAllTaxonCoordsRight();
+		rightOffset++;
 	}
-}
-
-void swap(std::vector<double>& vec, size_t i, size_t j) {
-	double tmp = vec[i];
-	vec[i] = vec[j];
-	vec[j] = tmp;
 }
 
 bool canGoLeftAll(const ExtendedBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {

@@ -15,7 +15,6 @@
 #endif
 
 #include "external/CLI11.hpp"
-#include "external/ProgressBar.hpp"
 
 #include "options.hpp"
 #include "block_extraction.hpp"
@@ -30,27 +29,29 @@
 #include "indexing/suffix_array_fm.hpp"
 
 size_t estimateMinK(const IndexedConcatenatedSequence& concat) {
-	// as in Mauve
+	// as in Mauve, but we double the resulting number just to be sure
 	double sum = 0;
 	for (size_t i = 0; i < concat.nTax(); ++i) {
 		sum += (double) concat.getTaxonCoords(i).getTotalLength() / concat.nTax();
 	}
-	return log(sum);
+	return log(sum) * 2;
 }
 
-void matrixCallback(const Options& options) {
+void matrixCallback(Options& options) {
 	IndexedConcatenatedSequence concat = readConcat(options);
-
-	std::cout << "Estimated minK: " << estimateMinK(concat) << "\n";
+	size_t estK = estimateMinK(concat);
+	std::cout << "Estimated minK: " << estK << "\n";
+	if (options.minK == 0) {
+		options.minK = estK;
+	}
+	if (options.minK < estK) {
+		std::cout << "WARNING: The provided minK is smaller than the estimated minK value.\n";
+	}
 
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats;
 	BlockWriter writer(concat.nTax(), options);
-	if (options.decreasingMinK) {
-		extractExtendedBlocksDecreasingNminMinK(concat, presenceChecker, writer, stats, options);
-	} else {
-		extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, options.minTaxaPerBlock, concat.nTax());
-	}
+	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, options.minTaxaPerBlock, concat.nTax());
 	stats.printSummaryStatistics(concat.nTax(), concat.getSequenceDataSize(), options);
 	writer.assembleFinalSupermatrix(concat.getTaxonLabels(), options.outpath, options);
 }
@@ -75,7 +76,6 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--report", reportMode, "Report on input sequences and exit without analysis");
 
 	app.add_flag("--gapfree,--noindels,--nogaps", options.noIndels, "Build gap-free alignments.");
-	app.add_flag("--largeseeds,--largeSeeds", options.largeSeeds, "Prefer larger seeds.");
 	app.add_flag("-v,--verbose", options.verbose, "Print progress updates.");
 	app.add_flag("--debug,--verboseDebug", options.verboseDebug, "Print debug output.");
 	auto revCompOption = app.add_flag("--revcomp,-r", options.reverseComplement, "Also consider reverse-complement matches of DNA data.");
@@ -92,9 +92,7 @@ int main(int argc, char* argv[]) {
 	app.add_option("-i,--info,--infopath", options.infopath, "Path to the optional run-information file to be written.");
 
 	app.add_option("--flankwidth", options.flankWidth,
-			"Length of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is 2*flankwidth+k.", true);
-
-	app.add_flag("--decreasing", options.decreasingMinK, "Iteratively decrease values for nMin and minK");
+			"Maximum size of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is at most 2*flankwidth+k.", true);
 
 	app.add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
 
