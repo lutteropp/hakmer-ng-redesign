@@ -7,13 +7,13 @@
 
 #pragma once
 
-#include <cmath>
+#include <stddef.h>
+#include <utility>
+#include <vector>
 
 #include "alignment/msa_wrapper.hpp"
-#include "options.hpp"
+#include "alignment/simple_coords.hpp"
 #include "seed.hpp"
-
-#include "alignment/simple_msa.hpp"
 
 class ExtendedBlock {
 public:

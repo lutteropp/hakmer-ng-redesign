@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include "options.hpp"
 #include "superseed.hpp"
 #include "presence_checker.hpp"

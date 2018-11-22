@@ -6,13 +6,17 @@
  */
 
 #include "block_extension.hpp"
-#include "seed.hpp"
-#include "presence_checker.hpp"
 
-#include "extended_block.hpp"
-#include "block_helper_functions.hpp"
+#include <stddef.h>
 #include <algorithm>
 #include <cassert>
+#include <iterator>
+#include <stdexcept>
+
+#include "alignment/msa_wrapper.hpp"
+#include "alignment/simple_coords.hpp"
+#include "block_helper_functions.hpp"
+#include "dna_functions.hpp"
 
 bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
 	bool canGo = true;

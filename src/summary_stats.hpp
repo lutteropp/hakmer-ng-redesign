@@ -7,8 +7,11 @@
 
 #pragma once
 
-#include <cstdlib>
+#include <stddef.h>
+#include <fstream>
 #include <iostream>
+#include <string>
+
 #include "extended_block.hpp"
 #include "options.hpp"
 

@@ -6,7 +6,6 @@
  */
 
 #include "extended_block.hpp"
-#include "seed.hpp"
 
 ExtendedBlock::ExtendedBlock(const Seed& seededBlock, size_t nTax, bool noGaps) :
 		mySeededBlock(seededBlock), msaWrapper(noGaps) {

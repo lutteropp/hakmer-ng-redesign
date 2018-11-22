@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <cstdlib>
+#include <stddef.h>
 #include <vector>
 
 #include "extended_block.hpp"

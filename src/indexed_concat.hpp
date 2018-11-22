@@ -12,7 +12,6 @@
 #include <utility>
 #include <vector>
 
-#include "options.hpp"
 #include "indexing/suffix_array_classic.hpp"
 
 class IndexedTaxonCoords {

@@ -7,11 +7,10 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <vector>
-#include <cstdlib>
-#include <string>
 
-#include "alignment/simple_msa.hpp"
+#include "alignment/simple_coords.hpp"
 
 /*
  * Store seed coordinates for each included taxon

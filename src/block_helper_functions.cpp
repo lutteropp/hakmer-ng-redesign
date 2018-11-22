@@ -10,7 +10,7 @@
 #include <iostream>
 #include "seed.hpp"
 
-std::string createMissingString(size_t len) {
+std::string createMissingString2(size_t len) {
 	std::string res;
 	for (size_t i = 0; i < len; ++i) {
 		res += '?';
@@ -30,7 +30,7 @@ std::string extractTaxonSequence(ExtendedBlock& block, size_t taxID) {
 			}
 		}
 	} else {
-		res = createMissingString(aliWidth);
+		res = createMissingString2(aliWidth);
 	}
 	return res;
 }
@@ -42,7 +42,7 @@ std::string extractTaxonSequence(const Seed& block, size_t taxID, const std::str
 		SimpleCoords coord = block.getSeedCoords(taxID);
 		res = T.substr(coord.first, coord.second + 1 - coord.first);
 	} else {
-		res = createMissingString(block.getAverageSeedSize());
+		res = createMissingString2(block.getAverageSeedSize());
 	}
 	return res;
 }

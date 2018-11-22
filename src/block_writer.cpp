@@ -6,9 +6,11 @@
  */
 
 #include "block_writer.hpp"
+
+#include <stddef.h>
 #include <cassert>
-#include <sstream>
 #include <cstdio>
+#include <sstream>
 
 #include "block_helper_functions.hpp"
 

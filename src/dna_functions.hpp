@@ -7,11 +7,13 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <initializer_list>
+#include <iostream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <iostream>
-#include <stdexcept>
 
 inline std::unordered_map<char, char> createRevcompMapping() {
 	std::unordered_map<char, char> mapping; // TODO: Make this one static somehow

@@ -7,24 +7,13 @@
 
 #pragma once
 
-#include "msa_wrapper.hpp"
+#include <stddef.h>
 #include <string>
+#include <vector>
 
-struct SimpleCoords {
-public:
-	size_t first = std::string::npos;
-	size_t second = std::string::npos;
-	size_t leftGapSize = 0;
-	size_t rightGapSize = 0;
+#include "simple_coords.hpp"
+#include "../extended_block.hpp"
 
-	size_t size() const {
-		if (first == std::string::npos || second == std::string::npos || first > second) {
-			return 0;
-		} else {
-			return second + 1 - first;
-		}
-	}
-};
-
-std::vector<std::string> computeMSA(const std::vector<std::string>& seqs);
-std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, const std::string& T);
+inline std::vector<std::string> computeMSA(const std::vector<std::string>& seqs);
+inline std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, const std::string& T, size_t nTax);
+inline std::vector<std::string> computeMSA(const ExtendedBlock& block, const std::string& T, size_t nTax);
