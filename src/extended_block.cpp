@@ -9,45 +9,56 @@
 
 ExtendedBlock::ExtendedBlock(const Seed& seededBlock, size_t nTax, bool noGaps) :
 		mySeededBlock(seededBlock), msaWrapper(noGaps) {
-	leftFlankSize = 0;
-	rightFlankSize = 0;
+	leftFlankSizes.resize(nTax);
+	rightFlankSizes.resize(nTax);
 }
 
-size_t ExtendedBlock::getLeftFlankSize() const {
-	return leftFlankSize;
+double ExtendedBlock::getAverageLeftFlankSize() const {
+	size_t leftFlankSum = 0;
+	for (size_t i = 0; i < leftFlankSizes.size(); ++i) {
+		if (this->hasTaxon(i)) {
+			leftFlankSum += leftFlankSizes[i];
+		}
+	}
+	return (double) leftFlankSum / this->getNTaxInBlock();
 }
 
-size_t ExtendedBlock::getRightFlankSize() const {
-	return rightFlankSize;
+double ExtendedBlock::getAverageRightFlankSize() const {
+	size_t rightFlankSum = 0;
+	for (size_t i = 0; i < rightFlankSizes.size(); ++i) {
+		if (this->hasTaxon(i)) {
+			rightFlankSum += rightFlankSizes[i];
+		}
+	}
+	return (double) rightFlankSum / this->getNTaxInBlock();
 }
 
 void ExtendedBlock::setLeftFlankSize(size_t val) {
-	leftFlankSize = val;
+	for (size_t i = 0; i < leftFlankSizes.size(); ++i) {
+		if (this->hasTaxon(i)) {
+			leftFlankSizes[i] = val;
+		}
+	}
 }
 
 void ExtendedBlock::setRightFlankSize(size_t val) {
-	rightFlankSize = val;
+	for (size_t i = 0; i < rightFlankSizes.size(); ++i) {
+		if (this->hasTaxon(i)) {
+			rightFlankSizes[i] = val;
+		}
+	}
 }
 
-void ExtendedBlock::incrementLeftFlank() {
-	leftFlankSize++;
+void ExtendedBlock::decrementLeftFlank(size_t tID) {
+	leftFlankSizes[tID]--;
 }
-
-void ExtendedBlock::incrementRightFlank() {
-	rightFlankSize++;
-}
-
-void ExtendedBlock::decrementLeftFlank() {
-	leftFlankSize--;
-}
-
-void ExtendedBlock::decrementRightFlank() {
-	rightFlankSize--;
+void ExtendedBlock::incrementRightFlank(size_t tID) {
+	rightFlankSizes[tID]++;
 }
 
 std::pair<size_t, size_t> ExtendedBlock::getTaxonCoordsWithFlanks(size_t taxID) const {
-	return std::make_pair(mySeededBlock.getTaxonCoords(taxID).first - leftFlankSize,
-			mySeededBlock.getTaxonCoords(taxID).second + rightFlankSize);
+	return std::make_pair(mySeededBlock.getTaxonCoords(taxID).first - leftFlankSizes[taxID],
+			mySeededBlock.getTaxonCoords(taxID).second + rightFlankSizes[taxID]);
 }
 
 std::pair<size_t, size_t> ExtendedBlock::getTaxonCoordsWithoutFlanks(size_t taxID) const {
@@ -58,8 +69,8 @@ bool ExtendedBlock::hasTaxon(size_t taxID) const {
 	return mySeededBlock.hasTaxon(taxID);
 }
 
-size_t ExtendedBlock::getSeedSize() const {
-	return mySeededBlock.getSeedSize();
+double ExtendedBlock::getAverageSeedSize() const {
+	return mySeededBlock.getAverageSeedSize();
 }
 
 size_t ExtendedBlock::getNTaxInBlock() const {
@@ -86,4 +97,12 @@ std::vector<double> ExtendedBlock::getPairwiseNormalizedDistances(const Options&
 		}
 	}
 	return res;
+}
+
+size_t ExtendedBlock::getTotalBasesUsed() const {
+	size_t sum = 0;
+	for (size_t tID : mySeededBlock.getTaxonIDsInBlock()) {
+		sum += mySeededBlock.getSeedSize(tID) + leftFlankSizes[tID] + rightFlankSizes[tID];
+	}
+	return sum;
 }

@@ -33,7 +33,7 @@ public:
 	bool useHMM = false;
 	bool hmm_gcCorrection = false;
 	bool useBigGapsCriterion = false; // TODO: This still has to be implemented... stop alignment extension as soon as there are too big gaps.
-	size_t maxMismatches = 0;
+	size_t maxMismatches = 1;
 
 	// quartet-flavor-only parameters
 	std::string speciesTreePath = "";
@@ -76,6 +76,7 @@ public:
 
 	bool trimSeeds = true;
 	bool simpleTrimming = false; // trim seeds in all taxa if only one taxon is affected?
+	bool simpleExtension = false; // stop extending as soon as one taxon can't be further extended?
 
 	bool decreasingMinK = false;
 };

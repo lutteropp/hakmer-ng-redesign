@@ -9,6 +9,7 @@
 #include <iostream>
 #include <limits>
 #include <algorithm>
+#include <cassert>
 #include "seed.hpp"
 
 Seed::Seed(size_t nTax) {
@@ -59,8 +60,12 @@ void Seed::removeTaxon(size_t taxID) {
 	n--;
 }
 
-size_t Seed::getSeedSize() const {
-	return k;
+double Seed::getAverageSeedSize() const {
+	size_t seedSizeSum = 0;
+	for (size_t tID : taxIDs) {
+		seedSizeSum += getSeedSize(tID);
+	}
+	return (double) seedSizeSum / taxIDs.size();
 }
 
 std::vector<size_t> Seed::getTaxonIDsInBlock() const {
@@ -76,6 +81,7 @@ void Seed::increaseAllTaxonCoordsRight() {
 
 void Seed::decreaseAllTaxonCoordsLeft() {
 	for (size_t i = 0; i < taxIDs.size(); ++i) {
+		assert(taxonCoords[taxIDs[i]].first > 0);
 		taxonCoords[taxIDs[i]].first--;
 	}
 	k++;
@@ -220,6 +226,7 @@ void Seed::increaseTaxonCoordsRight(size_t taxID) {
 	taxonCoords[taxID].second++;
 }
 void Seed::decreaseTaxonCoordsLeft(size_t taxID) {
+	assert(taxonCoords[taxID].first > 0);
 	taxonCoords[taxID].first--;
 }
 void Seed::decreaseTaxonCoordRight(size_t taxID) {

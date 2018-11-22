@@ -15,12 +15,15 @@
 class SummaryStatistics {
 public:
 	void updateSummaryStatistics(const ExtendedBlock& block, size_t nTax) {
-		size_t rowSize = block.getSeedSize() + block.getLeftFlankSize() + block.getRightFlankSize();
-		seqDataUsed += rowSize * block.getNTaxInBlock();
+		size_t rowSize = block.getAverageSeedSize() + block.getAverageLeftFlankSize() + block.getAverageRightFlankSize();
+		//seqDataUsed += rowSize * block.getNTaxInBlock();
+
+		seqDataUsed += block.getTotalBasesUsed();
+
 		nMissingData += rowSize * (nTax - block.getNTaxInBlock());
-		leftFlankSum += block.getLeftFlankSize();
-		rightFlankSum += block.getRightFlankSize();
-		seedSizeSum += block.getSeedSize();
+		leftFlankSum += block.getAverageLeftFlankSize();
+		rightFlankSum += block.getAverageRightFlankSize();
+		seedSizeSum += block.getAverageSeedSize();
 		nTaxSum += block.getNTaxInBlock();
 		nBlocks++;
 	}

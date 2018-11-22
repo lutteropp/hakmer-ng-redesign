@@ -16,7 +16,7 @@
 #include "extended_block.hpp"
 #include "presence_checker.hpp"
 
-void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax);
+void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax, const Options& options);
 
 ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
 		const Options& options);

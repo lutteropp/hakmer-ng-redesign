@@ -23,25 +23,24 @@ inline double jukesCantorCorrection(double dist) {
 class ExtendedBlock {
 public:
 	ExtendedBlock(const Seed& seededBlock, size_t nTax, bool noGaps);
-	size_t getLeftFlankSize() const;
-	size_t getRightFlankSize() const;
+	double getAverageLeftFlankSize() const;
+	double getAverageRightFlankSize() const;
 	void setLeftFlankSize(size_t val);
 	void setRightFlankSize(size_t val);
-	void incrementLeftFlank();
-	void incrementRightFlank();
-	void decrementLeftFlank();
-	void decrementRightFlank();
+	void decrementLeftFlank(size_t tID);
+	void incrementRightFlank(size_t tID);
 	std::pair<size_t, size_t> getTaxonCoordsWithFlanks(size_t taxID) const;
 	std::pair<size_t, size_t> getTaxonCoordsWithoutFlanks(size_t taxID) const;
 	bool hasTaxon(size_t taxID) const;
-	size_t getSeedSize() const;
+	double getAverageSeedSize() const;
 	size_t getNTaxInBlock() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	double getPairwiseNormalizedDistance(size_t idxInBlock1, size_t idxInBlock2, const Options& options);
 	std::vector<double> getPairwiseNormalizedDistances(const Options& options);
+	size_t getTotalBasesUsed() const;
 	MSAWrapper msaWrapper;
 private:
 	Seed mySeededBlock;
-	size_t leftFlankSize;
-	size_t rightFlankSize;
+	std::vector<size_t> leftFlankSizes;
+	std::vector<size_t> rightFlankSizes;;
 };

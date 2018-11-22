@@ -42,7 +42,7 @@ std::string extractTaxonSequence(const Seed& block, size_t taxID, const std::str
 		std::pair<size_t, size_t> coord = block.getTaxonCoords(taxID);
 		res = T.substr(coord.first, coord.second + 1 - coord.first);
 	} else {
-		res = createMissingString(block.getSeedSize());
+		res = createMissingString(block.getAverageSeedSize());
 	}
 	return res;
 }

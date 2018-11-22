@@ -265,18 +265,6 @@ void writeFASTASupermatrix(std::vector<ExtendedBlock>& blocks, const std::vector
 	}
 	outfile.close();
 }
-void writeFASTASupermatrix(const std::vector<Seed>& blocks, const std::vector<std::string>& taxonLabels, const std::string& filepath, const std::string& T) {
-	std::ofstream outfile(filepath);
-	for (size_t i = 0; i < taxonLabels.size(); ++i) {
-		outfile << ">" + taxonLabels[i] << "\n";
-		std::string concat = "";
-		for (size_t j = 0; j < blocks.size(); ++j) {
-			concat += extractTaxonSequence(blocks[j], i, T);
-		}
-		outfile << concat << "\n";
-	}
-	outfile.close();
-}
 
 
 std::string makeHeader(const std::vector<std::string>& taxonLabels) {

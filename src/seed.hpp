@@ -23,7 +23,7 @@ public:
 	size_t getNTaxInBlock() const;
 	std::pair<size_t, size_t> getTaxonCoords(size_t taxID) const;
 	bool hasTaxon(size_t taxID) const;
-	size_t getSeedSize() const;
+	double getAverageSeedSize() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	void increaseAllTaxonCoordsRight();
 	void decreaseAllTaxonCoordsLeft();

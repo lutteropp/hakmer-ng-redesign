@@ -277,7 +277,7 @@ size_t findLargestK(const std::vector<size_t>& lcp, const std::vector<size_t>& s
 
 void trimSeededBlockSimple(Seed& block, PresenceChecker& presenceChecker) {
 	// first, trim the left side
-	while (block.getSeedSize() > 0) {
+	while (block.getAverageSeedSize() > 0) {
 		bool ok = true;
 		for (size_t i = 0; i < block.getTaxonIDsInBlock().size(); ++i) {
 			size_t coord = block.getTaxonCoords(block.getTaxonIDsInBlock()[i]).first;
@@ -294,7 +294,7 @@ void trimSeededBlockSimple(Seed& block, PresenceChecker& presenceChecker) {
 		}
 	}
 	// then, trim the right side (if seed.size() is not already zero)
-	while (block.getSeedSize() > 0) {
+	while (block.getAverageSeedSize() > 0) {
 		bool ok = true;
 		for (size_t i = 0; i < block.getTaxonIDsInBlock().size(); ++i) {
 			size_t coord = block.getTaxonCoords(block.getTaxonIDsInBlock()[i]).second;
@@ -420,13 +420,13 @@ std::vector<Seed> extractSeededBlocksMismatchAugmentationOnly(const std::string&
 					trimSeededBlock(block, presenceChecker, options);
 				}
 
-				if (block.getSeedSize() > 0 && block.getNTaxInBlock() >= options.minTaxaPerBlock) {
+				if (block.getAverageSeedSize() > 0 && block.getNTaxInBlock() >= options.minTaxaPerBlock) {
 #pragma omp critical
 					{
 						res.push_back(block);
 						if (options.verboseDebug) {
 							std::cout << "Pushing back a seeded block with " << block.getNTaxInBlock() << " taxa and seed size "
-									<< block.getSeedSize() << "\n";
+									<< block.getAverageSeedSize() << "\n";
 						}
 					}
 					if (!options.quartetFlavor) {
@@ -534,7 +534,7 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 					res.push_back(block);
 					if (options.verboseDebug) {
 						std::cout << "Pushing back a seeded block with " << block.getNTaxInBlock() << " taxa and seed size "
-								<< block.getSeedSize() << "\n";
+								<< block.getAverageSeedSize() << "\n";
 					}
 				}
 				if (!options.quartetFlavor) {
@@ -567,7 +567,7 @@ std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std:
 	std::vector<Seed> res;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		if (presenceChecker.isFine(seededBlocks[i])) {
-			trivialExtension(seededBlocks[i], T, presenceChecker, nTax);
+			trivialExtension(seededBlocks[i], T, presenceChecker, nTax, options);
 			res.push_back(seededBlocks[i]);
 			presenceChecker.reserveSeededBlock(seededBlocks[i]);
 		}
@@ -704,7 +704,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 			Seed seededBlock = seededBlocks[i];
 			if (!presenceChecker.isFine(seededBlock))
 				continue;
-			trivialExtension(seededBlock, concat.getConcatenatedSeq(), presenceChecker, concat.nTax());
+			trivialExtension(seededBlock, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
 			ExtendedBlock extendedBlock = extendBlock(seededBlock, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, options);
 			// check if the extended block can still be accepted.
 			if (presenceChecker.isFine(extendedBlock)) {
@@ -802,7 +802,7 @@ std::vector<ExtendedBlock> extractExtendedBlocks(const std::string& T, size_t nT
 			Seed seededBlock = seededBlocks[i];
 			if (!presenceChecker.isFine(seededBlock))
 				continue;
-			trivialExtension(seededBlock, T, presenceChecker, nTax);
+			trivialExtension(seededBlock, T, presenceChecker, nTax, options);
 			ExtendedBlock extendedBlock = extendBlock(seededBlock, T, nTax, presenceChecker, options);
 			// check if the extended block can still be accepted.
 			if (presenceChecker.isFine(extendedBlock)) {
