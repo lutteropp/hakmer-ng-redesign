@@ -24,7 +24,6 @@ size_t posToTaxon(size_t pos, const std::vector<IndexedTaxonCoords>& taxonCoords
 	if (revComp && pos >= concatSize / 2) {
 		pos = concatSize - pos - 1;
 	}
-
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		if (taxonCoords[i].contains(pos)) {
 			return i;
@@ -358,50 +357,42 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 	return res;
 }
 
-std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
+std::vector<Seed> filterSeededBlocks(std::vector<Seed>& seededBlocks, const std::string& T, size_t nTax, PresenceChecker& seedingPresenceChecker,
 		const Options& options) {
 	std::vector<Seed> res;
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
-		if (presenceChecker.isFine(seededBlocks[i])) {
-			trivialExtension(seededBlocks[i], T, presenceChecker, nTax, options);
+		if (seedingPresenceChecker.isFine(seededBlocks[i])) {
+			trivialExtension(seededBlocks[i], T, seedingPresenceChecker, nTax, options);
 			res.push_back(seededBlocks[i]);
-			presenceChecker.reserveSeededBlock(seededBlocks[i]);
+			seedingPresenceChecker.reserveSeededBlock(seededBlocks[i]);
+		} else if (options.trimSeeds) {
+			trimSeededBlock(seededBlocks[i], seedingPresenceChecker, options);
+			if (seededBlocks[i].getNTaxInBlock() >= options.minTaxaPerBlock && seededBlocks[i].getAverageSeedSize() > 0 && seedingPresenceChecker.isFine(seededBlocks[i])) {
+				trivialExtension(seededBlocks[i], T, seedingPresenceChecker, nTax, options);
+				res.push_back(seededBlocks[i]);
+				seedingPresenceChecker.reserveSeededBlock(seededBlocks[i]);
+			}
 		}
 	}
 	return res;
 }
 
-void extractExtendedBlocksPreselectSeeds(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
-		SummaryStatistics& stats, const Options& options, size_t minK, size_t nMin, size_t nMax) {
-// this version assumes iterativeSeeding and preselectSeeds. It extends the blocks only after the seeds have been chosen.
-
-	std::cout << "Extracting seeded blocks MIAU...\n";
-	std::vector<Seed> seededBlocks;
-	for (size_t i = nMax; i >= nMin; i--) {
-		std::vector<Seed> actSeededBlocks = extractSeededBlocks(concat.getConcatenatedSeq(), concat.nTax(), concat.getSuffixArray(),
-				concat.getLcpArray(), presenceChecker, concat.getTaxonCoords(), options, minK, i, i);
-		actSeededBlocks = filterSeededBlocks(actSeededBlocks, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, options);
-		std::sort(actSeededBlocks.begin(), actSeededBlocks.end(), std::greater<Seed>());
-		std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with " << i << " matches.\n";
-		for (size_t j = 0; j < actSeededBlocks.size(); ++j) {
-			seededBlocks.push_back(actSeededBlocks[j]);
-		}
-	}
-
-// TODO: Remove me again, this is just out of curiosity
-//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, T, presenceChecker, nTax, options);
-
-	std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
-	std::cout << "Assembling extended blocks...\n";
+void processBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, PresenceChecker& seedingPresenceChecker,
+		BlockWriter& writer, SummaryStatistics& stats, const Options& options, const std::vector<Seed>& seededBlocks,
+		bool useSeedngPresenceChecker) {
 	double lastP = 0;
-	std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
 	for (size_t i = 0; i < seededBlocks.size(); ++i) {
 		Seed seededBlock = seededBlocks[i];
-//trivialExtension(seededBlock, concat.getConcatenatedSeq(), presenceChecker, concat.nTax());
+		if (!presenceChecker.isFine(seededBlock))
+			continue;
+		trivialExtension(seededBlock, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
 		ExtendedBlock extendedBlock = extendBlock(seededBlock, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, options);
-// check if the extended block can still be accepted.
-		if (presenceChecker.isFineWithoutSeed(extendedBlock)) {
+		// check if the extended block can still be accepted.
+		if (presenceChecker.isFine(extendedBlock)) {
 			presenceChecker.reserveExtendedBlock(extendedBlock);
+			if (!useSeedngPresenceChecker) {
+				seedingPresenceChecker.reserveExtendedBlock(extendedBlock);
+			}
 			std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
 			if (options.verboseDebug) {
 				std::cout << "Pushing back a block with alignment: \n";
@@ -422,10 +413,6 @@ void extractExtendedBlocksPreselectSeeds(const IndexedConcatenatedSequence& conc
 
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options, size_t minK, size_t nMin, size_t nMax) {
-	if (options.preselectSeeds) {
-		return extractExtendedBlocksPreselectSeeds(concat, presenceChecker, writer, stats, options, minK, nMin, nMax);
-	}
-
 	std::cout << "Extracting seeded blocks...\n";
 	std::vector<Seed> seededBlocks;
 	PresenceChecker seedingPresenceChecker(presenceChecker);
@@ -437,34 +424,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		std::cout << "Found " << actSeededBlocks.size() << " new seeded blocks with " << i << " matches.\n";
 
 		if (options.iterativeExtension) {
-			double lastP = 0;
-			for (size_t i = 0; i < actSeededBlocks.size(); ++i) {
-				Seed seededBlock = actSeededBlocks[i];
-				if (!presenceChecker.isFine(seededBlock))
-					continue;
-				//trivialExtension(seededBlock, T, presenceChecker, nTax);
-				ExtendedBlock extendedBlock = extendBlock(seededBlock, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker,
-						options);
-				// check if the extended block can still be accepted.
-				if (presenceChecker.isFine(extendedBlock)) {
-					presenceChecker.reserveExtendedBlock(extendedBlock);
-					seedingPresenceChecker.reserveExtendedBlock(extendedBlock);
-					std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
-					if (options.verboseDebug) {
-						std::cout << "Pushing back a block with alignment: \n";
-						for (size_t i = 0; i < msa.size(); ++i) {
-							std::cout << msa[i] << "\n";
-						}
-					}
-					stats.updateSummaryStatistics(extendedBlock, concat.nTax());
-					writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
-				}
-				double progress = (double) 100 * i / actSeededBlocks.size();
-				if (progress > lastP + 1) {
-					std::cout << progress << " %\n";
-					lastP = progress;
-				}
-			}
+			processBlocks(concat, presenceChecker, seedingPresenceChecker, writer, stats, options, actSeededBlocks, false);
 			std::cout << "Finished extension of the newly discovered seeded blocks with at least " << i << " matches.\n";
 			std::cout << "Current extendedBlocks.size(): " << stats.getCurrentNBlocks() << "\n";
 		} else {
@@ -474,40 +434,13 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		}
 	}
 
-// TODO: Remove me again, this is just out of curiosity
-//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-//std::cout << "We have made " << superseeds.size() << " superseeds out of " << seededBlocks.size() << " seeded blocks.\n";
-
 	if (!options.iterativeExtension) {
 		std::cout << "seededBlocks.size(): " << seededBlocks.size() << "\n";
 		std::cout << "Assembling extended blocks...\n";
-		double lastP = 0;
-		std::sort(seededBlocks.begin(), seededBlocks.end(), std::greater<Seed>());
-		for (size_t i = 0; i < seededBlocks.size(); ++i) {
-			Seed seededBlock = seededBlocks[i];
-			if (!presenceChecker.isFine(seededBlock))
-				continue;
-			trivialExtension(seededBlock, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-			ExtendedBlock extendedBlock = extendBlock(seededBlock, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, options);
-			// check if the extended block can still be accepted.
-			if (presenceChecker.isFine(extendedBlock)) {
-				presenceChecker.reserveExtendedBlock(extendedBlock);
-				std::vector<std::string> msa = extendedBlock.msaWrapper.assembleMSA();
-				if (options.verboseDebug) {
-					std::cout << "Pushing back a block with alignment: \n";
-					for (size_t i = 0; i < msa.size(); ++i) {
-						std::cout << msa[i] << "\n";
-					}
-				}
-				stats.updateSummaryStatistics(extendedBlock, concat.nTax());
-				writer.writeTemporaryBlockMSA(extendedBlock, concat.nTax());
-			}
-			double progress = (double) 100 * i / seededBlocks.size();
-			if (progress > lastP + 1) {
-				std::cout << progress << " %\n";
-				lastP = progress;
-			}
-		}
+		// TODO: Remove me again, this is just out of curiosity
+		//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
+		//std::cout << "We have made " << superseeds.size() << " superseeds out of " << seededBlocks.size() << " seeded blocks.\n";
+		processBlocks(concat, presenceChecker, seedingPresenceChecker, writer, stats, options, seededBlocks, true);
 	}
 
 }

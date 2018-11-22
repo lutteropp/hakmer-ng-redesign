@@ -81,24 +81,6 @@ std::vector<size_t> ExtendedBlock::getTaxonIDsInBlock() const {
 	return mySeededBlock.getTaxonIDsInBlock();
 }
 
-double ExtendedBlock::getPairwiseNormalizedDistance(size_t idxInBlock1, size_t idxInBlock2, const Options& options) {
-	double dist = msaWrapper.normalizedPairwiseDistance(idxInBlock1, idxInBlock2);
-	if (options.jukesCantor) {
-		dist = jukesCantorCorrection(dist);
-	}
-	return dist;
-}
-
-std::vector<double> ExtendedBlock::getPairwiseNormalizedDistances(const Options& options) {
-	std::vector<double> res;
-	for (size_t i = 0; i < getNTaxInBlock(); ++i) {
-		for (size_t j = i + 1; j < getNTaxInBlock(); ++j) {
-			res.push_back(getPairwiseNormalizedDistance(i, j, options));
-		}
-	}
-	return res;
-}
-
 size_t ExtendedBlock::getTotalBasesUsed() const {
 	size_t sum = 0;
 	for (size_t tID : mySeededBlock.getTaxonIDsInBlock()) {

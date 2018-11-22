@@ -13,13 +13,6 @@
 #include "options.hpp"
 #include "seed.hpp"
 
-inline double jukesCantorCorrection(double dist) {
-	if (dist >= 0.75) { // Jukes Cantor Correction doesn't work if dist >= 0.75. In this case, it would return infinity. We change it to 1 here.
-		return 1;
-	}
-	return -0.75 * std::log(1 - (4.0 / 3) * dist);
-}
-
 class ExtendedBlock {
 public:
 	ExtendedBlock(const Seed& seededBlock, size_t nTax, bool noGaps);
@@ -35,8 +28,6 @@ public:
 	double getAverageSeedSize() const;
 	size_t getNTaxInBlock() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
-	double getPairwiseNormalizedDistance(size_t idxInBlock1, size_t idxInBlock2, const Options& options);
-	std::vector<double> getPairwiseNormalizedDistances(const Options& options);
 	size_t getTotalBasesUsed() const;
 	MSAWrapper msaWrapper;
 private:
