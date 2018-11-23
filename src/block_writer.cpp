@@ -27,9 +27,9 @@ BlockWriter::BlockWriter(size_t nTax, const Options& options) :tempMSAFiles(nTax
 
 void BlockWriter::writeTemporaryBlockMSA(ExtendedBlock& block, const std::string& T, size_t nTax, const Options& options) {
 	std::vector<std::string> msa = computeMSA(block, T, nTax, options);
+	#pragma omp critical
 	for (size_t i = 0; i < nTax; ++i) {
 		//tempMSAFiles[i] << extractTaxonSequence(block, i);
-#pragma omp critical
 		tempMSAFiles[i] << msa[i];
 	}
 }

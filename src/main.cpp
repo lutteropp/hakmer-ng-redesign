@@ -9,6 +9,7 @@
 #include <limits>
 #include <cassert>
 #include <fstream>
+#include <chrono>
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -62,6 +63,7 @@ void reportCallback(const Options& options) {
 }
 
 int main(int argc, char* argv[]) {
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 	Options options;
 	CLI::App app { "Program hakmer (\"homology aware k-mers\"): Reads a set of sequences with some homology between them\n"
 			"and identifies \"k-mer blocks\" comprising sets of exact or nearly exact k-mer matches appearing only once\n"
@@ -110,4 +112,8 @@ int main(int argc, char* argv[]) {
 	} else {
 		reportCallback(options);
 	}
+	std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
+
+	std::cout << "Program runtime: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " s" << std::endl;
+
 }
