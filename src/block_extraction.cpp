@@ -286,7 +286,6 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 			bool stopEarly = false;
 			if (lcp[sIdx] >= k) {
 				stopEarly = true;
-				break;
 			}
 
 			if (!stopEarly && acceptSeed(sIdx, matchCount, extraOccs, k, nTax, SA, presenceChecker, taxonCoords, T, options, maxMatches)) {
