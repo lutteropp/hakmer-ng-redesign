@@ -346,6 +346,10 @@ std::vector<Seed> extractSeededBlocks(const std::string& T, size_t nTax, const s
 					break;
 				}
 			} else {
+				if (stopEarly) {
+					k = lcp[sIdx];
+				}
+
 				if (k == options.maxK || startPos + k + 1 >= T.size() || !presenceChecker.isFree(startPos + k)) { // no further extension of seed length, or newly added character would be already taken anyway
 					break;
 				}
