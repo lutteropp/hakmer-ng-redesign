@@ -33,7 +33,7 @@ size_t estimateMinK(const IndexedConcatenatedSequence& concat) {
 	for (size_t i = 0; i < concat.nTax(); ++i) {
 		sum += (double) concat.getTaxonCoords(i).getTotalLength() / concat.nTax();
 	}
-	return log(sum) * 2;
+	return log(sum) * 1.5;
 }
 
 void matrixCallback(Options& options) {
