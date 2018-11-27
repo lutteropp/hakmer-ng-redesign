@@ -41,8 +41,8 @@ public:
 	bool preselectSeeds = false;
 	bool mismatchAugmentationOnly = true;
 	bool discardNs = true;
-	bool trimSeeds = true;
 	bool simpleTrimming = true; // trim seeds in all taxa if only one taxon is affected?
+	// TODO: There is a bug if we set simpleExtension to FALSE
 	bool simpleExtension = true; // stop extending as soon as one taxon can't be further extended?
 	bool mismatchesOnly = true; // allow only mismatches in the seeds - this means we don't need to run a MSA on them.
 	size_t bufferSize = 500;

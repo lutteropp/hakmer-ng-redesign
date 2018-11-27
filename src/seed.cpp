@@ -22,7 +22,7 @@ void Seed::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 	if (taxID >= seedCoords.size()) {
 		throw std::runtime_error("Trying to add taxon ID that belongs to no taxon");
 	}
-	if (seedCoords[taxID].first != std::string::npos) {
+	if (this->hasTaxon(taxID)) {
 		std::cout << "taxID: " << taxID << "\n";
 		std::cout << "firstCoord: " << firstCoord << "\n";
 		std::cout << "second: " << lastCoord << "\n";
@@ -49,7 +49,7 @@ SimpleCoords Seed::getSeedCoords(size_t taxID) const {
 }
 
 bool Seed::hasTaxon(size_t taxID) const {
-	return (seedCoords[taxID].first != std::string::npos) && (seedCoords[taxID].second > seedCoords[taxID].first);
+	return (seedCoords[taxID].first != std::string::npos) && (seedCoords[taxID].second >= seedCoords[taxID].first);
 }
 
 void Seed::removeTaxon(size_t taxID) {
@@ -61,10 +61,17 @@ void Seed::removeTaxon(size_t taxID) {
 
 double Seed::getAverageSeedSize() const {
 	size_t seedSizeSum = 0;
+	size_t wrongTaxIDs = 0;
 	for (size_t tID : taxIDs) {
+		if (!hasTaxon(tID)) {
+			std::cout << "taxID: " << tID << "\n";
+					std::cout << "old seedCoords[taxID].first: " << seedCoords[tID].first << "\n";
+					std::cout << "old seedCoords[taxID].second: " << seedCoords[tID].second << "\n";
+			throw std::runtime_error("This shouldn't happen");
+		}
 		seedSizeSum += getSeedSize(tID);
 	}
-	return (double) seedSizeSum / taxIDs.size();
+	return (double) seedSizeSum / (taxIDs.size() - wrongTaxIDs);
 }
 
 std::vector<size_t> Seed::getTaxonIDsInBlock() const {
