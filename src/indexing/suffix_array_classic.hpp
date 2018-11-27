@@ -40,9 +40,16 @@ public:
 	 * @param nTotalSites
 	 * @param ltop Maximum kmer size to consider.
 	 */
-	void buildSuffixArray(const std::string& seq, size_t nTotalSites, unsigned int lTop, const std::string& sequencesPath) {
+	void buildSuffixArray(const std::string& seq, size_t nTotalSites, unsigned int lTop, const std::string& sequencesPath, const Options& options) {
 		std::string saPath = sequencesPath + ".sa";
 		std::string lcpPath = sequencesPath + ".lcp";
+		if (options.reverseComplement) {
+			saPath += ".with_rc";
+			lcpPath += ".with_rc";
+		} else {
+			saPath += ".without_rc";
+			lcpPath += ".without_rc";
+		}
 		std::ifstream saFile(saPath);
 		std::ifstream lcpFile(lcpPath);
 		if (saFile.good() && lcpFile.good()) {
@@ -77,7 +84,7 @@ public:
 
 	void buildSuffixArray(const std::string& seq, size_t nTotalSites, const Options& options) {
 		unsigned int lTop = std::min(seq.size(), options.maxK);
-		buildSuffixArray(seq, nTotalSites, lTop, options.filepath);
+		buildSuffixArray(seq, nTotalSites, lTop, options.filepath, options);
 	}
 
 	void buildSuffixArrayFromFile(const std::string& filepath, const Options& options) {

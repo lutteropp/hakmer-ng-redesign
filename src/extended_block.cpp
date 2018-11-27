@@ -21,6 +21,10 @@ ExtendedBlock::ExtendedBlock(const Seed& seededBlock, size_t nTax) :
 	}
 }
 
+void ExtendedBlock::removeTaxon(size_t tID) {
+	mySeededBlock.removeTaxon(tID);
+}
+
 double ExtendedBlock::getAverageLeftFlankSize() const {
 	size_t leftFlankSum = 0;
 	for (size_t i = 0; i < leftFlankCoords.size(); ++i) {

@@ -35,17 +35,17 @@ public:
 	void decreaseTaxonCoordRight(size_t taxID);
 	void increaseTaxonCoordLeft(size_t taxID);
 	bool operator <(const Seed& str) const {
-		if (n == str.n) {
+		if (taxIDs.size() == str.taxIDs.size()) {
 			return k < str.k;
 		} else {
-			return n < str.n;
+			return taxIDs.size() < str.taxIDs.size();
 		}
 	}
 	bool operator >(const Seed& str) const {
-		if (n == str.n) {
+		if (taxIDs.size() == str.taxIDs.size()) {
 			return k > str.k;
 		} else {
-			return n > str.n;
+			return taxIDs.size() > str.taxIDs.size();
 		}
 	}
 	bool orderCompatible(const Seed& other, size_t revCompStartPos) const;
@@ -58,8 +58,8 @@ public:
 	void addGapRight(size_t taxonID);
 	std::vector<SimpleCoords> getSeedCoords() const;
 private:
+	void cleanTaxIDs();
 	std::vector<SimpleCoords> seedCoords;
 	std::vector<size_t> taxIDs;
-	size_t n;
 	size_t k;
 };

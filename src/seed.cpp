@@ -14,7 +14,6 @@
 
 Seed::Seed(size_t nTax) {
 	seedCoords.resize(nTax);
-	n = 0;
 	k = 0;
 }
 
@@ -30,7 +29,6 @@ void Seed::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 		std::cout << "old seedCoords[taxID].second: " << seedCoords[taxID].second << "\n";
 		throw std::runtime_error("This taxon is already present in the block");
 	}
-	n++;
 	seedCoords[taxID].first = firstCoord;
 	seedCoords[taxID].second = lastCoord;
 	k = lastCoord - firstCoord + 1;
@@ -41,7 +39,7 @@ void Seed::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 }
 
 size_t Seed::getNTaxInBlock() const {
-	return n;
+	return taxIDs.size();
 }
 
 SimpleCoords Seed::getSeedCoords(size_t taxID) const {
@@ -56,7 +54,6 @@ void Seed::removeTaxon(size_t taxID) {
 	seedCoords[taxID].first = std::string::npos;
 	seedCoords[taxID].second = std::string::npos;
 	taxIDs.erase(std::remove(taxIDs.begin(), taxIDs.end(), taxID), taxIDs.end());
-	n--;
 }
 
 double Seed::getAverageSeedSize() const {
@@ -76,6 +73,18 @@ double Seed::getAverageSeedSize() const {
 
 std::vector<size_t> Seed::getTaxonIDsInBlock() const {
 	return taxIDs;
+}
+
+void Seed::cleanTaxIDs() {
+	std::vector<size_t> idsToRemove;
+	for (size_t i = 0; i < taxIDs.size(); ++i) {
+		if (!hasTaxon(taxIDs[i])) {
+			idsToRemove.push_back(taxIDs[i]);
+		}
+	}
+	for (size_t tID : idsToRemove) {
+		removeTaxon(tID);
+	}
 }
 
 void Seed::increaseAllTaxonCoordsRight() {
@@ -98,12 +107,15 @@ void Seed::decreaseAllTaxonCoordsRight() {
 		seedCoords[taxIDs[i]].second--;
 	}
 	k--;
+	cleanTaxIDs();
 }
 void Seed::increaseAllTaxonCoordsLeft() {
+	std::vector<size_t> taxIDsToRemove;
 	for (size_t i = 0; i < taxIDs.size(); ++i) {
 		seedCoords[taxIDs[i]].first++;
 	}
 	k--;
+	cleanTaxIDs();
 }
 
 std::pair<size_t, size_t> computeForwardStrandCoordinates(const SimpleCoords& coords, size_t revCompStartPos) {

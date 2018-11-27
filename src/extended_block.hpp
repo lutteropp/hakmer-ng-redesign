@@ -32,6 +32,7 @@ public:
 	size_t getNTaxInBlock() const;
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	size_t getTotalBasesUsed() const;
+	void removeTaxon(size_t tID);
 
 	std::vector<SimpleCoords> getLeftFlankCoords() const;
 	std::vector<SimpleCoords> getSeedCoords() const;
