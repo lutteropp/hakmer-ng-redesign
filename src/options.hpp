@@ -37,13 +37,9 @@ public:
 	bool lowComplexity = false; // keep low complexity k-mers?
 	size_t maxAllowedSuperseedDistance = 50;
 	size_t minSharedSuperseedTax = 4;
-	bool iterativeExtension = true;
-	bool preselectSeeds = false;
 	bool mismatchAugmentationOnly = true;
 	bool discardNs = true;
-	// TODO: There is a bug if we set simpleExtension to FALSE
-	bool simpleExtension = true; // stop extending as soon as one taxon can't be further extended?
+	bool simpleExtension = false; // stop extending as soon as one taxon can't be further extended?
 	bool mismatchesOnly = true; // allow only mismatches in the seeds - this means we don't need to run a MSA on them.
-	size_t bufferSize = 500;
 };
 
