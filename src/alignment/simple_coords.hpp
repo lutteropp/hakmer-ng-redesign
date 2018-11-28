@@ -8,17 +8,17 @@
 #pragma once
 
 #include <stddef.h>
-#include <string>
+#include <limits>
 
 class SimpleCoords {
 public:
-	size_t first = std::string::npos;
-	size_t second = std::string::npos;
+	size_t first = std::numeric_limits<size_t>::max();
+	size_t second = std::numeric_limits<size_t>::max();
 	size_t leftGapSize = 0;
 	size_t rightGapSize = 0;
 
 	size_t size() const {
-		if (first == std::string::npos || second == std::string::npos || first > second) {
+		if (first == std::numeric_limits<size_t>::max() || second == std::numeric_limits<size_t>::max() || first > second) {
 			return 0;
 		} else {
 			return second + 1 - first;

@@ -86,7 +86,7 @@ bool allRightSame(const Seed& seededBlock, const std::string& T, size_t nTax, si
 }
 
 void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
-	// we perform trivial extension as long as at least 4 taxa are still availabe in the current direction
+	// we perform trivial extension as long as at least 4 taxa are still available in the current direction
 	std::vector<size_t> taxIDsLeft = seededBlock.getTaxonIDsInBlock();
 	std::vector<size_t> taxIDsRight = seededBlock.getTaxonIDsInBlock();
 	size_t leftok = seededBlock.getNTaxInBlock();
@@ -113,6 +113,11 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 				assert(seededBlock.getSeedCoords(tID).second <= 2 * T.size());
 				seededBlock.decreaseTaxonCoordsLeft(tID);
 			}
+			for (size_t tID : seededBlock.getTaxonIDsInBlock()) {
+				if (std::find(taxIDsLeft.begin(), taxIDsLeft.end(), tID) == taxIDsLeft.end()) {
+					seededBlock.addGapLeft(tID);
+				}
+			}
 		} else {
 			break;
 		}
@@ -137,6 +142,11 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 		if (allRightSame(seededBlock, T, taxIDsRight)) {
 			for (size_t tID : taxIDsRight) {
 				seededBlock.increaseTaxonCoordsRight(tID);
+			}
+			for (size_t tID : seededBlock.getTaxonIDsInBlock()) {
+				if (std::find(taxIDsRight.begin(), taxIDsRight.end(), tID) == taxIDsRight.end()) {
+					seededBlock.addGapRight(tID);
+				}
 			}
 		} else {
 			break;
@@ -227,7 +237,7 @@ void extendBlockPartial(ExtendedBlock& block, const std::string& T, size_t nTax,
 
 	std::vector<size_t> taxIDsLeft = block.getTaxonIDsInBlock();
 	std::vector<bool> stillOk(nTax, false);
-	for (size_t tID: taxIDsLeft) {
+	for (size_t tID : taxIDsLeft) {
 		stillOk[tID] = true;
 	}
 
