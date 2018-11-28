@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <algorithm>
 #include "pairwise_alignment.hpp"
 #include "../dna_functions.hpp"
 
@@ -28,7 +29,12 @@ std::pair<std::string, std::string> PairwiseAlignment::extractAlignment() {
 	}
 	std::string s1Aligned;
 	std::string s2Aligned;
+	s1Aligned.reserve(s1.size());
+	s2Aligned.reserve(s2.size());
 	backtrack(s1.size(), s2.size(), s1Aligned, s2Aligned);
+	std::reverse(s1Aligned.begin(), s1Aligned.end());
+	std::reverse(s2Aligned.begin(), s2Aligned.end());
+
 	ali = std::make_pair(s1Aligned, s2Aligned);
 	aliValid = true;
 	return ali;
@@ -93,23 +99,24 @@ void PairwiseAlignment::shrinkDownTo(size_t newS1Size, size_t newS2Size) {
 }
 
 void PairwiseAlignment::backtrack(size_t i, size_t j, std::string& s1Aligned, std::string& s2Aligned) {
-	// TODO: This can be optimized by assembling the reverse aligned sequences and then later on reverse them
 	if (i == 0 || j == 0) { // backtracking has ended
 	// add missing gaps
 		std::string missingGaps1 = "";
 		std::string missingText2 = "";
 		for (size_t j1 = 0; j1 < j; ++j1) {
 			missingGaps1 += "-";
-			missingText2 = s2[j - j1 - 1] + missingText2;
+			missingText2 += s2[j - j1 - 1];
 		}
 		std::string missingGaps2 = "";
 		std::string missingText1 = "";
 		for (size_t i1 = 0; i1 < i; ++i1) {
 			missingGaps2 += "-";
-			missingText1 = s1[i - i1 - 1] + missingText1;
+			missingText1 += s1[i - i1 - 1];
 		}
-		s1Aligned = missingText1 + missingGaps1 + s1Aligned;
-		s2Aligned = missingText2 + missingGaps2 + s2Aligned;
+		s1Aligned += missingGaps1;
+		s1Aligned += missingText1;
+		s2Aligned += missingGaps2;
+		s2Aligned += missingText2;
 	} else { // backtracking continues
 		int sub = (ambiguousMatch(s1[i - 1], s2[j - 1])) ? 0 : MISMATCH_PENALTY;
 		int gap = GAP_PENALTY;
@@ -118,16 +125,16 @@ void PairwiseAlignment::backtrack(size_t i, size_t j, std::string& s1Aligned, st
 		int diagonal = matrix.entryAt(i - 1, j - 1) + sub;
 		int min = matrix.entryAt(i, j);
 		if (diagonal == min) {
-			s1Aligned = s1[i - 1] + s1Aligned;
-			s2Aligned = s2[j - 1] + s2Aligned;
+			s1Aligned += s1[i - 1];
+			s2Aligned += s2[j - 1];
 			backtrack(i - 1, j - 1, s1Aligned, s2Aligned);
 		} else if (horizontal == min) {
-			s1Aligned = "-" + s1Aligned;
-			s2Aligned = s2[j - 1] + s2Aligned;
+			s1Aligned += "-";
+			s2Aligned += s2[j - 1];
 			backtrack(i, j - 1, s1Aligned, s2Aligned);
 		} else { // vertical == min
-			s1Aligned = s1[i - 1] + s1Aligned;
-			s2Aligned = "-" + s2Aligned;
+			s1Aligned += s1[i - 1];
+			s2Aligned += "-";
 			backtrack(i - 1, j, s1Aligned, s2Aligned);
 		}
 	}
