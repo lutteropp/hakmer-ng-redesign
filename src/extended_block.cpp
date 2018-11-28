@@ -6,6 +6,7 @@
  */
 
 #include "extended_block.hpp"
+#include <stdexcept>
 
 ExtendedBlock::ExtendedBlock(const Seed& seededBlock, size_t nTax) :
 		mySeededBlock(seededBlock) {

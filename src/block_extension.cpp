@@ -13,11 +13,10 @@
 #include <iterator>
 #include <stdexcept>
 
-#include "alignment/msa_wrapper.hpp"
 #include "alignment/simple_coords.hpp"
 #include "dna_functions.hpp"
 
-bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
+bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset = 1) {
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
@@ -30,7 +29,7 @@ bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, siz
 	return canGo;
 }
 
-bool canGoRightAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
+bool canGoRightAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset = 1) {
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
@@ -155,18 +154,14 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 }
 
 void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax, const Options& options) {
+	while (canGoLeftAll(seededBlock, presenceChecker, nTax) && allLeftSame(seededBlock, T, nTax)) {
+		seededBlock.decreaseAllTaxonCoordsLeft();
+	}
+	while (canGoRightAll(seededBlock, presenceChecker, nTax) && allRightSame(seededBlock, T, nTax)) {
+		seededBlock.increaseAllTaxonCoordsRight();
+	}
 	if (!options.simpleExtension) {
 		return trivialExtensionPartial(seededBlock, T, presenceChecker, nTax);
-	}
-	size_t leftOffset = 1;
-	while (canGoLeftAll(seededBlock, presenceChecker, nTax, leftOffset) && allLeftSame(seededBlock, T, nTax, leftOffset)) {
-		seededBlock.decreaseAllTaxonCoordsLeft();
-		leftOffset++;
-	}
-	size_t rightOffset = 1;
-	while (canGoRightAll(seededBlock, presenceChecker, nTax, rightOffset) && allRightSame(seededBlock, T, nTax, rightOffset)) {
-		seededBlock.increaseAllTaxonCoordsRight();
-		rightOffset++;
 	}
 }
 
@@ -213,7 +208,6 @@ size_t findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChe
 				break;
 			}
 		}
-		std::vector<char> charsToAdd(taxIDs.size());
 		for (size_t j = 0; j < taxIDs.size(); ++j) {
 			size_t coord;
 			if (directionRight) {
@@ -224,7 +218,6 @@ size_t findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChe
 			if (coord >= T.size()) {
 				throw std::runtime_error("This should not happen! Coord is too large.");
 			}
-			charsToAdd[j] = T[coord];
 		}
 		finalFlankSize = i;
 	}

@@ -47,12 +47,14 @@ SimpleCoords Seed::getSeedCoords(size_t taxID) const {
 }
 
 bool Seed::hasTaxon(size_t taxID) const {
-	return (seedCoords[taxID].first != std::string::npos) && (seedCoords[taxID].second >= seedCoords[taxID].first);
+	return (seedCoords[taxID].first != std::numeric_limits<size_t>::max()) && (seedCoords[taxID].second >= seedCoords[taxID].first);
 }
 
 void Seed::removeTaxon(size_t taxID) {
-	seedCoords[taxID].first = std::string::npos;
-	seedCoords[taxID].second = std::string::npos;
+	seedCoords[taxID].first = std::numeric_limits<size_t>::max();
+	seedCoords[taxID].second = std::numeric_limits<size_t>::max();
+	seedCoords[taxID].leftGapSize = 0;
+	seedCoords[taxID].rightGapSize = 0;
 	taxIDs.erase(std::remove(taxIDs.begin(), taxIDs.end(), taxID), taxIDs.end());
 }
 
@@ -62,8 +64,8 @@ double Seed::getAverageSeedSize() const {
 	for (size_t tID : taxIDs) {
 		if (!hasTaxon(tID)) {
 			std::cout << "taxID: " << tID << "\n";
-					std::cout << "old seedCoords[taxID].first: " << seedCoords[tID].first << "\n";
-					std::cout << "old seedCoords[taxID].second: " << seedCoords[tID].second << "\n";
+			std::cout << "old seedCoords[taxID].first: " << seedCoords[tID].first << "\n";
+			std::cout << "old seedCoords[taxID].second: " << seedCoords[tID].second << "\n";
 			throw std::runtime_error("This shouldn't happen");
 		}
 		seedSizeSum += getSeedSize(tID);
@@ -100,22 +102,6 @@ void Seed::decreaseAllTaxonCoordsLeft() {
 		seedCoords[taxIDs[i]].first--;
 	}
 	k++;
-}
-
-void Seed::decreaseAllTaxonCoordsRight() {
-	for (size_t i = 0; i < taxIDs.size(); ++i) {
-		seedCoords[taxIDs[i]].second--;
-	}
-	k--;
-	cleanTaxIDs();
-}
-void Seed::increaseAllTaxonCoordsLeft() {
-	std::vector<size_t> taxIDsToRemove;
-	for (size_t i = 0; i < taxIDs.size(); ++i) {
-		seedCoords[taxIDs[i]].first++;
-	}
-	k--;
-	cleanTaxIDs();
 }
 
 std::pair<size_t, size_t> computeForwardStrandCoordinates(const SimpleCoords& coords, size_t revCompStartPos) {
@@ -243,6 +229,12 @@ void Seed::addGapLeft(size_t taxonID) {
 }
 void Seed::addGapRight(size_t taxonID) {
 	seedCoords[taxonID].rightGapSize++;
+}
+void Seed::removeGapLeft(size_t taxonID) {
+	seedCoords[taxonID].leftGapSize--;
+}
+void Seed::removeGapRight(size_t taxonID) {
+	seedCoords[taxonID].rightGapSize--;
 }
 
 std::vector<SimpleCoords> Seed::getSeedCoords() const {

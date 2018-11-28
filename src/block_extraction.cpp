@@ -232,6 +232,7 @@ size_t countMatches(size_t actSAPos, const std::vector<size_t>& lcp, size_t k) {
 
 void trimSeededBlock(Seed& block, PresenceChecker& presenceChecker, const Options& options) {
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
+	// prune positions which are overlapping with other, already taken blocks
 	for (size_t i = 0; i < taxIDs.size(); ++i) {
 		size_t tID = taxIDs[i];
 		while (block.hasTaxon(tID)) {
@@ -256,6 +257,86 @@ void trimSeededBlock(Seed& block, PresenceChecker& presenceChecker, const Option
 			block.removeTaxon(tID);
 		}
 	}
+
+	// Further trimming: Prune seed nucleotide occurrences which are kept in too few taxa.
+	taxIDs = block.getTaxonIDsInBlock();
+	if (taxIDs.size() < options.minTaxaPerBlock) {
+		return;
+	}
+	std::vector<unsigned int> nFine(
+			block.getSeedSize(taxIDs[0]) + block.getSeedCoords(taxIDs[0]).leftGapSize + block.getSeedCoords(taxIDs[0]).rightGapSize, 0);
+	for (size_t i = 0; i < nFine.size(); ++i) {
+		for (size_t tID : taxIDs) {
+			if (block.getSeedCoords(tID).leftGapSize <= i && block.getSeedCoords(tID).leftGapSize + block.getSeedSize(tID) >= i) {
+				nFine[i]++;
+			}
+		}
+	}
+	// left side...
+	for (size_t i = 0; i < nFine.size(); ++i) {
+		if (nFine[i] >= options.minSeedTaxInColumn) {
+			break;
+		}
+		// now we must remove the leftmost characters
+		for (size_t tID : taxIDs) {
+			if (block.getSeedCoords(tID).leftGapSize <= i) {
+				block.increaseTaxonCoordLeft(tID);
+				block.addGapLeft(tID);
+			}
+		}
+	}
+	// right side...
+	for (size_t i = 0; i < nFine.size(); ++i) {
+		if (nFine[nFine.size() - i - 1] >= options.minSeedTaxInColumn) {
+			break;
+		}
+		// now we must remove the rightmost characters
+		for (size_t tID : taxIDs) {
+			if (block.getSeedCoords(tID).leftGapSize + block.getSeedSize(tID) <= nFine.size() - i - 1) {
+				block.decreaseTaxonCoordRight(tID);
+				block.addGapRight(tID);
+			}
+		}
+	}
+	for (size_t tID : taxIDs) {
+		if (!block.hasTaxon(tID)) {
+			block.removeTaxon(tID);
+		}
+	}
+
+	// Remove taxa with not enough kept seed sequence data from the seed
+	for (size_t i = 0; i < taxIDs.size(); ++i) {
+		if (block.hasTaxon(taxIDs[i]) && block.getSeedCoords(taxIDs[i]).size() < options.minSeedSitesKept) {
+			block.removeTaxon(taxIDs[i]);
+		}
+	}
+
+	// reduce gap sizes to reasonable amount
+	taxIDs = block.getTaxonIDsInBlock();
+
+	if (taxIDs.empty()) {
+		return;
+	}
+
+	size_t minLeftGapSize = std::numeric_limits<size_t>::max();
+	size_t minRightGapSize = std::numeric_limits<size_t>::max();
+	for (size_t tID : taxIDs) {
+		minLeftGapSize = std::min(minLeftGapSize, block.getSeedCoords(tID).leftGapSize);
+		minRightGapSize = std::min(minRightGapSize, block.getSeedCoords(tID).rightGapSize);
+	}
+	while (minLeftGapSize > 0) {
+		for (size_t tID : taxIDs) {
+			block.removeGapLeft(tID);
+		}
+		minLeftGapSize--;
+	}
+	while (minRightGapSize > 0) {
+		for (size_t tID : taxIDs) {
+			block.removeGapRight(tID);
+		}
+		minRightGapSize--;
+	}
+
 	assert(block.getTaxonIDsInBlock().size() == block.getNTaxInBlock());
 }
 

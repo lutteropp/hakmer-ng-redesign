@@ -28,8 +28,6 @@ public:
 	std::vector<size_t> getTaxonIDsInBlock() const;
 	void increaseAllTaxonCoordsRight();
 	void decreaseAllTaxonCoordsLeft();
-	void decreaseAllTaxonCoordsRight();
-	void increaseAllTaxonCoordsLeft();
 	void increaseTaxonCoordsRight(size_t taxID);
 	void decreaseTaxonCoordsLeft(size_t taxID);
 	void decreaseTaxonCoordRight(size_t taxID);
@@ -56,6 +54,8 @@ public:
 
 	void addGapLeft(size_t taxonID);
 	void addGapRight(size_t taxonID);
+	void removeGapLeft(size_t taxonID);
+	void removeGapRight(size_t taxonID);
 	std::vector<SimpleCoords> getSeedCoords() const;
 private:
 	void cleanTaxIDs();
