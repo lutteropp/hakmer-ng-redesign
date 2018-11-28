@@ -60,14 +60,6 @@ std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, 
 	return computeMSA(seqs);
 }
 
-std::string createMissingString(size_t len) {
-	std::string res;
-	for (size_t i = 0; i < len; ++i) {
-		res += '?';
-	}
-	return res;
-}
-
 std::vector<std::string> computeMSA(const ExtendedBlock& block, const std::string& T, size_t nTax, const Options& options) {
 	std::vector<std::string> res;
 	std::vector<std::string> leftFlankMSA = computeMSA(block.getLeftFlankCoords(), T);
