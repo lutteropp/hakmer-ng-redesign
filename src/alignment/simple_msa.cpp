@@ -17,10 +17,10 @@ std::vector<std::string> computeMSA(const std::vector<std::string>& seqs) {
 	return wrapper.assembleMSA();
 }
 
-std::string createGapString(size_t len) {
+std::string createMissingDataString(size_t len) {
 	std::string res;
 	for (size_t i = 0; i < len; ++i) {
-		res += '-';
+		res += '?';
 	}
 	return res;
 }
@@ -32,9 +32,9 @@ std::vector<std::string> prepareSeqs(const std::vector<SimpleCoords>& seqCoords,
 		if (seqCoords[i].size() == 0) {
 			seqs.push_back("");
 		} else {
-			std::string leftTrim = createGapString(seqCoords[i].leftGapSize);
+			std::string leftTrim = createMissingDataString(seqCoords[i].leftGapSize);
 			std::string middle = T.substr(seqCoords[i].first, seqCoords[i].second + 1 - seqCoords[i].first);
-			std::string rightTrim = createGapString(seqCoords[i].rightGapSize);
+			std::string rightTrim = createMissingDataString(seqCoords[i].rightGapSize);
 			std::string concat = leftTrim + middle + rightTrim;
 			seqs.push_back(concat);
 			if (concatSize > 0) {
@@ -48,14 +48,15 @@ std::vector<std::string> prepareSeqs(const std::vector<SimpleCoords>& seqCoords,
 	}
 	for (size_t i = 0; i < seqs.size(); ++i) {
 		if (seqs[i].empty()) {
-			seqs[i] = createGapString(concatSize);
+			seqs[i] = createMissingDataString(concatSize);
 		}
 	}
 	return seqs;
 }
 
 std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, const std::string& T) {
-	std::vector<std::string> seqs = prepareSeqs(seqCoords, T);
+	std::vector<std::string> seqs;
+	seqs = prepareSeqs(seqCoords, T);
 	return computeMSA(seqs);
 }
 

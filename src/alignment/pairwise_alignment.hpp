@@ -10,7 +10,7 @@
 #include <string>
 #include "twodim_matrix.hpp"
 
-const int GAP_PENALTY = 2;
+const int GAP_PENALTY = 1;
 const int MISMATCH_PENALTY = 1;
 
 // Still an open question: How to select the alignment penalties (indels, substitutions)?
