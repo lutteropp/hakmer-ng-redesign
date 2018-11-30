@@ -39,7 +39,6 @@ public:
 	size_t minSharedSuperseedTax = 4;
 	bool mismatchAugmentationOnly = true;
 	bool discardNs = true;
-	bool simpleExtension = false; // stop extending as soon as one taxon can't be further extended?
 	bool mismatchesOnly = true; // allow only mismatches in the seeds - this means we don't need to run a MSA on them.
 	size_t minSeedTaxInColumn = 4; // minimum number of taxa in column, needed for seed trimming
 	size_t minSeedSitesKept = 8; // needed for seed trimming

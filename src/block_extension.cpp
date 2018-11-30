@@ -160,9 +160,7 @@ void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& 
 	while (canGoRightAll(seededBlock, presenceChecker, nTax) && allRightSame(seededBlock, T, nTax)) {
 		seededBlock.increaseAllTaxonCoordsRight();
 	}
-	if (!options.simpleExtension) {
-		return trivialExtensionPartial(seededBlock, T, presenceChecker, nTax);
-	}
+	return trivialExtensionPartial(seededBlock, T, presenceChecker, nTax);
 }
 
 bool canGoLeftAll(const ExtendedBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
@@ -292,9 +290,7 @@ ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t 
 	block.setLeftFlankSize(bestLeft);
 	block.setRightFlankSize(bestRight);
 
-	if (!options.simpleExtension) {
-		extendBlockPartial(block, T, nTax, presenceChecker, options, true, flankWidth, block.getAverageLeftFlankSize());
-		extendBlockPartial(block, T, nTax, presenceChecker, options, false, flankWidth, block.getAverageRightFlankSize());
-	}
+	extendBlockPartial(block, T, nTax, presenceChecker, options, true, flankWidth, block.getAverageLeftFlankSize());
+	extendBlockPartial(block, T, nTax, presenceChecker, options, false, flankWidth, block.getAverageRightFlankSize());
 	return block;
 }
