@@ -44,6 +44,6 @@ public:
 	size_t minSeedTaxInColumn = 4; // minimum number of taxa in column, needed for seed trimming
 	size_t minSeedSitesKept = 8; // needed for seed trimming
 
-	double minSeqDataUsage = 0.25; // minimum amount of overall sequence data to use, default value: 25 %
+	double minSeqDataUsage = 0.10; // minimum amount of overall sequence data to be used, default value: 10 %
 };
 
