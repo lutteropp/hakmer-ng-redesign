@@ -10,24 +10,6 @@
 #include "../options.hpp"
 #include "../dna_functions.hpp"
 
-inline size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t start2, unsigned int lTop) {
-	size_t res = 0;
-	for (size_t i = 0; i < seq.size(); ++i) {
-		if (start1 + i >= seq.size() || start2 + i >= seq.size()) {
-			break;
-		}
-		if (seq[start1 + i] == seq[start2 + i]) {
-			res++;
-			if (res >= lTop) {
-				return res; // bail because lTop is largest k-mer size we're gonna search
-			}
-		} else {
-			break;
-		}
-	}
-	return res;
-}
-
 class SuffixArrayClassic {
 public:
 	SuffixArrayClassic() {
@@ -118,13 +100,6 @@ public:
 
 	const std::vector<size_t>& getSA() const;
 	const std::vector<size_t>& getLCP() const;
-
-	size_t exactMatches(const std::string& pattern, const std::string& text, size_t firstIdx, std::vector<size_t> &matches);
-	size_t exactMatches(size_t patternStartPos, unsigned int m, const std::string& text, size_t firstIdx, std::vector<size_t> &matches);
-	size_t exactMatches(const std::string& pattern, const std::string& text, std::vector<size_t> &matches);
-	size_t exactMatches(size_t patternStartPos, unsigned int m, const std::string& text, std::vector<size_t> &matches);
-	size_t countExactMatches(size_t firstSAIndex, unsigned int m);
-	size_t countExactMatches(const std::string& pattern, const std::string& text);
 private:
 	void readFromFiles(std::ifstream& saFile, std::ifstream& lcpFile) {
 		saFile >> _nTotalSites;
@@ -152,8 +127,6 @@ private:
 		lcpOut.close();
 	}
 
-	bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& res, const std::string& text);
-	bool binarySearch3Prime(size_t patternSeqStartPos, unsigned int m, std::pair<size_t, size_t>& res, const std::string& text);
 	// algorithm from http://web.cs.iastate.edu/~cs548/references/linear_lcp.pdf
 	void computeLCP(const std::string& seq) {
 		std::vector<size_t> rank(SA.size());

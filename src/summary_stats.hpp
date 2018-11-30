@@ -51,6 +51,9 @@ public:
 			info.close();
 		}
 	}
+	double getAmountSeqDataUsed(size_t totalSeqData) const {
+		return ((double) seqDataUsed) / totalSeqData;
+	}
 	size_t getCurrentNBlocks() const {
 		return nBlocks;
 	}

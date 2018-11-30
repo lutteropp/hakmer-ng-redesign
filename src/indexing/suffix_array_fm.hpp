@@ -43,43 +43,6 @@ public:
 	std::string extractText(size_t firstPos, size_t lastPos) {
 		return sdsl::extract(fm_index, firstPos, lastPos);
 	}
-	size_t exactMatches(const std::string& pattern, std::vector<size_t>& matches) {
-		auto locations = sdsl::locate(fm_index, pattern.begin(), pattern.end());
-		std::sort(locations.begin(), locations.end());
-		matches.reserve(locations.size());
-		for (size_t i = 0; i < locations.size(); ++i) {
-			matches.push_back(locations[i]);
-		}
-		return matches.size();
-	}
-	size_t exactMatches(size_t firstSAIndex, const std::string& pattern, std::vector<size_t>& matches) {
-		size_t count = sdsl::count(fm_index, pattern.begin(), pattern.end());
-
-		matches.reserve(count);
-		for (size_t i = 0; i < count; ++i) {
-			matches.push_back(fm_index[firstSAIndex + i]);
-		}
-		return matches.size();
-	}
-	size_t exactMatches(size_t patternStartPos, unsigned int m, std::vector<size_t>& matches) {
-		std::string pattern = extractText(patternStartPos, patternStartPos + m - 1);
-		return exactMatches(pattern, matches);
-	}
-	size_t countExactMatches(size_t firstSAIndex, unsigned int m) {
-		size_t res = 1;
-		for (size_t i = firstSAIndex+1; i < fm_index.size(); ++i) {
-			if (lcp[i] >= m) {
-				res++;
-			} else {
-				break;
-			}
-		}
-		return res;
-	}
-
-	size_t getLCPEntry(size_t idx) {
-		return lcp[idx];
-	}
 private:
 	csa_wt<> fm_index;
 	lcp_wt<> lcp;

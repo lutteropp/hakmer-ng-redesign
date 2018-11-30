@@ -33,7 +33,7 @@ size_t estimateMinK(const IndexedConcatenatedSequence& concat) {
 	for (size_t i = 0; i < concat.nTax(); ++i) {
 		sum += (double) concat.getTaxonCoords(i).getTotalLength() / concat.nTax();
 	}
-	return log(sum) * 1.5;
+	return log(sum) * 2;
 }
 
 void matrixCallback(Options& options) {
@@ -42,6 +42,7 @@ void matrixCallback(Options& options) {
 	std::cout << "Estimated minK: " << estK << "\n";
 	if (options.minK == 0) {
 		options.minK = estK;
+		options.flankWidth = estK;
 	}
 	if (options.minK < estK) {
 		std::cout << "WARNING: The provided minK is smaller than the estimated minK value.\n";
@@ -50,8 +51,9 @@ void matrixCallback(Options& options) {
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats;
 	BlockWriter writer(concat.nTax(), options);
-	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, options.minTaxaPerBlock, concat.nTax());
+	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, options.maxK, options.flankWidth);
 	stats.printSummaryStatistics(concat.nTax(), concat.getSequenceDataSize(), options);
+
 	if (!options.outpath.empty()) {
 		writer.assembleFinalSupermatrix(concat.getTaxonLabels(), options.outpath, options);
 		std::cout << "Supermatrix written to: " << options.outpath << "\n";
@@ -101,6 +103,9 @@ int main(int argc, char* argv[]) {
 	app.add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
 
 	CLI11_PARSE(app, argc, argv);
+	if (!options.outpath.empty() && options.infopath.empty()) {
+		options.infopath = options.outpath + ".info";
+	}
 
 #ifdef WITH_OPENMP
 	if (nThreads > 0) {

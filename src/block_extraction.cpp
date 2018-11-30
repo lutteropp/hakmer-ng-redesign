@@ -373,7 +373,7 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 }
 
 std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfoBuffer, const IndexedConcatenatedSequence& concat,
-		PresenceChecker& presenceChecker, const Options& options, ApproximateMatcher& approxMatcher) {
+		PresenceChecker& presenceChecker, const Options& options, ApproximateMatcher& approxMatcher, size_t flankWidth) {
 	std::vector<ExtendedBlock> extendedBlocks;
 
 #pragma omp parallel for
@@ -408,7 +408,7 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 		{
 			// Extend the seed
 			trivialExtension(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-			ExtendedBlock extendedBlock = extendBlock(block, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, options);
+			ExtendedBlock extendedBlock = extendBlock(block, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, flankWidth, options);
 
 			// TODO: Correctly implement extended block trimming, this is needed because of the parallelization
 			//trimExtendedBlock(extendedBlock, presenceChecker, options);
@@ -419,7 +419,7 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 	return extendedBlocks;
 }
 
-std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker,
+std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK, size_t maxK,
 		const Options& options) {
 	std::vector<SeedInfo> res;
 	size_t actSAPos = 0;
@@ -431,7 +431,7 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 	for (size_t sIdx = 0; sIdx < concat.getSuffixArray().size() - options.minTaxaPerBlock; ++sIdx) {
 		bool ok = true;
 		for (size_t i = 1; i < options.minTaxaPerBlock; ++i) {
-			if (concat.getLcpArray()[sIdx + i] < options.minK) {
+			if (concat.getLcpArray()[sIdx + i] < minK) {
 				ok = false;
 				break;
 			}
@@ -441,7 +441,7 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 		}
 
 		size_t startPos = concat.getSuffixArray()[sIdx];
-		size_t k = options.minK;
+		size_t k = minK;
 		if ((startPos + k >= concat.getConcatenatedSeq().size() || !presenceChecker.isFree(startPos, startPos + k - 1))) {
 			continue;
 		}
@@ -449,7 +449,7 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 
 		size_t actMinK = 0;
 		if (matchCount >= options.minTaxaPerBlock) {
-			actMinK = std::min(options.maxK, findMinK(sIdx, concat.getLcpArray(), concat.nTax()));
+			actMinK = std::min(maxK, findMinK(sIdx, concat.getLcpArray(), concat.nTax()));
 			if (k < actMinK) {
 				k = actMinK;
 			}
@@ -505,7 +505,7 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 					k = concat.getLcpArray()[sIdx];
 				}
 
-				if (k >= options.maxK || startPos + k + 1 >= concat.getConcatenatedSeq().size() || !presenceChecker.isFree(startPos + k)) { // no further extension of seed length, or newly added character would be already taken anyway
+				if (k >= maxK || startPos + k + 1 >= concat.getConcatenatedSeq().size() || !presenceChecker.isFree(startPos + k)) { // no further extension of seed length, or newly added character would be already taken anyway
 					break;
 				}
 				k++;
@@ -516,7 +516,7 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 					throw std::runtime_error("the cat jumps over the fox");
 				}
 				k = bestK;
-				if (k >= options.maxK) {
+				if (k >= maxK) {
 					break;
 				}
 			}
@@ -536,10 +536,10 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 }
 
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
-		SummaryStatistics& stats, const Options& options, size_t minK, size_t nMin, size_t nMax) {
+		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK, size_t flankWidth) {
 	PresenceChecker seedingPresenceChecker(presenceChecker);
 	std::cout << "Extracting seeded blocks...\n";
-	std::vector<SeedInfo> seededBlockInfos = extractSeedInfos(concat, seedingPresenceChecker, options);
+	std::vector<SeedInfo> seededBlockInfos = extractSeedInfos(concat, seedingPresenceChecker, minK, maxK, options);
 	std::cout << "seeded block infos.size(): " << seededBlockInfos.size() << "\n";
 	std::cout << "Processing seeds...\n";
 	std::sort(seededBlockInfos.begin(), seededBlockInfos.end(), std::greater<SeedInfo>());
@@ -553,7 +553,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 			buffer.push_back(seededBlockInfos[i]);
 		} else {
 			std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
-			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher);
+			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher, flankWidth);
 			std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
 			processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
 			buffer.clear();
@@ -563,9 +563,23 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	}
 	// process the last buffer
 	std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
-	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher);
+	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher, flankWidth);
 	std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
 	processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
+
+	double seqDataUsed = stats.getAmountSeqDataUsed(concat.getSequenceDataSize());
+	std::cout << "seqDataUsed: " << seqDataUsed << "\n";
+	if (seqDataUsed < options.minSeqDataUsage) {
+		std::cout << "Current percentage of sequence data used: " << seqDataUsed * 100 << " %. This is too low. Trying to find more blocks with lower minimum kmer size.\n";
+		size_t newMinK = std::max((size_t) 8, (size_t) ((double) minK / 1.5));
+		if (newMinK != minK) {
+			std::cout << "Using new value for minK: " << newMinK << "\n";
+			extractExtendedBlocks(concat, presenceChecker, writer, stats, options, newMinK, minK - 1, newMinK);
+		} else {
+			std::cout << "Unfortunately, a smaller minK value makes not much sense. :-(\n";
+		}
+	}
+
 	// TODO: Remove me again, this is just out of curiosity
 	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
 	//std::cout << "We have made " << superseeds.size() << " superseeds out of " << seededBlocks.size() << " seeded blocks.\n";

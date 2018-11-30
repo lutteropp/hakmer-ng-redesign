@@ -34,11 +34,12 @@ public:
 // TODO: Re-integrate external indexing via FM index
 
 class IndexedConcatenatedSequence {
-	SuffixArrayClassic sa;
 	std::string concatenatedSeq;
 	std::vector<IndexedTaxonCoords> taxonCoords;
 	std::vector<std::string> taxonLabels;
 	size_t sequenceDataSize;
+	std::vector<size_t> suffixArray;
+	std::vector<size_t> lcpArray;
 public:
 	IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords, const Options& options); // internal-indexing variant
 	const std::vector<size_t>& getSuffixArray() const;

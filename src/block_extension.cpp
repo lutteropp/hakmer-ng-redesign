@@ -192,13 +192,13 @@ bool canGoRightAll(const ExtendedBlock& block, const PresenceChecker& presenceCh
 }
 
 size_t findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChecker& presenceChecker, const std::string& T,
-		const Options& options, bool directionRight) {
+		const Options& options, bool directionRight, size_t flankWidth) {
 	size_t bestSize = 0;
 	double bestScore = 1.0;
 	size_t nTaxBlock = block.getNTaxInBlock();
 	std::vector<size_t> taxIDs = block.getTaxonIDsInBlock();
 	size_t finalFlankSize = 0;
-	for (size_t i = 1; i <= options.flankWidth; ++i) {
+	for (size_t i = 1; i <= flankWidth; ++i) {
 		if (directionRight) {
 			if (!canGoRightAll(block, presenceChecker, nTax, i)) {
 				break;
@@ -225,7 +225,7 @@ size_t findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChe
 }
 
 void extendBlockPartial(ExtendedBlock& block, const std::string& T, size_t nTax, PresenceChecker& presenceChecker, const Options& options,
-		bool leftDirection, size_t startingFlankSize = 0) {
+		bool leftDirection, size_t flankWidth, size_t startingFlankSize = 0) {
 	size_t minTaxaToBeOk = options.minTaxaPerBlock;
 
 	std::vector<size_t> taxIDsLeft = block.getTaxonIDsInBlock();
@@ -236,7 +236,7 @@ void extendBlockPartial(ExtendedBlock& block, const std::string& T, size_t nTax,
 
 	size_t leftok = block.getNTaxInBlock();
 	size_t flankSize = startingFlankSize;
-	while (flankSize < options.flankWidth) { // partial left extension
+	while (flankSize < flankWidth) {
 		leftok = 0;
 		flankSize++;
 		std::vector<size_t> taxIDsToRemove;
@@ -282,19 +282,19 @@ void extendBlockPartial(ExtendedBlock& block, const std::string& T, size_t nTax,
 	}
 }
 
-ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker,
+ExtendedBlock extendBlock(const Seed& seededBlock, const std::string& T, size_t nTax, PresenceChecker& presenceChecker, size_t flankWidth,
 		const Options& options) {
 	ExtendedBlock block(seededBlock, nTax);
 
-	size_t bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false);
-	size_t bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true);
+	size_t bestLeft = findPerfectFlankSize(block, nTax, presenceChecker, T, options, false, flankWidth);
+	size_t bestRight = findPerfectFlankSize(block, nTax, presenceChecker, T, options, true, flankWidth);
 
 	block.setLeftFlankSize(bestLeft);
 	block.setRightFlankSize(bestRight);
 
 	if (!options.simpleExtension) {
-		extendBlockPartial(block, T, nTax, presenceChecker, options, true, block.getAverageLeftFlankSize());
-		extendBlockPartial(block, T, nTax, presenceChecker, options, false, block.getAverageRightFlankSize());
+		extendBlockPartial(block, T, nTax, presenceChecker, options, true, flankWidth, block.getAverageLeftFlankSize());
+		extendBlockPartial(block, T, nTax, presenceChecker, options, false, flankWidth, block.getAverageRightFlankSize());
 	}
 	return block;
 }

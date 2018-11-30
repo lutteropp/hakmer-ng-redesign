@@ -55,7 +55,10 @@ IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq,
 		const Options& options) {
 	concatenatedSeq = seq;
 	taxonCoords = coords;
+	SuffixArrayClassic sa;
 	sa.buildSuffixArray(seq, seq.size(), options);
+	suffixArray = sa.getSA();
+	lcpArray = sa.getLCP();
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		taxonLabels.push_back(taxonCoords[i].getLabel());
 	}
@@ -72,10 +75,10 @@ size_t IndexedConcatenatedSequence::getSequenceDataSize() const {
 }
 
 const std::vector<size_t>& IndexedConcatenatedSequence::getSuffixArray() const {
-	return sa.getSA();
+	return suffixArray;
 }
 const std::vector<size_t>& IndexedConcatenatedSequence::getLcpArray() const {
-	return sa.getLCP();
+	return lcpArray;
 }
 
 size_t IndexedConcatenatedSequence::nTax() const {
