@@ -65,7 +65,7 @@ public:
 	}
 
 	void buildSuffixArray(const std::string& seq, size_t nTotalSites, const Options& options) {
-		unsigned int lTop = std::min(seq.size(), options.maxK);
+		unsigned int lTop = seq.size();
 		buildSuffixArray(seq, nTotalSites, lTop, options.filepath, options);
 	}
 

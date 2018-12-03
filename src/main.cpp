@@ -53,7 +53,7 @@ void matrixCallback(Options& options) {
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats;
 	BlockWriter writer(concat.nTax(), options);
-	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, options.maxK, options.flankWidth);
+	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, std::numeric_limits<size_t>::max(), options.flankWidth);
 	stats.printSummaryStatistics(concat.nTax(), concat.getSequenceDataSize(), options);
 
 	if (!options.outpath.empty()) {
@@ -88,7 +88,6 @@ int main(int argc, char* argv[]) {
 	auto revCompOption = app.add_flag("--revcomp,-r", options.reverseComplement, "Also consider reverse-complement matches of DNA data.");
 	app.add_flag("--protein", options.proteinData, "The sequences are protein data instead of DNA data.")->excludes(revCompOption);
 	app.add_option("-k,--kmin,--minK,", options.minK, "Minimum kmer seed size.");
-	app.add_option("--kmax", options.maxK, "Maximum kmer seed size.");
 	app.add_option("-q,--mismatches", options.maxMismatches, "Maximum number of mismatches in a k-mer block seed.", true);
 
 	size_t nThreads = 0;

@@ -32,7 +32,6 @@ public:
 	// internal parameters
 	bool verboseDebug = false;
 	size_t minK = 0;
-	size_t maxK = std::numeric_limits<size_t>::max(); // if maxK == minK, then we don't do dynamic extension
 	bool externalIndexing = false;
 	bool lowComplexity = false; // keep low complexity k-mers?
 	size_t maxAllowedSuperseedDistance = 50;
