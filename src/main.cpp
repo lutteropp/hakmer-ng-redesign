@@ -48,6 +48,8 @@ void matrixCallback(Options& options) {
 		std::cout << "WARNING: The provided minK is smaller than the estimated minK value.\n";
 	}
 
+	options.flankWidth = options.minK; // TODO: Remove me again.
+
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats;
 	BlockWriter writer(concat.nTax(), options);
@@ -85,7 +87,7 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--debug,--verboseDebug", options.verboseDebug, "Print debug output.");
 	auto revCompOption = app.add_flag("--revcomp,-r", options.reverseComplement, "Also consider reverse-complement matches of DNA data.");
 	app.add_flag("--protein", options.proteinData, "The sequences are protein data instead of DNA data.")->excludes(revCompOption);
-	app.add_option("--kmin", options.minK, "Minimum kmer seed size.");
+	app.add_option("-k,--kmin,--minK,", options.minK, "Minimum kmer seed size.");
 	app.add_option("--kmax", options.maxK, "Maximum kmer seed size.");
 	app.add_option("-q,--mismatches", options.maxMismatches, "Maximum number of mismatches in a k-mer block seed.", true);
 
@@ -96,9 +98,7 @@ int main(int argc, char* argv[]) {
 	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written."); //->required();
 	app.add_option("-i,--info,--infopath", options.infopath, "Path to the optional run-information file to be written.");
 
-	app.add_option("--flankwidth", options.flankWidth,
-			"Maximum size of flanking sequence kept on each side of k-mer. The side of a resulting k-mer block is at most 2*flankwidth+k.",
-			true);
+	app.add_option("--flankwidth", options.flankWidth, "Maximum size of flanking sequence kept on each side of k-mer.", true);
 
 	app.add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
 
@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
 	} else {
 		reportCallback(options);
 	}
-	std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
 	std::cout << "Program runtime: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " s" << std::endl;
 

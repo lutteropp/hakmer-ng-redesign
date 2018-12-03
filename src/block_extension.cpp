@@ -84,7 +84,8 @@ bool allRightSame(const Seed& seededBlock, const std::string& T, size_t nTax, si
 	return true;
 }
 
-void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax) {
+void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax,
+		const Options& options) {
 	// we perform trivial extension as long as at least 4 taxa are still available in the current direction
 	std::vector<size_t> taxIDsLeft = seededBlock.getTaxonIDsInBlock();
 	std::vector<size_t> taxIDsRight = seededBlock.getTaxonIDsInBlock();
@@ -153,14 +154,19 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 	}
 }
 
-void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax, const Options& options) {
+void trivialExtensionSimple(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax,
+		const Options& options) {
 	while (canGoLeftAll(seededBlock, presenceChecker, nTax) && allLeftSame(seededBlock, T, nTax)) {
 		seededBlock.decreaseAllTaxonCoordsLeft();
 	}
 	while (canGoRightAll(seededBlock, presenceChecker, nTax) && allRightSame(seededBlock, T, nTax)) {
 		seededBlock.increaseAllTaxonCoordsRight();
 	}
-	return trivialExtensionPartial(seededBlock, T, presenceChecker, nTax);
+}
+
+void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax, const Options& options) {
+	trivialExtensionSimple(seededBlock, T, presenceChecker, nTax, options);
+	return trivialExtensionPartial(seededBlock, T, presenceChecker, nTax, options);
 }
 
 bool canGoLeftAll(const ExtendedBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
