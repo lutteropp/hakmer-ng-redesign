@@ -60,7 +60,6 @@ void Seed::removeTaxon(size_t taxID) {
 
 double Seed::getAverageSeedSize() const {
 	size_t seedSizeSum = 0;
-	size_t wrongTaxIDs = 0;
 	for (size_t tID : taxIDs) {
 		if (!hasTaxon(tID)) {
 			std::cout << "taxID: " << tID << "\n";
@@ -70,7 +69,7 @@ double Seed::getAverageSeedSize() const {
 		}
 		seedSizeSum += getSeedSize(tID);
 	}
-	return (double) seedSizeSum / (taxIDs.size() - wrongTaxIDs);
+	return (double) seedSizeSum / taxIDs.size();
 }
 
 std::vector<size_t> Seed::getTaxonIDsInBlock() const {
