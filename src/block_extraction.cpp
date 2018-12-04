@@ -550,9 +550,11 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	std::sort(seededBlockInfos.begin(), seededBlockInfos.end(), std::greater<SeedInfo>());
 
 	//printSeedSizeHistogram(seededBlockInfos, options);
-	size_t newMinK = rechooseMinK(seededBlockInfos, options);
-	minK = newMinK;
-	flankWidth = newMinK; // TODO: maybe remove me again?
+	if (options.overriddenK) {
+		size_t newMinK = rechooseMinK(seededBlockInfos, options);
+		minK = newMinK;
+		flankWidth = newMinK; // TODO: maybe remove me again?
+	}
 
 	ApproximateMatcher approxMatcher(options.mismatchesOnly);
 	std::vector<SeedInfo> buffer;
@@ -560,7 +562,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	buffer.push_back(seededBlockInfos[0]);
 	for (size_t i = 1; i < seededBlockInfos.size(); ++i) {
 		if (seededBlockInfos[i].n == lastN) {
-			if (seededBlockInfos[i].k >= newMinK) {
+			if (seededBlockInfos[i].k >= minK) {
 				buffer.push_back(seededBlockInfos[i]);
 			}
 		} else {
@@ -571,7 +573,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 			processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
 			buffer.clear();
 			lastN = seededBlockInfos[i].n;
-			if (seededBlockInfos[i].k >= newMinK) {
+			if (seededBlockInfos[i].k >= minK) {
 				buffer.push_back(seededBlockInfos[i]);
 			}
 		}
@@ -588,10 +590,10 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	if (seqDataUsed < options.minSeqDataUsage) {
 		std::cout << "Current percentage of sequence data used: " << seqDataUsed * 100
 				<< " %. This is too low. Trying to find more blocks with lower minimum kmer size.\n";
-		size_t newMinK = std::max((size_t) 8, (size_t) ((double) minK / 1.5));
+		size_t newMinK = std::max((size_t) 8, (size_t) minK - 1);
 		if (newMinK != minK) {
 			std::cout << "Using new value for minK: " << newMinK << "\n";
-			extractExtendedBlocks(concat, presenceChecker, writer, stats, options, newMinK, minK - 1, newMinK);
+			extractExtendedBlocks(concat, presenceChecker, writer, stats, options, newMinK, maxK, newMinK);
 		} else {
 			std::cout << "Unfortunately, a smaller minK value makes not much sense. :-(\n";
 		}

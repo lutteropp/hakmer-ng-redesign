@@ -43,6 +43,7 @@ void matrixCallback(Options& options) {
 	if (options.minK == 0) {
 		options.minK = estK;
 		options.flankWidth = estK;
+		options.overriddenK = true;
 	}
 	if (options.minK < estK) {
 		std::cout << "WARNING: The provided minK is smaller than the estimated minK value.\n";

@@ -41,6 +41,7 @@ public:
 	bool mismatchesOnly = true; // allow only mismatches in the seeds - this means we don't need to run a MSA on them.
 	size_t minSeedTaxInColumn = 4; // minimum number of taxa in column, needed for seed trimming
 	size_t minSeedSitesKept = 8; // needed for seed trimming
+	bool overriddenK = false;
 
 	double minSeqDataUsage = 0.10; // minimum amount of overall sequence data to be used, default value: 10 %
 };
