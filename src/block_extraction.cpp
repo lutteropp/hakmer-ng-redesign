@@ -261,9 +261,9 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 		size_t k = seedInfo.k;
 		size_t matchCount = seedInfo.n;
 		for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
-			block.addTaxon(
-					posToTaxon(concat.getSuffixArray()[i], concat.getTaxonCoords(), concat.getConcatenatedSeq().size(),
-							options.reverseComplement), concat.getSuffixArray()[i], concat.getSuffixArray()[i] + k - 1);
+			//size_t tID = posToTaxon(concat.getSuffixArray()[i], concat.getTaxonCoords(), concat.getConcatenatedSeq().size(), options.reverseComplement);
+			size_t tID = posTaxonArray[i];
+			block.addTaxon(tID, concat.getSuffixArray()[i], concat.getSuffixArray()[i] + k - 1);
 		}
 		for (std::pair<size_t, size_t> extraOcc : seedInfo.extraOccs) {
 			block.addTaxon(
