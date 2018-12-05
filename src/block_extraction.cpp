@@ -486,29 +486,49 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 	return res;
 }
 
-void printSeedSizeHistogram(const std::vector<SeedInfo>& seedInfos, const Options& options) {
-	size_t maxCount = 0;
-	std::vector<size_t> seedSizes(500, 0);
-	for (size_t i = 0; i < seedInfos.size(); ++i) {
-		seedSizes[seedInfos[i].k]++;
+size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts, const Options& options) {
+	// see https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+	// we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
+	int maxDist = 0;
+	size_t maxDistIdx = 0;
+	int x1 = seedSizeCounts[0].first;
+	int y1 = seedSizeCounts[0].second;
+	int x2 = seedSizeCounts[seedSizeCounts.size() - 1].first;
+	int y2 = seedSizeCounts[seedSizeCounts.size() - 1].second;
+	for (size_t i = 1; i < seedSizeCounts.size() - 1; ++i) { // because the endpoints trivially have distance 0
+		int x0 = seedSizeCounts[i].first;
+		int y0 = seedSizeCounts[i].second;
+		int d = std::abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
+		if (d > maxDist) {
+			maxDist = d;
+			maxDistIdx = i;
+		}
 	}
+	return seedSizeCounts[maxDistIdx].first;
+}
+
+void printSeedSizeHistogram(const std::vector<std::pair<size_t, size_t> >& seedSizes) {
 	std::cout << "Seed size histogram:\n";
 	for (size_t i = 0; i < seedSizes.size(); ++i) {
-		if (seedSizes[i] > 0) {
-			maxCount = std::max(maxCount, seedSizes[i]);
-			std::cout << i << ": " << seedSizes[i] << "\n";
-		}
-	}
-	std::cout << "We'd suggest to discard all seeds with count >= " << maxCount / 2 << ".\n";
-	for (size_t i = 0; i < seedSizes.size(); ++i) {
-		if (seedSizes[i] > 0 && seedSizes[i] < maxCount / 2) {
-			std::cout << "New suggested minK: " << i << ". Please rerun hakmer-ng with this value for minK.\n";
-			break;
-		}
+		std::cout << seedSizes[i].first << ": " << seedSizes[i].second << "\n";
 	}
 }
 
-size_t rechooseMinK(const std::vector<SeedInfo>& seedInfos, const Options& options) {
+std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<SeedInfo>& seedInfos, const Options& options) {
+	std::vector<std::pair<size_t, size_t> > res;
+	std::vector<size_t> seedSizes(1000, 0);
+	for (size_t i = 0; i < seedInfos.size(); ++i) {
+		seedSizes[seedInfos[i].k]++;
+	}
+	for (size_t i = 0; i < seedSizes.size(); ++i) {
+		if (seedSizes[i] > 0) {
+			res.push_back(std::make_pair(i, seedSizes[i]));
+		}
+	}
+	return res;
+}
+
+/*size_t rechooseMinK(const std::vector<SeedInfo>& seedInfos, const Options& options) {
 	size_t maxCount = 0;
 	std::vector<size_t> seedSizes(500, 0);
 	for (size_t i = 0; i < seedInfos.size(); ++i) {
@@ -529,7 +549,7 @@ size_t rechooseMinK(const std::vector<SeedInfo>& seedInfos, const Options& optio
 		}
 	}
 	return options.minK;
-}
+}*/
 
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK, size_t flankWidth) {
@@ -551,7 +571,12 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 
 	//printSeedSizeHistogram(seededBlockInfos, options);
 	if (options.overriddenK) {
-		size_t newMinK = rechooseMinK(seededBlockInfos, options);
+		std::vector<std::pair<size_t, size_t> > seedSizes = countSeedSizes(seededBlockInfos, options);
+		printSeedSizeHistogram(seedSizes);
+		size_t newMinK = elbowMethod(seedSizes, options);
+		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k that this value.\n";
+
+		//size_t newMinK = rechooseMinK(seededBlockInfos, options);
 		minK = newMinK;
 		flankWidth = newMinK; // TODO: maybe remove me again?
 	}
