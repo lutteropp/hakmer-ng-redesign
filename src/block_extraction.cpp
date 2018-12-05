@@ -587,6 +587,7 @@ void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, Ap
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK, size_t flankWidth) {
 	PresenceChecker seedingPresenceChecker(presenceChecker);
+	size_t initialMinK = minK;
 	std::cout << "Precomputing posToTaxon array...\n";
 	std::vector<uint16_t> posTaxonArray(concat.getSuffixArray().size(), 0);
 #pragma omp parallel for
@@ -623,7 +624,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	while (seqDataUsed < options.minSeqDataUsage) {
 		std::cout << "Current percentage of sequence data used: " << seqDataUsed * 100
 				<< " %. This is too low. Trying to find more blocks with lower minimum kmer size.\n";
-		size_t newMinK = std::max((size_t) 8, (size_t) minK - 1);
+		size_t newMinK = std::max((size_t) initialMinK, (size_t) minK - 1);
 		if (newMinK != minK) {
 			std::cout << "Using new value for minK: " << newMinK << "\n";
 			selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray, options,

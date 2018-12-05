@@ -54,7 +54,8 @@ void matrixCallback(Options& options) {
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats;
 	BlockWriter writer(concat.nTax(), options);
-	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, std::numeric_limits<size_t>::max(), options.flankWidth);
+	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, std::numeric_limits<size_t>::max(),
+			options.flankWidth);
 	stats.printSummaryStatistics(concat.nTax(), concat.getSequenceDataSize(), options);
 
 	if (!options.outpath.empty()) {
@@ -101,6 +102,9 @@ int main(int argc, char* argv[]) {
 	app.add_option("--flankwidth", options.flankWidth, "Maximum size of flanking sequence kept on each side of k-mer.", true);
 
 	app.add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
+	app.add_option("-s,--minSeqData,--minSeqUsage", options.minSeqDataUsage,
+			"Minimum percentage of sequence data to be used. Has to be a value between 0 and 1. If less sequence data has been used, minimum k-mer seed size gets reduced.",
+			true);
 
 	CLI11_PARSE(app, argc, argv);
 	if (!options.outpath.empty() && options.infopath.empty()) {
