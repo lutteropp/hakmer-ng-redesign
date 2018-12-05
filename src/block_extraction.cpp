@@ -525,11 +525,15 @@ std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<SeedInf
 	std::vector<std::pair<size_t, size_t> > res;
 	std::vector<size_t> seedSizes(1000, 0);
 	for (size_t i = 0; i < seedInfos.size(); ++i) {
+		if (seedInfos[i].k >= seedSizes.size()) {
+			seedSizes.resize(seedInfos[i].k + 1);
+		}
 		seedSizes[seedInfos[i].k]++;
 	}
 	for (size_t i = 0; i < seedSizes.size(); ++i) {
 		if (seedSizes[i] > 0) {
-			res.push_back(std::make_pair(i, seedSizes[i]));
+			std::pair<size_t, size_t> p = std::make_pair(i, seedSizes[i]);
+			res.push_back(p);
 		}
 	}
 	return res;
@@ -596,11 +600,14 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	size_t initialMinK = minK;
 	std::cout << "Precomputing posToTaxon array...\n";
 	std::vector<uint16_t> posTaxonArray(concat.getSuffixArray().size(), 0);
-#pragma omp parallel for
-	for (size_t i = 0; i < concat.getSuffixArray().size(); ++i) {
-		size_t tID = posToTaxon(concat.getSuffixArray()[i], concat.getTaxonCoords(), concat.getConcatenatedSeq().size(),
-				options.reverseComplement);
-		posTaxonArray[i] = tID;
+#pragma omp parallel
+	{
+#pragma omp for
+		for (size_t i = 0; i < concat.getSuffixArray().size(); ++i) {
+			size_t tID = posToTaxon(concat.getSuffixArray()[i], concat.getTaxonCoords(), concat.getConcatenatedSeq().size(),
+					options.reverseComplement);
+			posTaxonArray[i] = tID;
+		}
 	}
 
 	std::cout << "Extracting seeded blocks...\n";
@@ -610,8 +617,10 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	std::sort(seededBlockInfos.begin(), seededBlockInfos.end(), std::greater<SeedInfo>());
 
 	//printSeedSizeHistogram(seededBlockInfos, options);
+
 	if (options.overriddenK) {
-		std::vector<std::pair<size_t, size_t> > seedSizes = countSeedSizes(seededBlockInfos, options);
+		std::vector<std::pair<size_t, size_t> > seedSizes;
+		seedSizes = countSeedSizes(seededBlockInfos, options);
 		printSeedSizeHistogram(seedSizes);
 		size_t newMinK = elbowMethod(seedSizes, options);
 		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k that this value.\n";
