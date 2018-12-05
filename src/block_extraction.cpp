@@ -487,6 +487,7 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 }
 
 size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts, const Options& options) {
+	// see https://www.linkedin.com/pulse/finding-optimal-number-clusters-k-means-through-elbow-asanka-perera/
 	// see https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 	// we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
 	int maxDist = 0;
@@ -529,27 +530,59 @@ std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<SeedInf
 }
 
 /*size_t rechooseMinK(const std::vector<SeedInfo>& seedInfos, const Options& options) {
-	size_t maxCount = 0;
-	std::vector<size_t> seedSizes(500, 0);
-	for (size_t i = 0; i < seedInfos.size(); ++i) {
-		seedSizes[seedInfos[i].k]++;
-	}
-	std::cout << "Seed size histogram:\n";
-	for (size_t i = 0; i < seedSizes.size(); ++i) {
-		if (seedSizes[i] > 0) {
-			maxCount = std::max(maxCount, seedSizes[i]);
-			std::cout << i << ": " << seedSizes[i] << "\n";
+ size_t maxCount = 0;
+ std::vector<size_t> seedSizes(500, 0);
+ for (size_t i = 0; i < seedInfos.size(); ++i) {
+ seedSizes[seedInfos[i].k]++;
+ }
+ std::cout << "Seed size histogram:\n";
+ for (size_t i = 0; i < seedSizes.size(); ++i) {
+ if (seedSizes[i] > 0) {
+ maxCount = std::max(maxCount, seedSizes[i]);
+ std::cout << i << ": " << seedSizes[i] << "\n";
+ }
+ }
+ std::cout << "We'd suggest to discard all seeds with count >= " << maxCount / 2 << ".\n";
+ for (size_t i = 0; i < seedSizes.size(); ++i) {
+ if (seedSizes[i] > 0 && seedSizes[i] < maxCount / 2) {
+ std::cout << "New suggested minK: " << i << ". Ignoring seeds with smaller k now.\n";
+ return i;
+ }
+ }
+ return options.minK;
+ }*/
+
+void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, ApproximateMatcher& approxMatcher,
+		const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer, SummaryStatistics& stats,
+		const std::vector<uint16_t>& posTaxonArray, const Options& options, size_t minK, size_t maxK, size_t flankWidth) {
+	std::vector<SeedInfo> buffer;
+	size_t lastN = seededBlockInfos[0].n;
+	buffer.push_back(seededBlockInfos[0]);
+	for (size_t i = 1; i < seededBlockInfos.size(); ++i) {
+		if (seededBlockInfos[i].n == lastN) {
+			if (seededBlockInfos[i].k >= minK && seededBlockInfos[i].k <= maxK) {
+				buffer.push_back(seededBlockInfos[i]);
+			}
+		} else {
+			std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
+			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
+					flankWidth, posTaxonArray);
+			std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
+			processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
+			buffer.clear();
+			lastN = seededBlockInfos[i].n;
+			if (seededBlockInfos[i].k >= minK && seededBlockInfos[i].k <= maxK) {
+				buffer.push_back(seededBlockInfos[i]);
+			}
 		}
 	}
-	std::cout << "We'd suggest to discard all seeds with count >= " << maxCount / 2 << ".\n";
-	for (size_t i = 0; i < seedSizes.size(); ++i) {
-		if (seedSizes[i] > 0 && seedSizes[i] < maxCount / 2) {
-			std::cout << "New suggested minK: " << i << ". Ignoring seeds with smaller k now.\n";
-			return i;
-		}
-	}
-	return options.minK;
-}*/
+	// process the last buffer
+	std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
+	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
+			flankWidth, posTaxonArray);
+	std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
+	processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
+}
 
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK, size_t flankWidth) {
@@ -582,47 +615,27 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	}
 
 	ApproximateMatcher approxMatcher(options.mismatchesOnly);
-	std::vector<SeedInfo> buffer;
-	size_t lastN = seededBlockInfos[0].n;
-	buffer.push_back(seededBlockInfos[0]);
-	for (size_t i = 1; i < seededBlockInfos.size(); ++i) {
-		if (seededBlockInfos[i].n == lastN) {
-			if (seededBlockInfos[i].k >= minK) {
-				buffer.push_back(seededBlockInfos[i]);
-			}
-		} else {
-			std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
-			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
-					flankWidth, posTaxonArray);
-			std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
-			processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
-			buffer.clear();
-			lastN = seededBlockInfos[i].n;
-			if (seededBlockInfos[i].k >= minK) {
-				buffer.push_back(seededBlockInfos[i]);
-			}
-		}
-	}
-	// process the last buffer
-	std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
-	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
-			flankWidth, posTaxonArray);
-	std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
-	processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
+
+	selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray, options, minK, maxK,
+			flankWidth);
 
 	double seqDataUsed = stats.getAmountSeqDataUsed(concat.getSequenceDataSize());
-	std::cout << "seqDataUsed: " << seqDataUsed << "\n";
-	if (seqDataUsed < options.minSeqDataUsage) {
+	while (seqDataUsed < options.minSeqDataUsage) {
 		std::cout << "Current percentage of sequence data used: " << seqDataUsed * 100
 				<< " %. This is too low. Trying to find more blocks with lower minimum kmer size.\n";
 		size_t newMinK = std::max((size_t) 8, (size_t) minK - 1);
 		if (newMinK != minK) {
 			std::cout << "Using new value for minK: " << newMinK << "\n";
-			extractExtendedBlocks(concat, presenceChecker, writer, stats, options, newMinK, maxK, newMinK);
+			selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray, options,
+					newMinK, minK - 1, newMinK);
+			minK = newMinK;
 		} else {
 			std::cout << "Unfortunately, a smaller minK value makes not much sense. :-(\n";
+			break;
 		}
+		seqDataUsed = stats.getAmountSeqDataUsed(concat.getSequenceDataSize());
 	}
+	std::cout << "seqDataUsed: " << seqDataUsed << "\n";
 
 	// TODO: Remove me again, this is just out of curiosity
 	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
