@@ -139,7 +139,6 @@ private:
 		for (size_t i = 1; i < SA.size(); ++i) {
 			if (rank[i] > 1) {
 				size_t j = SA[rank[i] - 1];
-				//while (seq[i + h] == seq[j + h]) {
 				while (ambiguousMatch(seq[i + h], seq[j + h])) {
 					h++;
 				}

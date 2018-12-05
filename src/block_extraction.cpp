@@ -423,8 +423,42 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 				size_t tID = posTaxonArray[sIdx + idx];
 				block.addTaxon(tID, concat.getSuffixArray()[sIdx + idx], concat.getSuffixArray()[sIdx + idx] + k - 1);
 			}
+
+			// TODO: Remove me again
+			// Do some sanity check
+			for (size_t i = 0; i < matchCount; ++i) {
+				for (size_t j = 0; j < k; ++j) {
+					if (concat.getConcatenatedSeq()[concat.getSuffixArray()[sIdx + i] + j] == '$') {
+						throw std::runtime_error("grummel1");
+					}
+				}
+			}
+
+#pragma omp critical
 			trivialExtensionSimple(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
+
+			// now lets check if they are all fine
+			for (size_t tID : block.getTaxonIDsInBlock()) {
+				for (size_t x = block.getSeedCoords(tID).first; x <= block.getSeedCoords(tID).second; x++) {
+					if (concat.getConcatenatedSeq()[x] == '$') {
+						throw std::runtime_error("This is not ok");
+					}
+				}
+			}
+
 			k = block.getAverageSeedSize();
+
+			std::cout << "newK is: " << k << "\n";
+
+			// TODO: Remove me again
+			// Do some sanity check
+			for (size_t i = 0; i < matchCount; ++i) {
+				for (size_t j = 0; j < k; ++j) {
+					if (concat.getConcatenatedSeq()[concat.getSuffixArray()[sIdx + i] + j] == '$') {
+						throw std::runtime_error("grummel2");
+					}
+				}
+			}
 
 			SeedInfo info(sIdx, k, matchCount);
 

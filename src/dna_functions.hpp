@@ -68,6 +68,9 @@ static std::unordered_map<char, char> rcMapping = createRevcompMapping();
 static std::unordered_map<char, std::unordered_set<char> > ambiMapping = createAmbiguityMappings();
 
 inline bool ambiguousMatch(char a, char b) {
+	if (a == '$' || b == '$') {
+		return false;
+	}
 	if (a == b) {
 		return true;
 	} else {
