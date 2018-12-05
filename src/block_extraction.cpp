@@ -114,10 +114,8 @@ bool acceptSeedComplexity(size_t actSAPos, size_t matchCount, size_t k, size_t n
 	if (!options.lowComplexity) {
 		std::string seed = T.substr(SA[actSAPos], k);
 		if (!highComplexity(seed, k / 8, 1.0)) {
-			//std::cout << "rejecting seed complexity: " << seed << "\n";
 			return false;
 		}
-		//std::cout << "accepting seed complexity: " << seed << "\n";
 	}
 	return true;
 }
@@ -261,14 +259,8 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 		size_t k = seedInfo.k;
 		size_t matchCount = seedInfo.n;
 		for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
-			//size_t tID = posToTaxon(concat.getSuffixArray()[i], concat.getTaxonCoords(), concat.getConcatenatedSeq().size(), options.reverseComplement);
 			size_t tID = posTaxonArray[i];
 			block.addTaxon(tID, concat.getSuffixArray()[i], concat.getSuffixArray()[i] + k - 1);
-		}
-		for (std::pair<size_t, size_t> extraOcc : seedInfo.extraOccs) {
-			block.addTaxon(
-					posToTaxon(extraOcc.first, concat.getTaxonCoords(), concat.getConcatenatedSeq().size(), options.reverseComplement),
-					extraOcc.first, extraOcc.second);
 		}
 
 		// first check if the current seed candidate is hopeless
@@ -291,7 +283,6 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 		if (options.maxMismatches > 0 && matchCount < concat.nTax()) {
 			std::unordered_set<size_t> taxIDs;
 			for (size_t t = 0; t < matchCount; ++t) {
-				//size_t tID = posToTaxon(concat.getSuffixArray()[sIdx + t], concat.getTaxonCoords(), concat.getConcatenatedSeq().size(), options.reverseComplement);
 				size_t tID = posTaxonArray[sIdx + t];
 				taxIDs.insert(tID);
 			}
@@ -334,9 +325,6 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 						options);
 				bool discardMe = (options.discardUninformativeBlocks && addedExtraMatches == 0
 						&& extendedBlock.getAverageLeftFlankSize() == 0 && extendedBlock.getAverageRightFlankSize() == 0);
-
-				// TODO: Correctly implement extended block trimming, this is needed because of the parallelization
-				//trimExtendedBlock(extendedBlock, presenceChecker, options);
 				if (!discardMe) {
 					presenceChecker.reserveExtendedBlock(extendedBlock);
 					extendedBlocks.push_back(extendedBlock);
@@ -365,7 +353,6 @@ std::pair<size_t, size_t> findKAndNumExactMatches(size_t saPos, const IndexedCon
 			return emptyPair;
 		}
 		size_t tID = posTaxonArray[saPos + i];
-		//size_t tID = posToTaxon(concat.getSuffixArray()[saPos + i], concat.getTaxonCoords(), concat.getConcatSize(), options.reverseComplement);
 		taxIDs.insert(tID);
 		if (i > 0) {
 			minNeighborK = std::min(minNeighborK, concat.getLcpArray()[saPos + i]);
@@ -382,7 +369,6 @@ std::pair<size_t, size_t> findKAndNumExactMatches(size_t saPos, const IndexedCon
 			break;
 		}
 		size_t tID = posTaxonArray[saPos + i];
-		//size_t tID = posToTaxon(concat.getSuffixArray()[saPos + i], concat.getTaxonCoords(), concat.getConcatSize(), options.reverseComplement);
 		taxIDs.insert(tID);
 		if (taxIDs.size() != actMatches + 1) {
 			newMinK = concat.getLcpArray()[saPos + i] + 1;
@@ -434,7 +420,6 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 			// perform simple extension of the seed
 			Seed block(concat.nTax());
 			for (size_t idx = 0; idx < matchCount; ++idx) {
-				//size_t tID = posToTaxon(concat.getSuffixArray()[sIdx + idx], concat.getTaxonCoords(), concat.getConcatenatedSeq().size(), options.reverseComplement);
 				size_t tID = posTaxonArray[sIdx + idx];
 				block.addTaxon(tID, concat.getSuffixArray()[sIdx + idx], concat.getSuffixArray()[sIdx + idx] + k - 1);
 			}
@@ -442,39 +427,12 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 			k = block.getAverageSeedSize();
 
 			SeedInfo info(sIdx, k, matchCount);
-			/*
-			 // Augment the seed with mismatches
-			 if (options.maxMismatches > 0) {
-			 std::unordered_set<size_t> taxIDs;
-			 for (size_t t = 0; t < matchCount; ++t) {
-			 //size_t tID = posToTaxon(concat.getSuffixArray()[sIdx + t], concat.getTaxonCoords(), concat.getConcatenatedSeq().size(), options.reverseComplement);
-			 size_t tID = posTaxonArray[sIdx + t];
-			 taxIDs.insert(tID);
-			 }
-
-			 std::string pattern = concat.getConcatenatedSeq().substr(concat.getSuffixArray()[sIdx], k);
-			 std::vector<std::pair<size_t, size_t> > extraOccs = approxMatcher.findOccurrences(concat.getConcatenatedSeq(),
-			 concat.getSuffixArray(), presenceChecker, pattern, options.maxMismatches, 1, false);
-			 for (size_t i = 0; i < extraOccs.size(); ++i) {
-			 size_t taxID = posToTaxon(extraOccs[i].first, concat.getTaxonCoords(), concat.getConcatenatedSeq().size(),
-			 options.reverseComplement);
-			 if (taxID < concat.nTax() && taxIDs.find(taxID) == taxIDs.end()) {
-			 // check if the extra occurrence is fine
-			 if (extraOccs[i].second >= concat.getConcatenatedSeq().size()) {
-			 continue;
-			 }
-			 info.addExtraOcc(extraOccs[i]);
-			 taxIDs.insert(taxID);
-			 }
-			 }
-			 assert(info.n + info.extraOccs.size() <= concat.nTax());
-			 }*/
 
 #pragma omp critical
 			res.push_back(info);
 			if (options.verboseDebug) {
 #pragma omp critical
-				std::cout << "Pushing back a seeded occurrence with " << info.n + info.extraOccs.size() << " taxa and seed size " << info.k
+				std::cout << "Pushing back a seeded occurrence with " << info.n << " taxa and seed size " << info.k
 						<< "\n";
 			}
 		}
@@ -539,29 +497,6 @@ std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<SeedInf
 	return res;
 }
 
-/*size_t rechooseMinK(const std::vector<SeedInfo>& seedInfos, const Options& options) {
- size_t maxCount = 0;
- std::vector<size_t> seedSizes(500, 0);
- for (size_t i = 0; i < seedInfos.size(); ++i) {
- seedSizes[seedInfos[i].k]++;
- }
- std::cout << "Seed size histogram:\n";
- for (size_t i = 0; i < seedSizes.size(); ++i) {
- if (seedSizes[i] > 0) {
- maxCount = std::max(maxCount, seedSizes[i]);
- std::cout << i << ": " << seedSizes[i] << "\n";
- }
- }
- std::cout << "We'd suggest to discard all seeds with count >= " << maxCount / 2 << ".\n";
- for (size_t i = 0; i < seedSizes.size(); ++i) {
- if (seedSizes[i] > 0 && seedSizes[i] < maxCount / 2) {
- std::cout << "New suggested minK: " << i << ". Ignoring seeds with smaller k now.\n";
- return i;
- }
- }
- return options.minK;
- }*/
-
 void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, ApproximateMatcher& approxMatcher,
 		const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer, SummaryStatistics& stats,
 		const std::vector<uint16_t>& posTaxonArray, const Options& options, size_t minK, size_t maxK, size_t flankWidth) {
@@ -616,16 +551,12 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	std::cout << "Processing seeds...\n";
 	std::sort(seededBlockInfos.begin(), seededBlockInfos.end(), std::greater<SeedInfo>());
 
-	//printSeedSizeHistogram(seededBlockInfos, options);
-
 	if (options.overriddenK) {
 		std::vector<std::pair<size_t, size_t> > seedSizes;
 		seedSizes = countSeedSizes(seededBlockInfos, options);
 		printSeedSizeHistogram(seedSizes);
 		size_t newMinK = elbowMethod(seedSizes, options);
 		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k that this value.\n";
-
-		//size_t newMinK = rechooseMinK(seededBlockInfos, options);
 		minK = newMinK;
 		flankWidth = newMinK; // TODO: maybe remove me again?
 	}

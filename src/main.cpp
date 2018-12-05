@@ -70,6 +70,16 @@ void reportCallback(const Options& options) {
 
 int main(int argc, char* argv[]) {
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+	std::string commandStr = "";
+	for (size_t i = 0; i < argc; ++i) {
+		commandStr += argv[i];
+		if (i < argc - 1) {
+			commandStr += " ";
+		}
+	}
+	std::cout << "Program called with the following arguments: " << commandStr << "\n";
+
 	Options options;
 	CLI::App app { "Program hakmer (\"homology aware k-mers\"): Reads a set of sequences with some homology between them\n"
 			"and identifies \"k-mer blocks\" comprising sets of exact or nearly exact k-mer matches appearing only once\n"
