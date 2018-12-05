@@ -42,6 +42,7 @@ public:
 	size_t minSeedTaxInColumn = 4; // minimum number of taxa in column, needed for seed trimming
 	size_t minSeedSitesKept = 8; // needed for seed trimming
 	bool overriddenK = false;
+	bool discardUninformativeBlocks = true;
 
 	double minSeqDataUsage = 0.01; // minimum amount of overall sequence data to be used, default value: 1 %
 };

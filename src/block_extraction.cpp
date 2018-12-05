@@ -285,6 +285,7 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 			assert(k == block.getSeedCoords(tID).size() + block.getSeedCoords(tID).leftGapSize + block.getSeedCoords(tID).rightGapSize);
 		}
 
+		size_t addedExtraMatches = 0;
 		// now we decided that we'd like to take this seeded block. Augment it with mismatches, then trim it again.
 		// Augment the seed with mismatches
 		if (options.maxMismatches > 0 && matchCount < concat.nTax()) {
@@ -307,6 +308,7 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 						continue;
 					}
 					block.addTaxon(taxID, extraOccs[i].first, extraOccs[i].second);
+					addedExtraMatches++;
 					taxIDs.insert(taxID);
 				}
 			}
@@ -330,11 +332,15 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 				trivialExtensionPartial(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
 				ExtendedBlock extendedBlock = extendBlock(block, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, flankWidth,
 						options);
+				bool discardMe = (options.discardUninformativeBlocks && addedExtraMatches == 0
+						&& extendedBlock.getAverageLeftFlankSize() == 0 && extendedBlock.getAverageRightFlankSize() == 0);
 
 				// TODO: Correctly implement extended block trimming, this is needed because of the parallelization
 				//trimExtendedBlock(extendedBlock, presenceChecker, options);
-				presenceChecker.reserveExtendedBlock(extendedBlock);
-				extendedBlocks.push_back(extendedBlock);
+				if (!discardMe) {
+					presenceChecker.reserveExtendedBlock(extendedBlock);
+					extendedBlocks.push_back(extendedBlock);
+				}
 			}
 		}
 	}

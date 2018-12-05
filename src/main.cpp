@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written."); //->required();
 	app.add_option("-i,--info,--infopath", options.infopath, "Path to the optional run-information file to be written.");
 
-	app.add_option("--flankwidth", options.flankWidth, "Maximum size of flanking sequence kept on each side of k-mer.", true);
+	app.add_option("--flankwidth", options.flankWidth, "Maximum size of flanking sequence kept on each side of a k-mer block.", true);
 
 	app.add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
 	app.add_option("-s,--minSeqData,--minSeqUsage", options.minSeqDataUsage,
