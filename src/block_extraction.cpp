@@ -459,13 +459,20 @@ size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts
 // see https://www.linkedin.com/pulse/finding-optimal-number-clusters-k-means-through-elbow-asanka-perera/
 // see https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 // we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
+
+	size_t minReasonableCount = 100;
+	size_t lastIdx = seedSizeCounts.size() - 1;
+	while (seedSizeCounts[lastIdx].second < minReasonableCount && lastIdx > 0) {
+		lastIdx--;
+	}
+
 	int maxDist = 0;
 	size_t maxDistIdx = 0;
 	int x1 = seedSizeCounts[0].first;
 	int y1 = seedSizeCounts[0].second;
-	int x2 = seedSizeCounts[seedSizeCounts.size() - 1].first;
-	int y2 = seedSizeCounts[seedSizeCounts.size() - 1].second;
-	for (size_t i = 1; i < seedSizeCounts.size() - 1; ++i) { // because the endpoints trivially have distance 0
+	int x2 = seedSizeCounts[lastIdx].first;
+	int y2 = seedSizeCounts[lastIdx].second;
+	for (size_t i = 1; i <= lastIdx; ++i) { // because the endpoints trivially have distance 0
 		int x0 = seedSizeCounts[i].first;
 		int y0 = seedSizeCounts[i].second;
 		int d = std::abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
@@ -475,6 +482,26 @@ size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts
 		}
 	}
 	return seedSizeCounts[maxDistIdx].first;
+}
+
+size_t maxMinKBySeqDataUsage(const IndexedConcatenatedSequence& concat, const std::vector<SeedInfo>& seedInfos, double goal, const std::vector<std::pair<size_t, size_t> >& seedSizeCounts) {
+	size_t maxSeedSize = seedSizeCounts[seedSizeCounts.size() - 1].first;
+	std::vector<size_t> seqDataUsage(maxSeedSize + 1, 0);
+	for (size_t i = 0; i < seedInfos.size(); ++i) {
+		// cont bases covered by a seedInfo
+		size_t basesCovered = seedInfos[i].k * seedInfos[i].n;
+		seqDataUsage[seedInfos[i].k] += basesCovered;
+	}
+	std::vector<size_t> seqDataUsagePrefixSum(maxSeedSize + 1, 0);
+	seqDataUsagePrefixSum[maxSeedSize] = seqDataUsage[maxSeedSize];
+	size_t goalNum = concat.getConcatSize() * goal;
+	for (size_t i = maxSeedSize - 1; i >= 0; i--) {
+		seqDataUsagePrefixSum[i] = seqDataUsagePrefixSum[i + 1] + seqDataUsage[i];
+		if (seqDataUsagePrefixSum[i] >= goalNum) {
+			return i;
+		}
+	}
+	return 0;
 }
 
 void printSeedSizeHistogram(const std::vector<std::pair<size_t, size_t> >& seedSizes) {
@@ -560,6 +587,9 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		std::vector<std::pair<size_t, size_t> > seedSizes;
 		seedSizes = countSeedSizes(seededBlockInfos, options);
 		printSeedSizeHistogram(seedSizes);
+		//size_t maxMinK = maxMinKBySeqDataUsage(concat, seededBlockInfos, options.minSeqDataUsage, seedSizes);
+		//std::cout << "maximal value for minK by taking into account expected seqDataUsage: " << maxMinK << "\n";
+
 		size_t newMinK = elbowMethod(seedSizes, options);
 		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k that this value.\n";
 		minK = newMinK;

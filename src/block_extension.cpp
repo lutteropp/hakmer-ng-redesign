@@ -139,6 +139,7 @@ void trivialExtensionSimple(Seed& seededBlock, const std::string& T, PresenceChe
 		seededBlock.decreaseAllTaxonCoordsLeft();
 	}
 	while (canGoRightAll(seededBlock, presenceChecker, nTax) && allRightSame(seededBlock, T, seededBlock.getTaxonIDsInBlock())) {
+		throw std::runtime_error("Why does this happen??? It is weird.");
 		seededBlock.increaseAllTaxonCoordsRight();
 	}
 }
