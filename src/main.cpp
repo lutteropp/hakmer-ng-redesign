@@ -52,11 +52,11 @@ void matrixCallback(Options& options) {
 	options.flankWidth = options.minK; // TODO: Remove me again.
 
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
-	SummaryStatistics stats;
+	SummaryStatistics stats(concat.nTax());
 	BlockWriter writer(concat.nTax(), options);
 	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, std::numeric_limits<size_t>::max(),
 			options.flankWidth);
-	stats.printSummaryStatistics(concat.nTax(), concat.getSequenceDataSize(), options);
+	stats.printSummaryStatistics(concat, options);
 
 	if (!options.outpath.empty()) {
 		writer.assembleFinalSupermatrix(concat.getTaxonLabels(), options.outpath, options);

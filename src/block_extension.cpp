@@ -132,23 +132,6 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 	}
 }
 
-void trivialExtensionSimple(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax,
-		const Options& options) {
-	while (canGoLeftAll(seededBlock, presenceChecker, nTax) && allLeftSame(seededBlock, T, seededBlock.getTaxonIDsInBlock())) {
-		throw std::runtime_error("This should not be possible! That position should have been skipped!");
-		seededBlock.decreaseAllTaxonCoordsLeft();
-	}
-	while (canGoRightAll(seededBlock, presenceChecker, nTax) && allRightSame(seededBlock, T, seededBlock.getTaxonIDsInBlock())) {
-		throw std::runtime_error("Why does this happen??? It is weird.");
-		seededBlock.increaseAllTaxonCoordsRight();
-	}
-}
-
-void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax, const Options& options) {
-	trivialExtensionSimple(seededBlock, T, presenceChecker, nTax, options);
-	trivialExtensionPartial(seededBlock, T, presenceChecker, nTax, options);
-}
-
 bool canGoLeftAll(const ExtendedBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {

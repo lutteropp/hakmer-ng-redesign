@@ -44,6 +44,6 @@ public:
 	bool overriddenK = false;
 	bool discardUninformativeBlocks = true;
 
-	double minSeqDataUsage = 0.1; // minimum amount of overall sequence data to be used, default value: 10 %
+	double minSeqDataUsage = 0.05; // minimum amount of overall sequence data to be used, default value: 5 %
 };
 

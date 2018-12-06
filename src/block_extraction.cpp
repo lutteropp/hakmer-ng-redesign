@@ -427,12 +427,7 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 
 			if (!canGoLeftAll(block, presenceChecker, concat.nTax())
 					|| !allLeftSame(block, concat.getConcatenatedSeq(), block.getTaxonIDsInBlock())) {
-				trivialExtensionSimple(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-
-				k = block.getAverageSeedSize();
-
 				SeedInfo info(sIdx, k, matchCount);
-
 #pragma omp critical
 				res.push_back(info);
 				if (options.verboseDebug) {
@@ -482,26 +477,6 @@ size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts
 		}
 	}
 	return seedSizeCounts[maxDistIdx].first;
-}
-
-size_t maxMinKBySeqDataUsage(const IndexedConcatenatedSequence& concat, const std::vector<SeedInfo>& seedInfos, double goal, const std::vector<std::pair<size_t, size_t> >& seedSizeCounts) {
-	size_t maxSeedSize = seedSizeCounts[seedSizeCounts.size() - 1].first;
-	std::vector<size_t> seqDataUsage(maxSeedSize + 1, 0);
-	for (size_t i = 0; i < seedInfos.size(); ++i) {
-		// cont bases covered by a seedInfo
-		size_t basesCovered = seedInfos[i].k * seedInfos[i].n;
-		seqDataUsage[seedInfos[i].k] += basesCovered;
-	}
-	std::vector<size_t> seqDataUsagePrefixSum(maxSeedSize + 1, 0);
-	seqDataUsagePrefixSum[maxSeedSize] = seqDataUsage[maxSeedSize];
-	size_t goalNum = concat.getConcatSize() * goal;
-	for (size_t i = maxSeedSize - 1; i >= 0; i--) {
-		seqDataUsagePrefixSum[i] = seqDataUsagePrefixSum[i + 1] + seqDataUsage[i];
-		if (seqDataUsagePrefixSum[i] >= goalNum) {
-			return i;
-		}
-	}
-	return 0;
 }
 
 void printSeedSizeHistogram(const std::vector<std::pair<size_t, size_t> >& seedSizes) {
@@ -587,9 +562,6 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		std::vector<std::pair<size_t, size_t> > seedSizes;
 		seedSizes = countSeedSizes(seededBlockInfos, options);
 		printSeedSizeHistogram(seedSizes);
-		//size_t maxMinK = maxMinKBySeqDataUsage(concat, seededBlockInfos, options.minSeqDataUsage, seedSizes);
-		//std::cout << "maximal value for minK by taking into account expected seqDataUsage: " << maxMinK << "\n";
-
 		size_t newMinK = elbowMethod(seedSizes, options);
 		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k that this value.\n";
 		minK = newMinK;
