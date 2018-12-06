@@ -455,7 +455,7 @@ size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts
 // see https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 // we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
 
-	size_t minReasonableCount = 100;
+	size_t minReasonableCount = 500;
 	size_t lastIdx = seedSizeCounts.size() - 1;
 	while (seedSizeCounts[lastIdx].second < minReasonableCount && lastIdx > 0) {
 		lastIdx--;
@@ -536,6 +536,24 @@ void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, Ap
 	processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
 }
 
+void printHypotheticalBestCaseTaxonCoverage(const IndexedConcatenatedSequence& concat, const std::vector<SeedInfo>& seedInfos, const std::vector<uint16_t>& posTaxonArray) {
+	// if we would ignore overlaps and stuff like this
+	std::vector<size_t> taxUsage(concat.nTax(), 0);
+	for (size_t i = 0; i < seedInfos.size(); ++i) {
+		for (size_t j = 0; j < seedInfos[i].n; ++j) {
+			size_t tID = posTaxonArray[seedInfos[i].saPos + j];
+			taxUsage[tID] += seedInfos[i].k;
+		}
+	}
+
+	std::cout << "\nHypothetical best-case taxon usages if we wouldn't care about overlaps and stuff like this:\n";
+	for (size_t i = 0; i < concat.nTax(); ++i) {
+		double p = ((double) taxUsage[i] * 100) / concat.getTaxonCoords(i).getTotalLength();
+		std::cout << concat.getTaxonLabels()[i] << ": " << p << " %\n";
+	}
+	std::cout << "\n";
+}
+
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK, size_t flankWidth) {
 	PresenceChecker seedingPresenceChecker(presenceChecker);
@@ -562,8 +580,11 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		std::vector<std::pair<size_t, size_t> > seedSizes;
 		seedSizes = countSeedSizes(seededBlockInfos, options);
 		printSeedSizeHistogram(seedSizes);
+
+		printHypotheticalBestCaseTaxonCoverage(concat, seededBlockInfos, posTaxonArray);
+
 		size_t newMinK = elbowMethod(seedSizes, options);
-		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k that this value.\n";
+		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k than this value.\n";
 		minK = newMinK;
 		flankWidth = newMinK; // TODO: maybe remove me again?
 	}
