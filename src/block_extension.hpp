@@ -16,6 +16,9 @@
 #include "extended_block.hpp"
 #include "presence_checker.hpp"
 
+bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax);
+bool allLeftSame(const Seed& seededBlock, const std::string& T, const std::vector<size_t>& taxIDs);
+
 void trivialExtension(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax, const Options& options);
 void trivialExtensionSimple(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax, const Options& options);
 void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceChecker& presenceChecker, size_t nTax, const Options& options);

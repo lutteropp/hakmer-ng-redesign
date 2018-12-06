@@ -206,7 +206,7 @@ bool Seed::allSeedsSameSize() const {
 }
 
 size_t Seed::getSeedSize(size_t taxID) const {
-	return seedCoords[taxID].second + 1 - seedCoords[taxID].first;
+	return seedCoords[taxID].size();
 }
 
 void Seed::increaseTaxonCoordsRight(size_t taxID) {

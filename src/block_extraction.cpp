@@ -417,6 +417,7 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 		if (!skip
 				&& acceptSeedComplexity(sIdx, matchCount, k, concat.nTax(), concat.getSuffixArray(), presenceChecker,
 						concat.getTaxonCoords(), concat.getConcatenatedSeq(), options)) {
+
 			// perform simple extension of the seed
 			Seed block(concat.nTax());
 			for (size_t idx = 0; idx < matchCount; ++idx) {
@@ -424,50 +425,20 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 				block.addTaxon(tID, concat.getSuffixArray()[sIdx + idx], concat.getSuffixArray()[sIdx + idx] + k - 1);
 			}
 
-			// TODO: Remove me again
-			// Do some sanity check
-			for (size_t i = 0; i < matchCount; ++i) {
-				for (size_t j = 0; j < k; ++j) {
-					if (concat.getConcatenatedSeq()[concat.getSuffixArray()[sIdx + i] + j] == '$') {
-						throw std::runtime_error("grummel1");
-					}
-				}
-			}
+			if (!canGoLeftAll(block, presenceChecker, concat.nTax())
+					|| !allLeftSame(block, concat.getConcatenatedSeq(), block.getTaxonIDsInBlock())) {
+				trivialExtensionSimple(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
+
+				k = block.getAverageSeedSize();
+
+				SeedInfo info(sIdx, k, matchCount);
 
 #pragma omp critical
-			trivialExtensionSimple(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-
-			// now lets check if they are all fine
-			for (size_t tID : block.getTaxonIDsInBlock()) {
-				for (size_t x = block.getSeedCoords(tID).first; x <= block.getSeedCoords(tID).second; x++) {
-					if (concat.getConcatenatedSeq()[x] == '$') {
-						throw std::runtime_error("This is not ok");
-					}
-				}
-			}
-
-			k = block.getAverageSeedSize();
-
-			std::cout << "newK is: " << k << "\n";
-
-			// TODO: Remove me again
-			// Do some sanity check
-			for (size_t i = 0; i < matchCount; ++i) {
-				for (size_t j = 0; j < k; ++j) {
-					if (concat.getConcatenatedSeq()[concat.getSuffixArray()[sIdx + i] + j] == '$') {
-						throw std::runtime_error("grummel2");
-					}
-				}
-			}
-
-			SeedInfo info(sIdx, k, matchCount);
-
+				res.push_back(info);
+				if (options.verboseDebug) {
 #pragma omp critical
-			res.push_back(info);
-			if (options.verboseDebug) {
-#pragma omp critical
-				std::cout << "Pushing back a seeded occurrence with " << info.n << " taxa and seed size " << info.k
-						<< "\n";
+					std::cout << "Pushing back a seeded occurrence with " << info.n << " taxa and seed size " << info.k << "\n";
+				}
 			}
 		}
 		double progress = (double) 100 * sIdx / concat.getSuffixArray().size(); // TODO: Fix this, this looks kinda wrong in parallel mode
@@ -485,9 +456,9 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 }
 
 size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts, const Options& options) {
-	// see https://www.linkedin.com/pulse/finding-optimal-number-clusters-k-means-through-elbow-asanka-perera/
-	// see https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-	// we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
+// see https://www.linkedin.com/pulse/finding-optimal-number-clusters-k-means-through-elbow-asanka-perera/
+// see https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+// we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
 	int maxDist = 0;
 	size_t maxDistIdx = 0;
 	int x1 = seedSizeCounts[0].first;
@@ -555,7 +526,7 @@ void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, Ap
 			}
 		}
 	}
-	// process the last buffer
+// process the last buffer
 	std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
 	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
 			flankWidth, posTaxonArray);
@@ -618,7 +589,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	}
 	std::cout << "seqDataUsed: " << seqDataUsed << "\n";
 
-	// TODO: Remove me again, this is just out of curiosity
-	//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-	//std::cout << "We have made " << superseeds.size() << " superseeds out of " << seededBlocks.size() << " seeded blocks.\n";
+// TODO: Remove me again, this is just out of curiosity
+//std::vector<Superseed> superseeds = buildSuperseeds(seededBlocks, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
+//std::cout << "We have made " << superseeds.size() << " superseeds out of " << seededBlocks.size() << " seeded blocks.\n";
 }
