@@ -42,20 +42,16 @@ void matrixCallback(Options& options) {
 	std::cout << "Estimated minK: " << estK << "\n";
 	if (options.minK == 0) {
 		options.minK = estK;
-		options.flankWidth = estK;
 		options.overriddenK = true;
 	}
 	if (options.minK < estK) {
 		std::cout << "WARNING: The provided minK is smaller than the estimated minK value.\n";
 	}
 
-	options.flankWidth = options.minK; // TODO: Remove me again.
-
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats(concat.nTax());
 	BlockWriter writer(concat.nTax(), options);
-	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, std::numeric_limits<size_t>::max(),
-			options.flankWidth);
+	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, std::numeric_limits<size_t>::max());
 	stats.printSummaryStatistics(concat, options);
 
 	if (!options.outpath.empty()) {
@@ -108,8 +104,6 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--redo", options.redo, "Redo the run, overwrite old result files.");
 	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written."); //->required();
 	app.add_option("-i,--info,--infopath", options.infopath, "Path to the optional run-information file to be written.");
-
-	app.add_option("--flankwidth", options.flankWidth, "Maximum size of flanking sequence kept on each side of a k-mer block.", true);
 
 	app.add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
 	app.add_option("-s,--minSeqData,--minSeqUsage", options.minSeqDataUsage,

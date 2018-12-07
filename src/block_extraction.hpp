@@ -20,4 +20,4 @@
 #include "summary_stats.hpp"
 
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
-		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK, size_t flankWidth);
+		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK);

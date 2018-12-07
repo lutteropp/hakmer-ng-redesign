@@ -246,7 +246,7 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 }
 
 std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfoBuffer, const IndexedConcatenatedSequence& concat,
-		PresenceChecker& presenceChecker, const Options& options, ApproximateMatcher& approxMatcher, size_t flankWidth,
+		PresenceChecker& presenceChecker, const Options& options, ApproximateMatcher& approxMatcher,
 		const std::vector<uint16_t>& posTaxonArray) {
 	std::vector<ExtendedBlock> extendedBlocks;
 
@@ -315,13 +315,14 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 		// Final trimming and adding, this time in critical mode
 #pragma omp critical
 		{
+			size_t oldSeedSize = block.getAverageSeedSize();
 			trimSeededBlock(block, presenceChecker, options);
 			trimSeededBlockExtra(block, presenceChecker, options);
 
 			if (block.getNTaxInBlock() >= options.minTaxaPerBlock) { // we need this extra check because in parallel mode, our taxa in the block could get invalidated all the time
 				// Partially extend the seed
 				trivialExtensionPartial(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-				ExtendedBlock extendedBlock = extendBlock(block, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, flankWidth,
+				ExtendedBlock extendedBlock = extendBlock(block, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, oldSeedSize,
 						options);
 				bool discardMe = (options.discardUninformativeBlocks && addedExtraMatches == 0
 						&& extendedBlock.getAverageLeftFlankSize() == 0 && extendedBlock.getAverageRightFlankSize() == 0);
@@ -339,7 +340,6 @@ std::pair<size_t, size_t> findKAndNumExactMatches(size_t saPos, const IndexedCon
 		size_t minK, const Options& options, const std::vector<uint16_t>& posTaxonArray) {
 	std::pair<size_t, size_t> emptyPair = std::make_pair(0, 0);
 	size_t kStart = std::max(minK, concat.getLcpArray()[saPos] + 1);
-
 	if ((concat.getSuffixArray()[saPos] + kStart >= concat.getConcatenatedSeq().size())
 			|| (!presenceChecker.isFree(concat.getSuffixArray()[saPos], concat.getSuffixArray()[saPos] + kStart - 1))) {
 		return emptyPair;
@@ -506,7 +506,7 @@ std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<SeedInf
 
 void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, ApproximateMatcher& approxMatcher,
 		const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer, SummaryStatistics& stats,
-		const std::vector<uint16_t>& posTaxonArray, const Options& options, size_t minK, size_t maxK, size_t flankWidth) {
+		const std::vector<uint16_t>& posTaxonArray, const Options& options, size_t minK, size_t maxK) {
 	std::vector<SeedInfo> buffer;
 	size_t lastN = seededBlockInfos[0].n;
 	buffer.push_back(seededBlockInfos[0]);
@@ -517,8 +517,7 @@ void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, Ap
 			}
 		} else {
 			std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
-			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
-					flankWidth, posTaxonArray);
+			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher, posTaxonArray);
 			std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
 			processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
 			buffer.clear();
@@ -530,8 +529,7 @@ void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, Ap
 	}
 // process the last buffer
 	std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
-	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
-			flankWidth, posTaxonArray);
+	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher, posTaxonArray);
 	std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
 	processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat);
 }
@@ -555,7 +553,7 @@ void printHypotheticalBestCaseTaxonCoverage(const IndexedConcatenatedSequence& c
 }
 
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
-		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK, size_t flankWidth) {
+		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK) {
 	PresenceChecker seedingPresenceChecker(presenceChecker);
 	size_t initialMinK = minK;
 	std::cout << "Precomputing posToTaxon array...\n";
@@ -586,13 +584,11 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		size_t newMinK = elbowMethod(seedSizes, options);
 		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k than this value.\n";
 		minK = newMinK;
-		flankWidth = newMinK; // TODO: maybe remove me again?
 	}
 
 	ApproximateMatcher approxMatcher(options.mismatchesOnly);
 
-	selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray, options, minK, maxK,
-			flankWidth);
+	selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray, options, minK, maxK);
 
 	double seqDataUsed = stats.getAmountSeqDataUsed(concat.getSequenceDataSize());
 	while (seqDataUsed < options.minSeqDataUsage) {
@@ -602,7 +598,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		if (newMinK != minK) {
 			std::cout << "Using new value for minK: " << newMinK << "\n";
 			selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray, options,
-					newMinK, minK - 1, newMinK);
+					newMinK, minK - 1);
 			minK = newMinK;
 		} else {
 			std::cout << "Unfortunately, a smaller minK value makes not much sense. :-(\n";

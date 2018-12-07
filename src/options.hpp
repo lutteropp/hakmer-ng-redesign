@@ -24,8 +24,6 @@ public:
 	bool proteinData = false;
 
 	bool redo = false;
-
-	size_t flankWidth = 50;
 	size_t minTaxaPerBlock = 4;
 	size_t maxMismatches = 1;
 
