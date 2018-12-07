@@ -29,6 +29,8 @@ public:
 	size_t minTaxaPerBlock = 4;
 	size_t maxMismatches = 1;
 
+	double minSeqDataUsage = 0.01; // minimum amount of overall sequence data to be used, default value: 1 %
+
 	// internal parameters
 	bool verboseDebug = false;
 	size_t minK = 0;
@@ -43,7 +45,5 @@ public:
 	size_t minSeedSitesKept = 4; // needed for seed trimming
 	bool overriddenK = false;
 	bool discardUninformativeBlocks = true;
-
-	double minSeqDataUsage = 0.01; // minimum amount of overall sequence data to be used, default value: 1 %
 };
 
