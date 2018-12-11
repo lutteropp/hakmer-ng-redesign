@@ -18,6 +18,7 @@ class BlockWriter {
 public:
 	BlockWriter(size_t nTax, const Options& options);
 	void writeTemporaryBlockMSA(ExtendedBlock& block, const std::string& T, size_t nTax, const Options& options);
+	void writeTemporaryBlockMSA(const std::vector<std::string>& msa, size_t nTax);
 	void assembleFinalSupermatrix(const std::vector<std::string>& taxonLabels, const std::string& outpath, const Options& options);
 private:
 	void deleteTemporaryFiles(const Options& options);

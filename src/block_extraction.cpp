@@ -8,6 +8,7 @@
 #include "block_extraction.hpp"
 #include "dna_functions.hpp"
 #include "indexing/approx_matching.hpp"
+#include "alignment/simple_msa.hpp"
 
 #include <unordered_set>
 #include <cmath>
@@ -237,10 +238,12 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 #pragma omp parallel for
 	for (size_t i = 0; i < extendedBlockBuffer.size(); ++i) {
 		ExtendedBlock extendedBlock = extendedBlockBuffer[i];
+		std::vector<std::string> msa = computeMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
 #pragma omp critical
 		stats.updateSummaryStatistics(extendedBlock, concat.nTax());
 		if (!options.outpath.empty()) {
-			writer.writeTemporaryBlockMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
+			writer.writeTemporaryBlockMSA(msa, concat.nTax());
+			//writer.writeTemporaryBlockMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
 		}
 	}
 }

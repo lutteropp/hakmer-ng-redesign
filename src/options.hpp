@@ -43,5 +43,7 @@ public:
 	size_t minSeedSitesKept = 4; // needed for seed trimming
 	bool overriddenK = false;
 	bool discardUninformativeBlocks = true;
+
+	bool postponeMismatchAugmentation = true;
 };
 
