@@ -24,8 +24,11 @@ public:
 	bool isFree(size_t coord) const;
 	void setTaken(size_t firstCoord, size_t lastCoord);
 	void setTaken(size_t coord);
+	void setFree(size_t firstCoord, size_t lastCoord);
+	void setFree(size_t coord);
 	void reserveSeededBlock(const Seed& block);
 	void reserveExtendedBlock(const ExtendedBlock& block);
+	void freeExtendedBlock(const ExtendedBlock& block);
 
 	bool isFine(const ExtendedBlock& block);
 	bool isFineWithoutSeed(const ExtendedBlock& block);

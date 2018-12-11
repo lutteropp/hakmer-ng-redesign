@@ -127,3 +127,7 @@ std::vector<SimpleCoords> ExtendedBlock::getRightFlankCoords() const {
 size_t ExtendedBlock::getSizeWithFlanks(size_t tID) const {
 	return leftFlankCoords[tID].size() + mySeededBlock.getSeedSize(tID) + rightFlankCoords[tID].size();
 }
+
+const Seed& ExtendedBlock::getMySeededBlock() const {
+	return mySeededBlock;
+}

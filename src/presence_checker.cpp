@@ -63,9 +63,22 @@ void PresenceChecker::setTaken(size_t coord) {
 	freePos[coord] = false;
 }
 
+void PresenceChecker::setFree(size_t coord) {
+	if (revComp && coord >= freePos.size()) {
+		coord = freePos.size() - coord - 1;
+	}
+	freePos[coord] = true;
+}
+
 void PresenceChecker::setTaken(size_t firstCoord, size_t lastCoord) {
 	for (size_t i = firstCoord; i <= lastCoord; ++i) {
 		setTaken(i);
+	}
+}
+
+void PresenceChecker::setFree(size_t firstCoord, size_t lastCoord) {
+	for (size_t i = firstCoord; i <= lastCoord; ++i) {
+		setFree(i);
 	}
 }
 
@@ -87,6 +100,14 @@ void PresenceChecker::reserveExtendedBlock(const ExtendedBlock& block) {
 	}
 }
 
+void PresenceChecker::freeExtendedBlock(const ExtendedBlock& block) {
+	for (size_t i = 0; i < nTax; ++i) {
+		if (block.hasTaxon(i)) {
+			std::pair<size_t, size_t> coords = block.getTaxonCoordsWithFlanks(i);
+			setFree(coords.first, coords.second);
+		}
+	}
+}
 bool PresenceChecker::isFine(const ExtendedBlock& block) {
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
