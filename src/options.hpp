@@ -25,13 +25,11 @@ public:
 
 	bool redo = false;
 	size_t minTaxaPerBlock = 4;
-	size_t maxMismatches = 1;
 
 	double minSeqDataUsage = 0.01; // minimum amount of overall sequence data to be used, default value: 1 %
 
 	// internal parameters
 	bool verboseDebug = false;
-	size_t minK = 0;
 	bool externalIndexing = false;
 	bool lowComplexity = false; // keep low complexity k-mers?
 	size_t maxAllowedSuperseedDistance = 50;
@@ -41,11 +39,8 @@ public:
 	bool mismatchesOnly = true; // allow only mismatches in the seeds - this means we don't need to run a MSA on them.
 	size_t minSeedTaxInColumn = 4; // minimum number of taxa in column, needed for seed trimming
 	size_t minSeedSitesKept = 4; // needed for seed trimming
-	bool overriddenK = false;
 	bool discardUninformativeBlocks = true;
 
 	double maxSubstitutionRate = 0.2;
-
-	bool postponeMismatchAugmentation = true;
 };
 

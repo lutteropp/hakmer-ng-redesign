@@ -40,18 +40,11 @@ void matrixCallback(Options& options) {
 	IndexedConcatenatedSequence concat = readConcat(options);
 	size_t estK = estimateMinK(concat);
 	std::cout << "Estimated minK: " << estK << "\n";
-	if (options.minK == 0) {
-		options.minK = estK;
-		options.overriddenK = true;
-	}
-	if (options.minK < estK) {
-		std::cout << "WARNING: The provided minK is smaller than the estimated minK value.\n";
-	}
 
 	PresenceChecker presenceChecker(concat, options.reverseComplement);
 	SummaryStatistics stats(concat.nTax());
 	BlockWriter writer(concat.nTax(), options);
-	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, options.minK, std::numeric_limits<size_t>::max());
+	extractExtendedBlocks(concat, presenceChecker, writer, stats, options, estK, std::numeric_limits<size_t>::max());
 	stats.printSummaryStatistics(concat, options);
 
 	if (!options.outpath.empty()) {
@@ -95,8 +88,6 @@ int main(int argc, char* argv[]) {
 	app.add_flag("--debug,--verboseDebug", options.verboseDebug, "Print debug output.");
 	auto revCompOption = app.add_flag("--revcomp,-r", options.reverseComplement, "Also consider reverse-complement matches of DNA data.");
 	app.add_flag("--protein", options.proteinData, "The sequences are protein data instead of DNA data.")->excludes(revCompOption);
-	app.add_option("-k,--kmin,--minK,", options.minK, "Minimum kmer seed size.");
-	app.add_option("-q,--mismatches", options.maxMismatches, "Maximum number of mismatches in a k-mer block seed.", true);
 
 	size_t nThreads = 0;
 	app.add_option("-t,--threads", nThreads, "Maximum number of threads to use.");

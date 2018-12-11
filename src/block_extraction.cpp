@@ -272,7 +272,7 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 		ExtendedBlock block = extendedBlockBuffer[i];
 		std::vector<std::string> msa = computeMSA(block, concat.getConcatenatedSeq(), concat.nTax(), options);
 
-		if (options.postponeMismatchAugmentation && block.getNTaxInBlock() < concat.nTax()) {
+		if (block.getNTaxInBlock() < concat.nTax()) {
 			double subRate = averageSubstitutionRate(msa);
 
 			if (subRate > options.maxSubstitutionRate) {
@@ -306,7 +306,7 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 				size_t k = coords.leftGapSize + coords.rightGapSize + coords.size();
 				maxMismatches = k * subRate;
 				std::vector<std::pair<size_t, size_t> > extraOccs = approxMatcher.findOccurrences(concat.getConcatenatedSeq(),
-						concat.getSuffixArray(), presenceChecker, pattern, options.maxMismatches, 1, false);
+						concat.getSuffixArray(), presenceChecker, pattern, maxMismatches, 1, false);
 
 				Seed newSeed = block.getMySeededBlock();
 
@@ -397,39 +397,6 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 		}
 
 		size_t addedExtraMatches = 0;
-		// now we decided that we'd like to take this seeded block. Augment it with mismatches, then trim it again.
-		// Augment the seed with mismatches
-		if (!options.postponeMismatchAugmentation && options.maxMismatches > 0 && matchCount < concat.nTax()) {
-			std::unordered_set<size_t> taxIDs;
-			for (size_t t = 0; t < matchCount; ++t) {
-				size_t tID = posTaxonArray[sIdx + t];
-				taxIDs.insert(tID);
-			}
-
-			std::string pattern = concat.getConcatenatedSeq().substr(concat.getSuffixArray()[sIdx], k);
-			std::vector<std::pair<size_t, size_t> > extraOccs = approxMatcher.findOccurrences(concat.getConcatenatedSeq(),
-					concat.getSuffixArray(), presenceChecker, pattern, options.maxMismatches, 1, false);
-			for (size_t i = 0; i < extraOccs.size(); ++i) {
-				size_t taxID = posToTaxon(extraOccs[i].first, concat.getTaxonCoords(), concat.getConcatenatedSeq().size(),
-						options.reverseComplement);
-				if (taxID < concat.nTax() && taxIDs.find(taxID) == taxIDs.end()) {
-					// check if the extra occurrence is fine
-					if (extraOccs[i].second >= concat.getConcatenatedSeq().size()) {
-						continue;
-					}
-					block.addTaxon(taxID, extraOccs[i].first, extraOccs[i].second);
-					addedExtraMatches++;
-					taxIDs.insert(taxID);
-				}
-			}
-			trimSeededBlock(block, presenceChecker, options);
-
-			if (block.getNTaxInBlock() < options.minTaxaPerBlock) {
-				continue; // this can happen in parallel mode, because some other block could have been taken in the meantime.
-			}
-		}
-
-		// TODO: If we want to extend the block already here, then we need a trimExtendedBlock function.
 
 		// Final trimming and adding, this time in critical mode
 #pragma omp critical
@@ -696,7 +663,6 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	std::cout << "Processing seeds...\n";
 	std::sort(seededBlockInfos.begin(), seededBlockInfos.end(), std::greater<SeedInfo>());
 
-	if (options.overriddenK) {
 		std::vector<std::pair<size_t, size_t> > seedSizes;
 		seedSizes = countSeedSizes(seededBlockInfos, options);
 		printSeedSizeHistogram(seedSizes);
@@ -706,8 +672,6 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		size_t newMinK = elbowMethod(seedSizes, options);
 		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k than this value.\n";
 		minK = newMinK;
-	}
-
 	ApproximateMatcher approxMatcher(options.mismatchesOnly);
 
 	selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray, options, minK, maxK);
