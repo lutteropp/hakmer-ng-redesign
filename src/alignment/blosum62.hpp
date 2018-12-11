@@ -11,17 +11,25 @@
 #include <vector>
 
 // values taken from: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3904525/
-const int GAP_OPEN_PENALTY = -2;
-const int GAP_EXTENSION_PENALTY = -9;
+const int GAP_OPEN_PENALTY = 2;
+const int GAP_EXTENSION_PENALTY = 9;
 
 class Blosum62 {
 public:
-	Blosum62();
+	static Blosum62& getInstance() {
+		static Blosum62 instance; // Guaranteed to be destroyed.
+		// Instantiated on first use.
+		return instance;
+	}
+	Blosum62(Blosum62 const&) = delete;
+	void operator=(Blosum62 const&) = delete;
+
 	int getSubstitutionPenalty(char a, char b) const;
 	int getGapOpenPenalty() const;
 	int getGapExtendPenalty() const;
 	int getGapPenalty() const;
 private:
+	Blosum62();
 	std::vector<std::vector<int> > entries;
 	std::unordered_map<char, size_t> proteinMapping;
 };
@@ -74,4 +82,11 @@ Blosum62::Blosum62() {
 	entries[21] = {-1, 0, 0, 1, -3, 3, 4, -2, 0, -3, -3, 1, -1, -3, -1, 0, -1, -3, -2, -2, 1, 4, -1, -4};
 	entries[22] = {0, -1, -1, -1, -2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -2, 0, 0, -2, -1, -1, -1, -1, -1, -4};
 	entries[23] = {-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, 1};
+
+	// as we are using penalties, we have to take everything times -1 here
+	for (size_t i = 0; i < entries.size(); ++i) {
+		for (size_t j = 0; j < entries[i].size(); ++j) {
+			entries[i][j] *= -1;
+		}
+	}
 }
