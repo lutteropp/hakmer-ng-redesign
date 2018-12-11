@@ -44,6 +44,8 @@ public:
 	bool overriddenK = false;
 	bool discardUninformativeBlocks = true;
 
+	double maxSubstitutionRate = 0.2;
+
 	bool postponeMismatchAugmentation = true;
 };
 

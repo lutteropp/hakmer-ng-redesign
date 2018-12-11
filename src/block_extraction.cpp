@@ -274,9 +274,15 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 
 		if (options.postponeMismatchAugmentation && block.getNTaxInBlock() < concat.nTax()) {
 			double subRate = averageSubstitutionRate(msa);
-			/*#pragma omp critical
-			 std::cout << "subRate: " << subRate << "\n";
-			 */
+
+			if (subRate > options.maxSubstitutionRate) {
+#pragma omp critical
+				presenceChecker.freeExtendedBlock(block); // discard the block if the substitution rate is very high
+				continue;
+			}
+
+			//#pragma omp critical
+			// std::cout << "subRate: " << subRate << "\n";
 			// augment the block with approximate matches
 			size_t maxMismatches = block.getAverageSeedSize() * subRate;
 
@@ -321,6 +327,7 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 				if (newSeed.getNTaxInBlock() == block.getNTaxInBlock()) { // no new approximate seeds added -> no work to do.
 					continue;
 				}
+#pragma omp critical
 				presenceChecker.freeExtendedBlock(block);
 
 				trimSeededBlock(newSeed, presenceChecker, options);
@@ -340,12 +347,8 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 						trivialExtensionPartial(newSeed, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
 						ExtendedBlock extendedBlock = extendBlock(newSeed, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker,
 								oldSeedSize, options);
-						bool discardMe = (options.discardUninformativeBlocks && extendedBlock.getAverageLeftFlankSize() == 0
-								&& extendedBlock.getAverageRightFlankSize() == 0);
-						if (!discardMe) {
-							presenceChecker.reserveExtendedBlock(extendedBlock);
-							block = extendedBlock;
-						}
+						presenceChecker.reserveExtendedBlock(extendedBlock);
+						block = extendedBlock;
 					}
 				}
 				msa = computeMSA(block, concat.getConcatenatedSeq(), concat.nTax(), options);
@@ -636,8 +639,7 @@ void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, Ap
 			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
 					posTaxonArray);
 			std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
-			processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher, presenceChecker,
-					posTaxonArray);
+			processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher, presenceChecker, posTaxonArray);
 			buffer.clear();
 			lastN = seededBlockInfos[i].n;
 			if (seededBlockInfos[i].k >= minK && seededBlockInfos[i].k <= maxK) {
@@ -650,8 +652,7 @@ void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, Ap
 	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
 			posTaxonArray);
 	std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
-	processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher, presenceChecker,
-						posTaxonArray);
+	processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher, presenceChecker, posTaxonArray);
 }
 
 void printHypotheticalBestCaseTaxonCoverage(const IndexedConcatenatedSequence& concat, const std::vector<SeedInfo>& seedInfos,
