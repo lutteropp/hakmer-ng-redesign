@@ -196,7 +196,7 @@ void printInputStatistics(const std::string& filepath, bool contigs) {
 	}
 }
 
-IndexedConcatenatedSequence readConcat(const Options& options) {
+IndexedConcatenatedSequence readConcat(Options& options) {
 	std::vector<IndexedTaxonCoords> coords;
 
 	size_t coordOffset = 0;
@@ -231,13 +231,30 @@ IndexedConcatenatedSequence readConcat(const Options& options) {
 			concat += "$";
 		}
 	}
+	bool protein = false;
+	std::unordered_set<char> proteinOnlyChars = { 'Q', 'E', 'I', 'L', 'F', 'P' };
+	std::unordered_set<char> dnaOnlyChars = { 'U', 'B', 'Z' };
+	for (size_t i = 0; i < concat.size(); ++i) {
+		if (proteinOnlyChars.find(concat[i]) != proteinOnlyChars.end()) {
+			protein = true;
+			break;
+		}
+		if (dnaOnlyChars.find(concat[i]) != dnaOnlyChars.end()) {
+			protein = false;
+			break;
+		}
+	}
+
+	if (protein) {
+		options.reverseComplement = false;
+	}
 
 	if (options.reverseComplement) {
 		// reverse complement the entire concat
 		concat += revComp(concat);
 	}
 
-	IndexedConcatenatedSequence res(concat, coords, options);
+	IndexedConcatenatedSequence res(concat, coords, protein, options);
 	return res;
 }
 

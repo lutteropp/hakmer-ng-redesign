@@ -21,7 +21,6 @@ public:
 	bool noIndels = false;
 	bool verbose = false;
 	bool reverseComplement = false;
-	bool proteinData = false;
 
 	bool redo = false;
 	size_t minTaxaPerBlock = 4;
@@ -41,6 +40,6 @@ public:
 	size_t minSeedSitesKept = 4; // needed for seed trimming
 	bool discardUninformativeBlocks = true;
 
-	double maxSubstitutionRate = 0.1;
+	double maxSubstitutionRate = 0.3;
 };
 

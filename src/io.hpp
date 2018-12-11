@@ -61,7 +61,7 @@ FASTARecord readNextFASTA(std::ifstream& infile);
 // read files containing FASTA contigs
 // ---> into an IndexedConcatenatedSequence. (Also taking into account the reverse-complement if activated)
 
-IndexedConcatenatedSequence readConcat(const Options& options);
+IndexedConcatenatedSequence readConcat(Options& options);
 void printInputStatistics(const std::string& filepath, bool contigs);
 
 // write FASTA supermatrix

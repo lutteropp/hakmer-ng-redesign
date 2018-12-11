@@ -51,7 +51,7 @@ bool IndexedTaxonCoords::contains(size_t pos) const {
 	return false;
 }
 
-IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords,
+IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords, bool protein,
 		const Options& options) {
 	concatenatedSeq = seq;
 	taxonCoords = coords;
@@ -68,6 +68,7 @@ IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq,
 			sequenceDataSize++;
 		}
 	}
+	proteinData = protein;
 }
 
 size_t IndexedConcatenatedSequence::getSequenceDataSize() const {
@@ -101,4 +102,8 @@ const std::vector<std::string>& IndexedConcatenatedSequence::getTaxonLabels() co
 
 const std::vector<IndexedTaxonCoords>& IndexedConcatenatedSequence::getTaxonCoords() const {
 	return taxonCoords;
+}
+
+bool IndexedConcatenatedSequence::isProtein() const {
+	return proteinData;
 }
