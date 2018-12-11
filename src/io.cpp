@@ -233,14 +233,9 @@ IndexedConcatenatedSequence readConcat(Options& options) {
 	}
 	bool protein = false;
 	std::unordered_set<char> proteinOnlyChars = { 'Q', 'E', 'I', 'L', 'F', 'P' };
-	std::unordered_set<char> dnaOnlyChars = { 'U', 'B', 'Z' };
 	for (size_t i = 0; i < concat.size(); ++i) {
 		if (proteinOnlyChars.find(concat[i]) != proteinOnlyChars.end()) {
 			protein = true;
-			break;
-		}
-		if (dnaOnlyChars.find(concat[i]) != dnaOnlyChars.end()) {
-			protein = false;
 			break;
 		}
 	}
