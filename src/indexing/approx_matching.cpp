@@ -452,7 +452,7 @@ size_t firstSAIndex(const std::string& pattern, const std::string& text, const s
 	size_t l, h, mid, pos;
 	size_t m = pattern.size();
 	l = 0;
-	h = text.size() - 1;
+	h = SA.size() - 1;
 	while (l < h) { // find lower bound
 		mid = l + (h - l) / 2; // calculate it this way to avoid overflows instead of (l+h)/2
 		pos = SA[mid];

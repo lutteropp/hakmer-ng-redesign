@@ -359,12 +359,22 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 				}
 
 				std::vector<std::pair<size_t, size_t> > extraOccs;
-				for (size_t errors = 1; errors <= maxMismatches; errors++) {
-					std::vector<std::pair<size_t, size_t> > eOccs = approxMatcher.findFewOccurrences(concat.getConcatenatedSeq(),
-							concat.getSuffixArray(), concat.getLcpArray(), presenceChecker, pattern, errors,
-							std::max(errors - 1, (size_t) 1), false, concat, taxPresence);
-					for (size_t eIdx = 0; eIdx < eOccs.size(); ++eIdx) {
-						extraOccs.push_back(eOccs[eIdx]);
+				// do it on a per-taxon basis
+
+				for (size_t taxonID = 0; taxonID < concat.nTax(); taxonID++) {
+					if (block.hasTaxon(taxonID)) {
+						continue;
+					}
+					for (size_t errors = 1; errors <= maxMismatches; errors++) {
+						std::vector<std::pair<size_t, size_t> > eOccs = approxMatcher.findFewOccurrences(concat.getConcatenatedSeq(),
+								concat.getSuffixArray(taxonID), concat.getLcpArray(taxonID), presenceChecker, pattern, errors,
+								std::max(errors - 1, (size_t) 1), false, concat, taxPresence);
+						for (size_t eIdx = 0; eIdx < eOccs.size(); ++eIdx) {
+							extraOccs.push_back(eOccs[eIdx]);
+						}
+						if (taxPresence[taxonID] >= 2) {
+							break;
+						}
 					}
 				}
 

@@ -28,6 +28,7 @@ public:
 	double minSeqDataUsage = 0.01; // minimum amount of overall sequence data to be used, default value: 1 %
 
 	// internal parameters
+	bool proteinData = false;
 	bool verboseDebug = false;
 	bool externalIndexing = false;
 	bool lowComplexity = false; // keep low complexity k-mers?

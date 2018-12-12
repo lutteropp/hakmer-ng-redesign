@@ -242,6 +242,7 @@ IndexedConcatenatedSequence readConcat(Options& options) {
 
 	if (protein) {
 		options.reverseComplement = false;
+		options.proteinData = true;
 	}
 
 	if (options.reverseComplement) {
