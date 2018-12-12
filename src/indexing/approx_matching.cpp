@@ -493,6 +493,18 @@ size_t exactMatches(const std::string& pattern, const std::string& text, std::ve
 	return matches.size();
 }
 
+size_t exactMatches(const std::string& pattern, const std::string& text, std::vector<size_t> &matches, const std::vector<size_t>& SA,
+		const IndexedConcatenatedSequence& concat, const std::vector<size_t>& taxPresence) {
+	std::pair<size_t, size_t> bl;
+	binarySearch3Prime(pattern, bl, text, SA);
+	for (size_t i = bl.first; i <= bl.second; ++i) {
+		if (taxPresence[concat.posToTaxon(SA[i])] < 2) {
+			matches.push_back(SA[i]);
+		}
+	}
+	return matches.size();
+}
+
 std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findOccurrences(const std::string& seq, const std::vector<size_t>& SA,
 		PresenceChecker& checker, const std::string& pattern, size_t maxErrors, size_t minErrors, bool keepOverlaps) {
 	std::vector<std::pair<size_t, size_t> > result;
@@ -531,6 +543,63 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findOccurrences(cons
 					std::vector<std::pair<size_t, size_t> > occsFullPattern = rightExtend(j, subpatterns, posJ, maxErrors - e.errors, e.pos,
 							minErrors - errors, seq);
 //#pragma omp critical
+					addAll(res, occsFullPattern);
+				}
+			}
+		}
+	}
+
+	addAll(result, res);
+	std::sort(result.begin(), result.end());
+
+	return result;
+}
+
+std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findFewOccurrences(const std::string& seq, const std::vector<size_t>& SA,
+		PresenceChecker& checker, const std::string& pattern, size_t maxErrors, size_t minErrors, bool keepOverlaps,
+		const IndexedConcatenatedSequence& concat, std::vector<size_t>& taxPresence) {
+	std::vector<std::pair<size_t, size_t> > result;
+	std::unordered_set<std::pair<size_t, size_t>, pair_hash> res;
+// split the pattern into maxMismatches + 2 parts
+	std::vector<std::string> subpatterns;
+	subpatterns.resize(maxErrors + 2);
+	for (size_t i = 0; i < maxErrors + 2; ++i) {
+		size_t beginPos = pattern.size() * i / (maxErrors + 2);
+		size_t endPos = pattern.size() * (i + 1) / (maxErrors + 2);
+		subpatterns[i] = pattern.substr(beginPos, endPos - beginPos);
+	}
+
+	for (size_t j = 1; j < maxErrors + 2; ++j) { // iterate over possible parts for P_j
+		std::vector<size_t> positionsPj;
+		exactMatches(subpatterns[j], seq, positionsPj, SA, concat, taxPresence);
+		// search parts preceding P_j with at most one error, until a part is found exactly (this is P_i) -> via backtracking!
+		// this gives us occurrences of P_i...P_j with exactly j-i-1 errors
+		for (size_t posJIdx = 0; posJIdx < positionsPj.size(); ++posJIdx) {
+			size_t posJ = positionsPj[posJIdx];
+			// optimization: stop the search if the position is already taken by some other occurrence
+			if (alreadyTaken(checker, posJ, subpatterns[j].size())) {
+				continue;
+			}
+			// second optimization: stop the searxg if this taxon has already been found often enough
+			if (taxPresence[concat.posToTaxon(posJ)] > 2) {
+				continue;
+			}
+			std::vector<Occ> occsPi = leftUntilExact(j, posJ, subpatterns, seq);
+			// do left-extension to find P_1...P_{i-1} with at most i-1 errors
+			// this gives us the occurrences of P_1...P_j with e errors
+			for (Occ occI : occsPi) {
+				size_t errors = j - occI.i - 1;
+				std::vector<ErrorOcc> occsP1Pj = leftExtend(occI.i, subpatterns, occI.begin, seq);
+				// do right-extension: e errors in P_1...P_j -> <= k-e errors in P_{j+1}...P_{k+2}
+				for (ErrorOcc e : occsP1Pj) {
+					errors += e.errors;
+
+					std::vector<std::pair<size_t, size_t> > occsFullPattern = rightExtend(j, subpatterns, posJ, maxErrors - e.errors, e.pos,
+							minErrors - errors, seq);
+					// update taxon presences
+					for (size_t occIdx = 0; occIdx < occsFullPattern.size(); ++occIdx) {
+						taxPresence[concat.posToTaxon(occsFullPattern[occIdx].first)]++;
+					}
 					addAll(res, occsFullPattern);
 				}
 			}

@@ -333,10 +333,9 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 #pragma omp parallel for reduction(+:newlyAddedBlocks)
 	for (size_t i = 0; i < extendedBlockBuffer.size(); ++i) {
 		ExtendedBlock block = extendedBlockBuffer[i];
-		std::vector<std::string> msa = computeMSA(block, concat.getConcatenatedSeq(), concat.nTax(), options);
 
 		if (block.getNTaxInBlock() < concat.nTax()) {
-			double subRate = averageSubstitutionRate(msa);
+			double subRate = block.getSubRate();
 
 			if (subRate > options.maxAvgSubstitutionRate) {
 #pragma omp critical
@@ -354,8 +353,12 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 
 				std::string pattern = concat.getConcatenatedSeq().substr(concat.getSuffixArray()[block.getMySeededBlock().mySeedInfo.saPos],
 						k);
-				std::vector<std::pair<size_t, size_t> > extraOccs = approxMatcher.findOccurrences(concat.getConcatenatedSeq(),
-						concat.getSuffixArray(), presenceChecker, pattern, maxMismatches, 1, false);
+				std::vector<size_t> taxPresence(concat.nTax(), 0);
+				for (size_t tID : block.getTaxonIDsInBlock()) {
+					taxPresence[tID]+= 2; // in order not to search for approx matches in the taxa we already have with exact matches
+				}
+				std::vector<std::pair<size_t, size_t> > extraOccs = approxMatcher.findFewOccurrences(concat.getConcatenatedSeq(),
+						concat.getSuffixArray(), presenceChecker, pattern, maxMismatches, 1, false, concat, taxPresence);
 				if (extraOccs.size() > 0) {
 #pragma omp critical
 					{
@@ -365,14 +368,12 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 							presenceChecker.reserveExtendedBlock(block);
 						}
 					}
-					if (block.getNTaxInBlock() >= options.minTaxaPerBlock) {
-						msa = computeMSA(block, concat.getConcatenatedSeq(), concat.nTax(), options);
-					}
 				}
 			}
 		}
 
 		if (block.getNTaxInBlock() >= options.minTaxaPerBlock) {
+			std::vector<std::string> msa = computeMSA(block, concat.getConcatenatedSeq(), concat.nTax(), options);
 #pragma omp critical
 			{
 				newlyAddedBlocks++;
@@ -430,8 +431,21 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 				trivialExtensionPartial(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
 				ExtendedBlock extendedBlock = extendBlock(block, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, oldSeedSize,
 						options);
+
 				bool discardMe = (options.discardUninformativeBlocks && extendedBlock.getAverageLeftFlankSize() == 0
 						&& extendedBlock.getAverageRightFlankSize() == 0);
+				if (!discardMe) {
+					std::vector<std::string> msa = computeMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
+					if (block.getNTaxInBlock() < concat.nTax()) {
+						double subRate = averageSubstitutionRate(msa);
+						if (subRate > options.maxAvgSubstitutionRate) {
+							discardMe = true;
+						} else {
+							extendedBlock.setSubRate(subRate);
+						}
+					}
+				}
+
 				if (!discardMe) {
 					presenceChecker.reserveExtendedBlock(extendedBlock);
 					extendedBlocks.push_back(extendedBlock);

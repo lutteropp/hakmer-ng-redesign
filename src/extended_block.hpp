@@ -35,6 +35,8 @@ public:
 	void removeTaxon(size_t tID);
 	size_t getSizeWithFlanks(size_t tID) const;
 	const Seed& getMySeededBlock() const;
+	void setSubRate(double rate);
+	double getSubRate() const;
 
 	std::vector<SimpleCoords> getLeftFlankCoords() const;
 	std::vector<SimpleCoords> getSeedCoords() const;
@@ -43,4 +45,5 @@ private:
 	Seed mySeededBlock;
 	std::vector<SimpleCoords> leftFlankCoords;
 	std::vector<SimpleCoords> rightFlankCoords;
+	double subRate;
 };

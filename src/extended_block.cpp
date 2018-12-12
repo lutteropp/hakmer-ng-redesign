@@ -131,3 +131,10 @@ size_t ExtendedBlock::getSizeWithFlanks(size_t tID) const {
 const Seed& ExtendedBlock::getMySeededBlock() const {
 	return mySeededBlock;
 }
+
+void ExtendedBlock::setSubRate(double rate) {
+	subRate = rate;
+}
+double ExtendedBlock::getSubRate() const {
+	return subRate;
+}
