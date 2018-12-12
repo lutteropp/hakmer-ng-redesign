@@ -355,10 +355,19 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 						k);
 				std::vector<size_t> taxPresence(concat.nTax(), 0);
 				for (size_t tID : block.getTaxonIDsInBlock()) {
-					taxPresence[tID]+= 2; // in order not to search for approx matches in the taxa we already have with exact matches
+					taxPresence[tID] += 2; // in order not to search for approx matches in the taxa we already have with exact matches
 				}
-				std::vector<std::pair<size_t, size_t> > extraOccs = approxMatcher.findFewOccurrences(concat.getConcatenatedSeq(),
-						concat.getSuffixArray(), concat.getLcpArray(), presenceChecker, pattern, maxMismatches, 1, false, concat, taxPresence);
+
+				std::vector<std::pair<size_t, size_t> > extraOccs;
+				for (size_t errors = 1; errors <= maxMismatches; errors++) {
+					std::vector<std::pair<size_t, size_t> > eOccs = approxMatcher.findFewOccurrences(concat.getConcatenatedSeq(),
+							concat.getSuffixArray(), concat.getLcpArray(), presenceChecker, pattern, errors,
+							std::max(errors - 1, (size_t) 1), false, concat, taxPresence);
+					for (size_t eIdx = 0; eIdx < eOccs.size(); ++eIdx) {
+						extraOccs.push_back(eOccs[eIdx]);
+					}
+				}
+
 				if (extraOccs.size() > 0) {
 #pragma omp critical
 					{
