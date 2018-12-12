@@ -417,16 +417,11 @@ bool alreadyTaken(const PresenceChecker& checker, size_t startPos, size_t size) 
 	return res;
 }
 
-// Better version, as of Nov 10, 2015, handles boundary cases
 /**
  * Perform a binary search in the suffix array to find matches.
- * @param patternSeqStartPos Index of the first base of the pattern in question in the input sequence data.
- * @param m Length of the pattern in question in the input sequence data.
- * @param kmerExtended3Prime Result giving the first and last index of the pattern occurrence in the suffix array as well as the total count.
- * @param S The input sequence data.
  */
-bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& res, const std::string& text,
-		const std::vector<size_t>& SA) {
+void binarySearch(const std::string& pattern, std::pair<size_t, size_t>& res, const std::string& text, const std::vector<size_t>& SA,
+		const std::vector<size_t>& lcp) {
 	size_t l, h, mid, pos;
 	size_t m = pattern.size();
 	l = 0;
@@ -434,130 +429,45 @@ bool binarySearch3Prime(const std::string& pattern, std::pair<size_t, size_t>& r
 	while (l < h) { // find lower bound
 		mid = l + (h - l) / 2; // calculate it this way to avoid overflows instead of (l+h)/2
 		pos = SA[mid];
-		if (pos > text.size() - m - 1) { /*printf ("Seq array out of bounds in bsearch; bailing\n");*/
-			return false;
-		}
-		if (pattern.compare(0, m, text, pos, m) <= 0 || ambiguousEqual(text.substr(pos, m), pattern.substr(0, m))) {
+		if (pattern.compare(0, m, text, pos, m) <= 0 || ambiguousEqual(text.substr(pos, m), pattern)) {
 			h = mid;
 		} else {
 			l = mid + 1;
 		}
 	}
-	pos = SA[l];
-	if (pos > text.size() - m - 1) { /*printf ("Seq array out of bounds in bsearch; bailing\n");*/
-		return false;
-	}
+	res.first = l;
 
-	if (!ambiguousEqual(text.substr(pos, m), pattern.substr(0, m))) {
-		return false;
-	} else {
-		res.first = l;
+	// now, we found the first occurrence. From here, we can use the LCP array.
+	res.second = l;
+	for (size_t i = res.first + 1; i < lcp.size(); ++i) {
+		if (lcp[i] >= pattern.size()) {
+			res.second = i;
+		} else {
+			break;
+		}
 	}
+}
 
+size_t firstSAIndex(const std::string& pattern, const std::string& text, const std::vector<size_t>& SA, const std::vector<size_t>& lcp) {
+	size_t l, h, mid, pos;
+	size_t m = pattern.size();
 	l = 0;
 	h = text.size() - 1;
-	while (l < h) { // find upper bound
-		if (h - l == 1) {
-			mid = h; // treats integer rounding in mid calc for boundary case when interval is just [a,a+1]
-		} else {
-			mid = l + (h - l) / 2; // calculate it this way to avoid overflows instead of (l+h)/2
-		}
+	while (l < h) { // find lower bound
+		mid = l + (h - l) / 2; // calculate it this way to avoid overflows instead of (l+h)/2
 		pos = SA[mid];
-		if (pos > text.size() - m - 1) { /*printf ("Seq array out of bounds in bsearch; bailing\n");*/
-			return false;
-		}
-		if (pattern.compare(0, m, text, pos, m) >= 0 || ambiguousEqual(text.substr(pos, m), pattern.substr(0, m))) {
-			l = mid;
+		if (pattern.compare(0, m, text, pos, m) <= 0 || ambiguousEqual(text.substr(pos, m), pattern)) {
+			h = mid;
 		} else {
-			h = mid - 1;
+			l = mid + 1;
 		}
 	}
-	pos = SA[l];
-	if (pos > text.size() - m - 1) { /*printf ("Seq array out of bounds in bsearch; bailing\n");*/
-		return false;
-	}
-	if (!ambiguousEqual(text.substr(pos, m), pattern.substr(0, m))) {
-		return false;
-	} else {
-		res.second = l - 1;
-	}
-	return true;
-}
-
-size_t exactMatches(const std::string& pattern, const std::string& text, std::vector<size_t> &matches, const std::vector<size_t>& SA) {
-	std::pair<size_t, size_t> bl;
-	binarySearch3Prime(pattern, bl, text, SA);
-	for (size_t i = bl.first; i <= bl.second; ++i) {
-		matches.push_back(SA[i]);
-	}
-	return matches.size();
-}
-
-size_t exactMatches(const std::string& pattern, const std::string& text, std::vector<size_t> &matches, const std::vector<size_t>& SA,
-		const IndexedConcatenatedSequence& concat, const std::vector<size_t>& taxPresence) {
-	std::pair<size_t, size_t> bl;
-	binarySearch3Prime(pattern, bl, text, SA);
-	for (size_t i = bl.first; i <= bl.second; ++i) {
-		if (taxPresence[concat.posToTaxon(SA[i])] < 2) {
-			matches.push_back(SA[i]);
-		}
-	}
-	return matches.size();
-}
-
-std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findOccurrences(const std::string& seq, const std::vector<size_t>& SA,
-		PresenceChecker& checker, const std::string& pattern, size_t maxErrors, size_t minErrors, bool keepOverlaps) {
-	std::vector<std::pair<size_t, size_t> > result;
-	std::unordered_set<std::pair<size_t, size_t>, pair_hash> res;
-// split the pattern into maxMismatches + 2 parts
-	std::vector<std::string> subpatterns;
-	subpatterns.resize(maxErrors + 2);
-	for (size_t i = 0; i < maxErrors + 2; ++i) {
-		size_t beginPos = pattern.size() * i / (maxErrors + 2);
-		size_t endPos = pattern.size() * (i + 1) / (maxErrors + 2);
-		subpatterns[i] = pattern.substr(beginPos, endPos - beginPos);
-	}
-
-	for (size_t j = 1; j < maxErrors + 2; ++j) { // iterate over possible parts for P_j
-		std::vector<size_t> positionsPj;
-		exactMatches(subpatterns[j], seq, positionsPj, SA);
-		// search parts preceding P_j with at most one error, until a part is found exactly (this is P_i) -> via backtracking!
-		// this gives us occurrences of P_i...P_j with exactly j-i-1 errors
-//#pragma omp parallel for schedule(dynamic)
-		for (size_t posJIdx = 0; posJIdx < positionsPj.size(); ++posJIdx) {
-			size_t posJ = positionsPj[posJIdx];
-			// optimization: stop the search if the position is already taken by some other occurrence
-			if (alreadyTaken(checker, posJ, subpatterns[j].size())) {
-				continue;
-			}
-			std::vector<Occ> occsPi = leftUntilExact(j, posJ, subpatterns, seq);
-			// do left-extension to find P_1...P_{i-1} with at most i-1 errors
-			// this gives us the occurrences of P_1...P_j with e errors
-			for (Occ occI : occsPi) {
-				size_t errors = j - occI.i - 1;
-				std::vector<ErrorOcc> occsP1Pj = leftExtend(occI.i, subpatterns, occI.begin, seq);
-				// do right-extension: e errors in P_1...P_j -> <= k-e errors in P_{j+1}...P_{k+2}
-				for (ErrorOcc e : occsP1Pj) {
-					errors += e.errors;
-
-					std::vector<std::pair<size_t, size_t> > occsFullPattern = rightExtend(j, subpatterns, posJ, maxErrors - e.errors, e.pos,
-							minErrors - errors, seq);
-//#pragma omp critical
-					addAll(res, occsFullPattern);
-				}
-			}
-		}
-	}
-
-	addAll(result, res);
-	std::sort(result.begin(), result.end());
-
-	return result;
+	return l;
 }
 
 std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findFewOccurrences(const std::string& seq, const std::vector<size_t>& SA,
-		PresenceChecker& checker, const std::string& pattern, size_t maxErrors, size_t minErrors, bool keepOverlaps,
-		const IndexedConcatenatedSequence& concat, std::vector<size_t>& taxPresence) {
+		const std::vector<size_t>& lcp, PresenceChecker& checker, const std::string& pattern, size_t maxErrors, size_t minErrors,
+		bool keepOverlaps, const IndexedConcatenatedSequence& concat, std::vector<size_t>& taxPresence) {
 	std::vector<std::pair<size_t, size_t> > result;
 	std::unordered_set<std::pair<size_t, size_t>, pair_hash> res;
 // split the pattern into maxMismatches + 2 parts
@@ -570,18 +480,20 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findFewOccurrences(c
 	}
 
 	for (size_t j = 1; j < maxErrors + 2; ++j) { // iterate over possible parts for P_j
-		std::vector<size_t> positionsPj;
-		exactMatches(subpatterns[j], seq, positionsPj, SA, concat, taxPresence);
 		// search parts preceding P_j with at most one error, until a part is found exactly (this is P_i) -> via backtracking!
 		// this gives us occurrences of P_i...P_j with exactly j-i-1 errors
-		for (size_t posJIdx = 0; posJIdx < positionsPj.size(); ++posJIdx) {
-			size_t posJ = positionsPj[posJIdx];
-			// optimization: stop the search if the position is already taken by some other occurrence
-			if (alreadyTaken(checker, posJ, subpatterns[j].size())) {
+		size_t firstPjIdx = firstSAIndex(subpatterns[j], seq, SA, lcp);
+		for (size_t posJIdx = firstPjIdx; posJIdx < SA.size(); ++posJIdx) {
+			if (posJIdx > firstPjIdx && lcp[posJIdx] < subpatterns[j].size()) { // we have encountered all Pj matches already.
+				break;
+			}
+			size_t posJ = SA[posJIdx];
+			// optimization: stop the search if this taxon has already been found often enough
+			if (taxPresence[concat.posToTaxon(posJ)] >= 2) {
 				continue;
 			}
-			// second optimization: stop the searxg if this taxon has already been found often enough
-			if (taxPresence[concat.posToTaxon(posJ)] > 2) {
+			// optimization: stop the search if the position is already taken by some other occurrence
+			if (alreadyTaken(checker, posJ, subpatterns[j].size())) {
 				continue;
 			}
 			std::vector<Occ> occsPi = leftUntilExact(j, posJ, subpatterns, seq);
@@ -596,6 +508,7 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findFewOccurrences(c
 
 					std::vector<std::pair<size_t, size_t> > occsFullPattern = rightExtend(j, subpatterns, posJ, maxErrors - e.errors, e.pos,
 							minErrors - errors, seq);
+
 					// update taxon presences
 					for (size_t occIdx = 0; occIdx < occsFullPattern.size(); ++occIdx) {
 						taxPresence[concat.posToTaxon(occsFullPattern[occIdx].first)]++;

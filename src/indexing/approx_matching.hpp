@@ -36,9 +36,7 @@ struct ErrorOcc {
 class ApproximateMatcher {
 public:
 	ApproximateMatcher(bool mismatchesOnly);
-	std::vector<std::pair<size_t, size_t> > findOccurrences(const std::string& seq, const std::vector<size_t>& SA, PresenceChecker& checker,
-			const std::string& pattern, size_t maxErrors, size_t minErrors, bool keepOverlaps);
-	std::vector<std::pair<size_t, size_t> > findFewOccurrences(const std::string& seq, const std::vector<size_t>& SA, PresenceChecker& checker,
+	std::vector<std::pair<size_t, size_t> > findFewOccurrences(const std::string& seq, const std::vector<size_t>& SA, const std::vector<size_t>& lcp, PresenceChecker& checker,
 			const std::string& pattern, size_t maxErrors, size_t minErrors, bool keepOverlaps, const IndexedConcatenatedSequence& concat, std::vector<size_t>& taxPresence);
 private:
 	std::string extractText(const std::string& seq, size_t firstPos, size_t lastPos);
