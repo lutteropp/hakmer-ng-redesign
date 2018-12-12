@@ -264,6 +264,39 @@ double averageSubstitutionRate(const std::vector<std::string>& msa) {
 	return jukesCantorCorrection(subRate);
 }
 
+void addValidExtraOccs(const std::vector<std::pair<size_t, size_t> >& extraOccs, const IndexedConcatenatedSequence& concat,
+		const Options& options, Seed& newSeed, const ExtendedBlock& block) {
+	std::unordered_set<size_t> taxIDs;
+	for (size_t tID : block.getTaxonIDsInBlock()) {
+		taxIDs.insert(tID);
+	}
+
+	std::vector<size_t> taxUsage(concat.nTax(), 0);
+
+	for (size_t i = 0; i < extraOccs.size(); ++i) {
+		// check if the extra occurrence is fine... TODO: Why do we need this check here?
+		if (extraOccs[i].second >= concat.getConcatenatedSeq().size()) {
+			continue;
+		}
+		size_t taxID = posToTaxon(extraOccs[i].first, concat.getTaxonCoords(), concat.getConcatenatedSeq().size(),
+				options.reverseComplement);
+		taxUsage[taxID]++;
+		if (taxID < concat.nTax() && taxIDs.find(taxID) == taxIDs.end()) {
+			// if we are here, the occurrence is fine. This means work for us.
+			newSeed.addTaxon(taxID, extraOccs[i].first, extraOccs[i].second);
+			taxIDs.insert(taxID);
+		}
+	}
+
+	if (options.discardParalogMismatches) { // remove paralog mismatches again
+		for (size_t i = 0; i < concat.nTax(); ++i) {
+			if (taxUsage[i] > 1) {
+				newSeed.removeTaxon(i);
+			}
+		}
+	}
+}
+
 void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer, const Options& options, SummaryStatistics& stats,
 		BlockWriter& writer, const IndexedConcatenatedSequence& concat, ApproximateMatcher& approxMatcher, PresenceChecker& presenceChecker,
 		const std::vector<uint16_t>& posToTaxonArray) {
@@ -275,14 +308,14 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 		if (block.getNTaxInBlock() < concat.nTax()) {
 			double subRate = averageSubstitutionRate(msa);
 
-			if (subRate > options.maxSubstitutionRate) {
+			if (subRate > options.maxAvgSubstitutionRate) {
 #pragma omp critical
 				presenceChecker.freeExtendedBlock(block); // discard the block if the substitution rate is very high
 				continue;
 			}
 
-			//#pragma omp critical
-			// std::cout << "subRate: " << subRate << "\n";
+#pragma omp critical
+			std::cout << "subRate: " << subRate << "\n";
 			// augment the block with approximate matches
 			size_t maxMismatches = block.getAverageSeedSize() * subRate;
 
@@ -292,11 +325,6 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 				// add them, where appropriate
 				// do some seed trimming
 				// do some further extension
-
-				std::unordered_set<size_t> taxIDs;
-				for (size_t tID : block.getTaxonIDsInBlock()) {
-					taxIDs.insert(tID);
-				}
 
 				SimpleCoords coords = block.getMySeededBlock().getSeedCoords()[block.getTaxonIDsInBlock()[0]];
 
@@ -310,20 +338,7 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 
 				Seed newSeed = block.getMySeededBlock();
 
-				for (size_t i = 0; i < extraOccs.size(); ++i) {
-					size_t taxID = posToTaxon(extraOccs[i].first, concat.getTaxonCoords(), concat.getConcatenatedSeq().size(),
-							options.reverseComplement);
-					if (taxID < concat.nTax() && taxIDs.find(taxID) == taxIDs.end()) {
-						// check if the extra occurrence is fine
-						if (extraOccs[i].second >= concat.getConcatenatedSeq().size()) {
-							continue;
-						}
-						// if we are here, the occurrence is fine. This means work for us.
-						newSeed.addTaxon(taxID, extraOccs[i].first, extraOccs[i].second);
-						taxIDs.insert(taxID);
-					}
-				}
-
+				addValidExtraOccs(extraOccs, concat, options, newSeed, block);
 				if (newSeed.getNTaxInBlock() == block.getNTaxInBlock()) { // no new approximate seeds added -> no work to do.
 					continue;
 				}
@@ -663,15 +678,15 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	std::cout << "Processing seeds...\n";
 	std::sort(seededBlockInfos.begin(), seededBlockInfos.end(), std::greater<SeedInfo>());
 
-		std::vector<std::pair<size_t, size_t> > seedSizes;
-		seedSizes = countSeedSizes(seededBlockInfos, options);
-		printSeedSizeHistogram(seedSizes);
+	std::vector<std::pair<size_t, size_t> > seedSizes;
+	seedSizes = countSeedSizes(seededBlockInfos, options);
+	printSeedSizeHistogram(seedSizes);
 
-		printHypotheticalBestCaseTaxonCoverage(concat, seededBlockInfos, posTaxonArray);
+	printHypotheticalBestCaseTaxonCoverage(concat, seededBlockInfos, posTaxonArray);
 
-		size_t newMinK = elbowMethod(seedSizes, options);
-		std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k than this value.\n";
-		minK = newMinK;
+	size_t newMinK = elbowMethod(seedSizes, options);
+	std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k than this value.\n";
+	minK = newMinK;
 	ApproximateMatcher approxMatcher(options.mismatchesOnly);
 
 	selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray, options, minK, maxK);

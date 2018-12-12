@@ -40,6 +40,8 @@ public:
 	size_t minSeedSitesKept = 4; // needed for seed trimming
 	bool discardUninformativeBlocks = true;
 
-	double maxSubstitutionRate = 0.05;
+	bool discardParalogMismatches = true;
+
+	double maxAvgSubstitutionRate = 0.3;
 };
 
