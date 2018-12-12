@@ -174,33 +174,6 @@ void trimSeededBlockExtra(Seed& block, PresenceChecker& presenceChecker, const O
 			block.removeTaxon(taxIDs[i]);
 		}
 	}
-
-	// reduce gap sizes to reasonable amount
-	// TODO: This, of course, changes the k value
-	taxIDs = block.getTaxonIDsInBlock();
-
-	if (taxIDs.empty()) {
-		return;
-	}
-
-	size_t minLeftGapSize = std::numeric_limits<size_t>::max();
-	size_t minRightGapSize = std::numeric_limits<size_t>::max();
-	for (size_t tID : taxIDs) {
-		minLeftGapSize = std::min(minLeftGapSize, block.getSeedCoords(tID).leftGapSize);
-		minRightGapSize = std::min(minRightGapSize, block.getSeedCoords(tID).rightGapSize);
-	}
-	while (minLeftGapSize > 0) {
-		for (size_t tID : taxIDs) {
-			block.removeGapLeft(tID);
-		}
-		minLeftGapSize--;
-	}
-	while (minRightGapSize > 0) {
-		for (size_t tID : taxIDs) {
-			block.removeGapRight(tID);
-		}
-		minRightGapSize--;
-	}
 }
 
 void trimSeededBlock(Seed& block, PresenceChecker& presenceChecker, const Options& options) {
@@ -314,8 +287,8 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 				continue;
 			}
 
-#pragma omp critical
-			std::cout << "subRate: " << subRate << "\n";
+//#pragma omp critical
+	//		std::cout << "subRate: " << subRate << "\n";
 			// augment the block with approximate matches
 			size_t maxMismatches = block.getAverageSeedSize() * subRate;
 
@@ -411,8 +384,6 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 			assert(k == block.getSeedCoords(tID).size() + block.getSeedCoords(tID).leftGapSize + block.getSeedCoords(tID).rightGapSize);
 		}
 
-		size_t addedExtraMatches = 0;
-
 		// Final trimming and adding, this time in critical mode
 #pragma omp critical
 		{
@@ -425,8 +396,8 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 				trivialExtensionPartial(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
 				ExtendedBlock extendedBlock = extendBlock(block, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, oldSeedSize,
 						options);
-				bool discardMe = (options.discardUninformativeBlocks && addedExtraMatches == 0
-						&& extendedBlock.getAverageLeftFlankSize() == 0 && extendedBlock.getAverageRightFlankSize() == 0);
+				bool discardMe = (options.discardUninformativeBlocks && extendedBlock.getAverageLeftFlankSize() == 0
+						&& extendedBlock.getAverageRightFlankSize() == 0);
 				if (!discardMe) {
 					presenceChecker.reserveExtendedBlock(extendedBlock);
 					extendedBlocks.push_back(extendedBlock);
@@ -555,13 +526,11 @@ size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts
 // see https://www.linkedin.com/pulse/finding-optimal-number-clusters-k-means-through-elbow-asanka-perera/
 // see https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 // we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
-
 	size_t minReasonableCount = 1000;
 	size_t lastIdx = seedSizeCounts.size() - 1;
 	while (seedSizeCounts[lastIdx].second < minReasonableCount && lastIdx > 0) {
 		lastIdx--;
 	}
-
 	int maxDist = 0;
 	size_t maxDistIdx = 0;
 	int x1 = seedSizeCounts[0].first;
