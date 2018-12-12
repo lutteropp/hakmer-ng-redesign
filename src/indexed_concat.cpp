@@ -51,8 +51,20 @@ bool IndexedTaxonCoords::contains(size_t pos) const {
 	return false;
 }
 
-IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords, bool protein,
-		const Options& options) {
+size_t IndexedConcatenatedSequence::posToTaxonInternal(size_t pos, bool revComp) const {
+	if (revComp && pos >= concatenatedSeq.size() / 2) {
+		pos = concatenatedSeq.size() - pos - 1;
+	}
+	for (size_t i = 0; i < taxonCoords.size(); ++i) {
+		if (taxonCoords[i].contains(pos)) {
+			return i;
+		}
+	}
+	return std::numeric_limits<uint16_t>::infinity();
+}
+
+IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords,
+		bool protein, const Options& options) {
 	concatenatedSeq = seq;
 	taxonCoords = coords;
 	SuffixArrayClassic sa;
@@ -69,6 +81,17 @@ IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq,
 		}
 	}
 	proteinData = protein;
+	// precompute posToTaxonArray
+	std::cout << "Precomputing posToTaxon array...\n";
+	posToTaxonArray.resize(suffixArray.size());
+#pragma omp parallel
+	{
+#pragma omp for
+		for (size_t i = 0; i < suffixArray.size(); ++i) {
+			size_t tID = posToTaxonInternal(suffixArray[i], options.reverseComplement);
+			posToTaxonArray[suffixArray[i]] = tID;
+		}
+	}
 }
 
 size_t IndexedConcatenatedSequence::getSequenceDataSize() const {
@@ -107,3 +130,8 @@ const std::vector<IndexedTaxonCoords>& IndexedConcatenatedSequence::getTaxonCoor
 bool IndexedConcatenatedSequence::isProtein() const {
 	return proteinData;
 }
+
+size_t IndexedConcatenatedSequence::posToTaxon(size_t pos) const {
+	return posToTaxonArray[pos];
+}
+

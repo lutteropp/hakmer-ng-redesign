@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "alignment/simple_coords.hpp"
+#include "seed_info.hpp"
 
 /*
  * Store seed coordinates for each included taxon
@@ -19,6 +20,7 @@
 class Seed {
 public:
 	Seed(size_t nTax);
+	Seed(size_t nTax, const SeedInfo& info);
 	void addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord);
 	void removeTaxon(size_t taxID);
 	size_t getNTaxInBlock() const;
@@ -57,6 +59,7 @@ public:
 	void removeGapLeft(size_t taxonID);
 	void removeGapRight(size_t taxonID);
 	std::vector<SimpleCoords> getSeedCoords() const;
+	SeedInfo mySeedInfo;
 private:
 	void cleanTaxIDs();
 	std::vector<SimpleCoords> seedCoords;

@@ -45,7 +45,6 @@ void BlockWriter::writeTemporaryBlockMSA(ExtendedBlock& block, const std::string
 }
 
 void BlockWriter::writeTemporaryBlockMSA(const std::vector<std::string>& msa, size_t nTax) {
-#pragma omp critical
 	for (size_t i = 0; i < nTax; ++i) {
 		tempMSAFiles[i] << msa[i];
 	}

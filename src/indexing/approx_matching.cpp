@@ -355,7 +355,9 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::rightExtend(size_t j
 		searchedPattern = searchedPattern + subpatterns[i];
 	}
 	if (searchedPattern.empty() && minErrors == 0) { // pattern has already been found
-		res.push_back(std::make_pair(p1Pos, posJ + subpatterns[jIdx].size() - 1));
+		if (posJ + subpatterns[jIdx].size() - 1 < seq.size()) {
+			res.push_back(std::make_pair(p1Pos, posJ + subpatterns[jIdx].size() - 1));
+		}
 		return res;
 	}
 	if (!mismatchesOnly) {
@@ -371,7 +373,9 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::rightExtend(size_t j
 
 			std::vector<ExtensionInfo> rightExtensions = rightExtensionSearch(searchedPattern, text, maxErrors, minErrors);
 			for (size_t i = 0; i < rightExtensions.size(); ++i) {
-				res.push_back(std::make_pair(p1Pos, firstPos + rightExtensions[i].lastPosInText));
+				if (firstPos + rightExtensions[i].lastPosInText < seq.size()) {
+					res.push_back(std::make_pair(p1Pos, firstPos + rightExtensions[i].lastPosInText));
+				}
 			}
 		}
 		return res;
@@ -390,7 +394,9 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::rightExtend(size_t j
 				}
 			}
 			if (mis <= maxErrors && mis >= minErrors) {
-				res.push_back(std::make_pair(p1Pos, posJ + subpatterns[jIdx].size() + searchedPattern.size() - 1));
+				if (posJ + subpatterns[jIdx].size() + searchedPattern.size() - 1 < seq.size()) {
+					res.push_back(std::make_pair(p1Pos, posJ + subpatterns[jIdx].size() + searchedPattern.size() - 1));
+				}
 			}
 		}
 		return res;

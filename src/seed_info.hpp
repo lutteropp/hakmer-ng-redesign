@@ -28,6 +28,11 @@ public:
 			return n > str.n;
 		}
 	}
+	SeedInfo() {
+		saPos = 0;
+		k = 0;
+		n = 0;
+	}
 	SeedInfo(size_t saPos, unsigned int k, unsigned int n) {
 		this->saPos = saPos;
 		this->k = k;

@@ -12,6 +12,12 @@
 #include <cassert>
 #include "seed.hpp"
 
+Seed::Seed(size_t nTax, const SeedInfo& info) {
+	mySeedInfo = info;
+	seedCoords.resize(nTax);
+	k = 0;
+}
+
 Seed::Seed(size_t nTax) {
 	seedCoords.resize(nTax);
 	k = 0;

@@ -41,6 +41,8 @@ class IndexedConcatenatedSequence {
 	std::vector<size_t> suffixArray;
 	std::vector<size_t> lcpArray;
 	bool proteinData;
+	std::vector<uint16_t> posToTaxonArray;
+	size_t posToTaxonInternal(size_t pos, bool revComp) const;
 public:
 	IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords, bool protein, const Options& options); // internal-indexing variant
 	const std::vector<size_t>& getSuffixArray() const;
@@ -53,4 +55,5 @@ public:
 	const std::vector<std::string>& getTaxonLabels() const;
 	const std::vector<IndexedTaxonCoords>& getTaxonCoords() const;
 	bool isProtein() const;
+	size_t posToTaxon(size_t pos) const;
 };
