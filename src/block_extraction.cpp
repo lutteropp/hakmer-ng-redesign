@@ -7,7 +7,6 @@
 
 #include "block_extraction.hpp"
 
-#include <bits/stdint-uintn.h>
 #include <stddef.h>
 #include <algorithm>
 #include <cassert>
