@@ -174,6 +174,33 @@ void trimSeededBlockExtra(Seed& block, PresenceChecker& presenceChecker, const O
 			block.removeTaxon(taxIDs[i]);
 		}
 	}
+
+	// reduce gap sizes to reasonable amount
+	// TODO: This, of course, changes the k value
+	taxIDs = block.getTaxonIDsInBlock();
+
+	if (taxIDs.empty()) {
+		return;
+	}
+
+	size_t minLeftGapSize = std::numeric_limits<size_t>::max();
+	size_t minRightGapSize = std::numeric_limits<size_t>::max();
+	for (size_t tID : taxIDs) {
+		minLeftGapSize = std::min(minLeftGapSize, block.getSeedCoords(tID).leftGapSize);
+		minRightGapSize = std::min(minRightGapSize, block.getSeedCoords(tID).rightGapSize);
+	}
+	while (minLeftGapSize > 0) {
+		for (size_t tID : taxIDs) {
+			block.removeGapLeft(tID);
+		}
+		minLeftGapSize--;
+	}
+	while (minRightGapSize > 0) {
+		for (size_t tID : taxIDs) {
+			block.removeGapRight(tID);
+		}
+		minRightGapSize--;
+	}
 }
 
 void trimSeededBlock(Seed& block, PresenceChecker& presenceChecker, const Options& options) {
@@ -270,9 +297,10 @@ void addValidExtraOccs(const std::vector<std::pair<size_t, size_t> >& extraOccs,
 	}
 }
 
-void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer, const Options& options, SummaryStatistics& stats,
+size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer, const Options& options, SummaryStatistics& stats,
 		BlockWriter& writer, const IndexedConcatenatedSequence& concat, ApproximateMatcher& approxMatcher, PresenceChecker& presenceChecker,
 		const std::vector<uint16_t>& posToTaxonArray) {
+	size_t newlyAddedBlocks = 0;
 #pragma omp parallel for
 	for (size_t i = 0; i < extendedBlockBuffer.size(); ++i) {
 		ExtendedBlock block = extendedBlockBuffer[i];
@@ -288,7 +316,7 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 			}
 
 //#pragma omp critical
-	//		std::cout << "subRate: " << subRate << "\n";
+			//		std::cout << "subRate: " << subRate << "\n";
 			// augment the block with approximate matches
 			size_t maxMismatches = block.getAverageSeedSize() * subRate;
 
@@ -347,9 +375,11 @@ void processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer,
 		stats.updateSummaryStatistics(block, concat.nTax());
 		if (!options.outpath.empty()) {
 			writer.writeTemporaryBlockMSA(msa, concat.nTax());
+			newlyAddedBlocks++;
 			//writer.writeTemporaryBlockMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
 		}
 	}
+	return newlyAddedBlocks;
 }
 
 std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfoBuffer, const IndexedConcatenatedSequence& concat,
@@ -574,9 +604,10 @@ std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<SeedInf
 	return res;
 }
 
-void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, ApproximateMatcher& approxMatcher,
+size_t selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, ApproximateMatcher& approxMatcher,
 		const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer, SummaryStatistics& stats,
 		const std::vector<uint16_t>& posTaxonArray, const Options& options, size_t minK, size_t maxK) {
+	size_t newlyAddedBlocks = 0;
 	std::vector<SeedInfo> buffer;
 	size_t lastN = seededBlockInfos[0].n;
 	buffer.push_back(seededBlockInfos[0]);
@@ -590,7 +621,8 @@ void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, Ap
 			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
 					posTaxonArray);
 			std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
-			processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher, presenceChecker, posTaxonArray);
+			newlyAddedBlocks += processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher,
+					presenceChecker, posTaxonArray);
 			buffer.clear();
 			lastN = seededBlockInfos[i].n;
 			if (seededBlockInfos[i].k >= minK && seededBlockInfos[i].k <= maxK) {
@@ -603,7 +635,10 @@ void selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, Ap
 	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher,
 			posTaxonArray);
 	std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
-	processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher, presenceChecker, posTaxonArray);
+	newlyAddedBlocks += processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher, presenceChecker,
+			posTaxonArray);
+	std::cout << "Newly added blocks: " << newlyAddedBlocks << "\n";
+	return newlyAddedBlocks;
 }
 
 void printHypotheticalBestCaseTaxonCoverage(const IndexedConcatenatedSequence& concat, const std::vector<SeedInfo>& seedInfos,
@@ -650,7 +685,6 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	std::vector<std::pair<size_t, size_t> > seedSizes;
 	seedSizes = countSeedSizes(seededBlockInfos, options);
 	printSeedSizeHistogram(seedSizes);
-
 	printHypotheticalBestCaseTaxonCoverage(concat, seededBlockInfos, posTaxonArray);
 
 	size_t newMinK = elbowMethod(seedSizes, options);
@@ -658,8 +692,12 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	minK = newMinK;
 	ApproximateMatcher approxMatcher(options.mismatchesOnly);
 
-	selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray, options, minK, maxK);
-
+	size_t newlyAddedBlocks = selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats,
+			posTaxonArray, options, minK, maxK);
+	while (newlyAddedBlocks > 10) {
+		newlyAddedBlocks = selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, posTaxonArray,
+				options, minK, maxK);
+	}
 	double seqDataUsed = stats.getAmountSeqDataUsed(concat.getSequenceDataSize());
 	while (seqDataUsed < options.minSeqDataUsage) {
 		std::cout << "Current percentage of sequence data used: " << seqDataUsed * 100
