@@ -20,6 +20,7 @@ ExtendedBlock::ExtendedBlock(const Seed& seededBlock, size_t nTax) :
 			rightFlankCoords[i].second = seededBlock.getSeedCoords(i).second;
 		}
 	}
+	subRate = 0;
 }
 
 void ExtendedBlock::removeTaxon(size_t tID) {

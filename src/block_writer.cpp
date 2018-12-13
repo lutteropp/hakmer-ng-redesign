@@ -45,6 +45,15 @@ void BlockWriter::writeTemporaryBlockMSA(ExtendedBlock& block, const std::string
 }
 
 void BlockWriter::writeTemporaryBlockMSA(const std::vector<std::string>& msa, size_t nTax) {
+	// check the msa first
+	for (size_t i = 0; i < msa.size(); ++i) {
+		for (size_t j = 0; j < msa[i].size(); ++j) {
+			if (msa[i][j] == '$') {
+				throw std::runtime_error("Bad base detected: $");
+			}
+		}
+	}
+
 	for (size_t i = 0; i < nTax; ++i) {
 		tempMSAFiles[i] << msa[i];
 	}

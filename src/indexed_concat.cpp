@@ -70,6 +70,8 @@ std::pair<std::vector<size_t>, std::vector<size_t> > IndexedConcatenatedSequence
 	std::vector<size_t> resSA;
 	std::vector<size_t> resLCP;
 
+	size_t lastITaken = 0;
+
 	bool recomputeNeeded = false;
 	for (size_t i = 0; i < suffixArray.size(); ++i) {
 		if (taxonCoords[wantedTaxon].contains(suffixArray[i])) {
@@ -81,6 +83,8 @@ std::pair<std::vector<size_t>, std::vector<size_t> > IndexedConcatenatedSequence
 				recomputeNeeded = false;
 			}
 			resLCP.push_back(lcpVal);
+
+			lastITaken = i;
 		} else {
 			recomputeNeeded = true;
 		}
