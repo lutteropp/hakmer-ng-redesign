@@ -34,15 +34,14 @@ public:
 	bool lowComplexity = false; // keep low complexity k-mers?
 	size_t maxAllowedSuperseedDistance = 50;
 	size_t minSharedSuperseedTax = 4;
-	bool mismatchAugmentationOnly = true;
 	bool discardNs = true;
 	bool mismatchesOnly = true; // allow only mismatches in the seeds - this means we don't need to run a MSA on them.
 	size_t minSeedTaxInColumn = 4; // minimum number of taxa in column, needed for seed trimming
-	size_t minSeedSitesKept = 3; // needed for seed trimming
+	size_t minSeedSitesKept = 1; // needed for seed trimming
 	bool discardUninformativeBlocks = true;
 
 	bool discardParalogMismatches = true;
 
-	double maxAvgSubstitutionRate = 0.3;
+	double maxAvgSubstitutionRate = 0.25;
 };
 
