@@ -511,14 +511,26 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findFewOccurrences(c
 
 					// update taxon presences
 					for (size_t occIdx = 0; occIdx < occsFullPattern.size(); ++occIdx) {
-						taxPresence[concat.posToTaxon(occsFullPattern[occIdx].first)]++;
+						if (res.find(occsFullPattern[occIdx]) != res.end()) {
+							continue;
+						}
+						// check if the entry is okay
+						bool ok = true;
+						for (size_t i = occsFullPattern[occIdx].first; i <= occsFullPattern[occIdx].second; ++i) {
+							if (concat.getConcatenatedSeq()[i] == '$') {
+								ok = false;
+								break;
+							}
+						}
+						if (ok) {
+							taxPresence[concat.posToTaxon(occsFullPattern[occIdx].first)]++;
+							res.insert(occsFullPattern[occIdx]);
+						}
 					}
-					addAll(res, occsFullPattern);
 				}
 			}
 		}
 	}
-
 	addAll(result, res);
 	std::sort(result.begin(), result.end());
 

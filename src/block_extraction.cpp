@@ -362,7 +362,7 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 				// do it on a per-taxon basis
 
 				for (size_t taxonID = 0; taxonID < concat.nTax(); taxonID++) {
-					if (block.hasTaxon(taxonID)) {
+					if (taxPresence[taxonID] >= 2) {
 						continue;
 					}
 					for (size_t errors = 1; errors <= maxMismatches; errors++) {
