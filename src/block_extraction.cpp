@@ -284,14 +284,22 @@ double averageSubstitutionRate(const std::vector<std::string>& msa) {
 			}
 		}
 	}
-	size_t nPairs = msa[0].size() * (validSeqIndices.size() * (validSeqIndices.size() - 1) / 2);
+	//size_t nPairs = msa[0].size() * (validSeqIndices.size() * (validSeqIndices.size() - 1) / 2);
+	size_t nPairs = 0;
 	size_t nDiff = 0;
 	for (size_t i = 0; i < msa[0].size(); ++i) {
 		for (size_t j = 0; j < validSeqIndices.size(); ++j) {
 			for (size_t k = j + 1; k < validSeqIndices.size(); ++k) {
+				/*if (msa[validSeqIndices[j]][i] != '-' && msa[validSeqIndices[k]][i] != '-' && msa[validSeqIndices[j]][i] != '?'
+				 && msa[validSeqIndices[k]][i] != '?' && !ambiguousMatch(msa[validSeqIndices[j]][i], msa[validSeqIndices[k]][i])) {
+				 nDiff++;
+				 }*/
 				if (msa[validSeqIndices[j]][i] != '-' && msa[validSeqIndices[k]][i] != '-' && msa[validSeqIndices[j]][i] != '?'
-						&& msa[validSeqIndices[k]][i] != '?' && !ambiguousMatch(msa[validSeqIndices[j]][i], msa[validSeqIndices[k]][i])) {
-					nDiff++;
+						&& msa[validSeqIndices[k]][i] != '?') {
+					nPairs++;
+					if (!ambiguousMatch(msa[validSeqIndices[j]][i], msa[validSeqIndices[k]][i])) {
+						nDiff++;
+					}
 				}
 			}
 		}
@@ -333,32 +341,22 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 #pragma omp parallel for reduction(+:newlyAddedBlocks)
 	for (size_t i = 0; i < extendedBlockBuffer.size(); ++i) {
 		ExtendedBlock block = extendedBlockBuffer[i];
+		std::vector<std::pair<size_t, size_t> > extraOccs;
 
 		if (block.getNTaxInBlock() < concat.nTax()) {
 			double subRate = block.getSubRate();
-
-			if (subRate > options.maxAvgSubstitutionRate) {
-#pragma omp critical
-				presenceChecker.freeExtendedBlock(block); // discard the block if the substitution rate is very high
-				continue;
-			}
-
 //#pragma omp critical
 			//		std::cout << "subRate: " << subRate << "\n";
 			size_t k = block.getMySeededBlock().mySeedInfo.k;
 			size_t maxMismatches = k * subRate;
 
-			// TODO: For now, we just recreate the seeded block and redo all the extension and MSA. This is of course not very performant, but it's faster to implement.
 			if (maxMismatches > 0) { // augment the block with approximate matches
-
 				std::string pattern = concat.getConcatenatedSeq().substr(concat.getSuffixArray()[block.getMySeededBlock().mySeedInfo.saPos],
 						k);
 				std::vector<size_t> taxPresence(concat.nTax(), 0);
 				for (size_t tID : block.getTaxonIDsInBlock()) {
 					taxPresence[tID] += 2; // in order not to search for approx matches in the taxa we already have with exact matches
 				}
-
-				std::vector<std::pair<size_t, size_t> > extraOccs;
 				// do it on a per-taxon basis
 
 				for (size_t taxonID = 0; taxonID < concat.nTax(); taxonID++) {
@@ -372,28 +370,28 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 						extraOccs.push_back(eOccs[eIdx]);
 					}
 				}
-
-				if (extraOccs.size() > 0) {
-#pragma omp critical
-					{
-						presenceChecker.freeExtendedBlock(block);
-						block = trimmedExtendedBlock(block.getMySeededBlock().mySeedInfo, extraOccs, concat, presenceChecker, options);
-						if (block.getNTaxInBlock() >= options.minTaxaPerBlock) {
-							presenceChecker.reserveExtendedBlock(block);
-						}
-					}
-				}
 			}
 		}
 
 		if (block.getNTaxInBlock() >= options.minTaxaPerBlock) {
-			std::vector<std::string> msa = computeMSA(block, concat.getConcatenatedSeq(), concat.nTax(), options);
 #pragma omp critical
 			{
-				newlyAddedBlocks++;
-				stats.updateSummaryStatistics(block, concat.nTax());
-				if (!options.outpath.empty()) {
-					writer.writeTemporaryBlockMSA(msa, concat.nTax());
+				presenceChecker.freeExtendedBlock(block);
+				block = trimmedExtendedBlock(block.getMySeededBlock().mySeedInfo, extraOccs, concat, presenceChecker, options);
+				if (block.getNTaxInBlock() >= options.minTaxaPerBlock) {
+					presenceChecker.reserveExtendedBlock(block);
+				}
+			}
+
+			if (block.getNTaxInBlock() >= options.minTaxaPerBlock) {
+				std::vector<std::string> msa = computeMSA(block, concat.getConcatenatedSeq(), concat.nTax(), options);
+#pragma omp critical
+				{
+					newlyAddedBlocks++;
+					stats.updateSummaryStatistics(block, concat.nTax());
+					if (!options.outpath.empty()) {
+						writer.writeTemporaryBlockMSA(msa, concat.nTax());
+					}
 				}
 			}
 		}
@@ -433,34 +431,34 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 			assert(k == block.getSeedCoords(tID).size() + block.getSeedCoords(tID).leftGapSize + block.getSeedCoords(tID).rightGapSize);
 		}
 
-		// Final trimming and adding, this time in critical mode
-#pragma omp critical
-		{
-			size_t oldSeedSize = block.getAverageSeedSize();
-			trimSeededBlock(block, presenceChecker, options);
-			trimSeededBlockExtra(block, presenceChecker, options);
+		// Final trimming and adding
+		size_t oldSeedSize = block.getAverageSeedSize();
+		trimSeededBlock(block, presenceChecker, options);
+		trimSeededBlockExtra(block, presenceChecker, options);
 
-			if (block.getNTaxInBlock() >= options.minTaxaPerBlock) { // we need this extra check because in parallel mode, our taxa in the block could get invalidated all the time
-				// Partially extend the seed
-				trivialExtensionPartial(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-				ExtendedBlock extendedBlock = extendBlock(block, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, oldSeedSize,
-						options);
+		if (block.getNTaxInBlock() >= options.minTaxaPerBlock) { // we need this extra check because in parallel mode, our taxa in the block could get invalidated all the time
+			// Partially extend the seed
+			trivialExtensionPartial(block, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
+			ExtendedBlock extendedBlock = extendBlock(block, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, oldSeedSize,
+					options);
 
-				bool discardMe = (options.discardUninformativeBlocks && extendedBlock.getAverageLeftFlankSize() == 0
-						&& extendedBlock.getAverageRightFlankSize() == 0);
-				if (!discardMe) {
-					std::vector<std::string> msa = computeMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
-					if (block.getNTaxInBlock() < concat.nTax()) {
-						double subRate = averageSubstitutionRate(msa);
-						if (subRate > options.maxAvgSubstitutionRate) {
-							discardMe = true;
-						} else {
-							extendedBlock.setSubRate(subRate);
-						}
+			bool discardMe = (options.discardUninformativeBlocks && extendedBlock.getAverageLeftFlankSize() == 0
+					&& extendedBlock.getAverageRightFlankSize() == 0);
+			if (!discardMe) {
+				std::vector<std::string> msa = computeMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
+				if (block.getNTaxInBlock() < concat.nTax()) {
+					double subRate = averageSubstitutionRate(msa);
+					if (subRate > options.maxAvgSubstitutionRate) {
+						discardMe = true;
+					} else {
+						extendedBlock.setSubRate(subRate);
 					}
 				}
+			}
 
-				if (!discardMe) {
+			if (!discardMe) {
+#pragma omp critical
+				{
 					presenceChecker.reserveExtendedBlock(extendedBlock);
 					extendedBlocks.push_back(extendedBlock);
 				}
