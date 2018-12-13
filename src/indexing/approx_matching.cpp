@@ -488,8 +488,9 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findFewOccurrences(c
 				break;
 			}
 			size_t posJ = SA[posJIdx];
+			size_t taxonIDx = concat.posToTaxon(posJ);
 			// optimization: stop the search if this taxon has already been found often enough
-			if (taxPresence[concat.posToTaxon(posJ)] >= 2) {
+			if (taxPresence[taxonIDx] >= 2) {
 				continue;
 			}
 			// optimization: stop the search if the position is already taken by some other occurrence
@@ -523,10 +524,19 @@ std::vector<std::pair<size_t, size_t> > ApproximateMatcher::findFewOccurrences(c
 							}
 						}
 						if (ok) {
-							taxPresence[concat.posToTaxon(occsFullPattern[occIdx].first)]++;
+							taxPresence[taxonIDx]++;
 							res.insert(occsFullPattern[occIdx]);
 						}
+						if (taxPresence[taxonIDx] >= 2) {
+							break; // no need to search further
+						}
 					}
+					if (taxPresence[taxonIDx] >= 2) {
+						break; // no need to search further
+					}
+				}
+				if (taxPresence[taxonIDx] >= 2) {
+					break; // no need to search further
 				}
 			}
 		}
