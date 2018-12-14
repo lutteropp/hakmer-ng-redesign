@@ -24,7 +24,7 @@ PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool
 			setTaken(i);
 		}
 	}
-
+	size = freePos.size();
 }
 
 PresenceChecker::PresenceChecker(const PresenceChecker& other) {
@@ -34,13 +34,14 @@ PresenceChecker::PresenceChecker(const PresenceChecker& other) {
 		this->freePos[i] = other.freePos[i];
 	}
 	this->nTax = other.nTax;
+	size = freePos.size();
 }
 
 bool PresenceChecker::isFree(size_t coord) const {
-	if (revComp && coord >= freePos.size()) {
-		coord = freePos.size() - coord - 1;
+	if (revComp && coord >= size) {
+		coord = size - coord - 1;
 	}
-	if (coord >= freePos.size()) {
+	if (coord >= size) {
 		return false;
 	} else {
 		return freePos[coord];
@@ -57,15 +58,15 @@ bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) const {
 }
 
 void PresenceChecker::setTaken(size_t coord) {
-	if (revComp && coord >= freePos.size()) {
-		coord = freePos.size() - coord - 1;
+	if (revComp && coord >= size) {
+		coord = size - coord - 1;
 	}
 	freePos[coord] = false;
 }
 
 void PresenceChecker::setFree(size_t coord) {
-	if (revComp && coord >= freePos.size()) {
-		coord = freePos.size() - coord - 1;
+	if (revComp && coord >= size) {
+		coord = size - coord - 1;
 	}
 	freePos[coord] = true;
 }
