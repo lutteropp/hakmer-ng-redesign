@@ -12,6 +12,7 @@
 #include <sstream>
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "dna_functions.hpp"
 

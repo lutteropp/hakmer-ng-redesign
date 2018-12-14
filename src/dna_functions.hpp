@@ -8,38 +8,35 @@
 #pragma once
 
 #include <stddef.h>
-#include <initializer_list>
-#include <iostream>
-#include <stdexcept>
+#include <cassert>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
+#include <vector>
 
-inline std::unordered_map<char, char> createRevcompMapping() {
-	std::unordered_map<char, char> mapping; // TODO: Make this one static somehow
-	mapping['A'] = 'T';
-	mapping['T'] = 'A';
-	mapping['U'] = 'U';
-	mapping['C'] = 'G';
-	mapping['G'] = 'C';
-	mapping['N'] = 'N';
+inline std::vector<char> createRevcompMapping() {
+	std::vector<char> map(128, '#');
+	map[static_cast<unsigned char>('A')] = 'T';
+	map[static_cast<unsigned char>('T')] = 'A';
+	map[static_cast<unsigned char>('U')] = 'U';
+	map[static_cast<unsigned char>('C')] = 'G';
+	map[static_cast<unsigned char>('G')] = 'C';
+	map[static_cast<unsigned char>('N')] = 'N';
 	// DNA ambiguity codes, see http://www.dnabaser.com/articles/IUPAC%20ambiguity%20codes.html
-	mapping['Y'] = 'R';
-	mapping['R'] = 'Y';
-	mapping['W'] = 'W';
-	mapping['S'] = 'S';
-	mapping['K'] = 'M';
-	mapping['M'] = 'K';
-	mapping['D'] = 'H';
-	mapping['V'] = 'B';
-	mapping['H'] = 'D';
-	mapping['B'] = 'V';
-	mapping['X'] = 'X';
+	map[static_cast<unsigned char>('Y')] = 'R';
+	map[static_cast<unsigned char>('R')] = 'Y';
+	map[static_cast<unsigned char>('W')] = 'W';
+	map[static_cast<unsigned char>('S')] = 'S';
+	map[static_cast<unsigned char>('K')] = 'M';
+	map[static_cast<unsigned char>('M')] = 'K';
+	map[static_cast<unsigned char>('D')] = 'H';
+	map[static_cast<unsigned char>('V')] = 'B';
+	map[static_cast<unsigned char>('H')] = 'D';
+	map[static_cast<unsigned char>('B')] = 'V';
+	map[static_cast<unsigned char>('X')] = 'X';
 	// delimiters stay unchanged
-	mapping['$'] = '$';
+	map[static_cast<unsigned char>('$')] = '$';
 	// gaps stay unchanged
-	mapping['-'] = '-';
-	return mapping;
+	map[static_cast<unsigned char>('-')] = '-';
+	return map;
 }
 
 inline std::vector<unsigned short int> createAmbiguityMappings() {
@@ -64,7 +61,7 @@ inline std::vector<unsigned short int> createAmbiguityMappings() {
 	return map;
 }
 
-static std::unordered_map<char, char> rcMapping = createRevcompMapping();
+static std::vector<char> rcMapping = createRevcompMapping();
 static std::vector<unsigned short int> ambiMapping = createAmbiguityMappings();
 
 inline bool ambiguousMatch(char a, char b) {
@@ -93,14 +90,8 @@ inline bool ambiguousEqual(const std::string& s1, const std::string& s2) {
 inline std::string revComp(const std::string& str) {
 	std::string res;
 	for (int i = str.size() - 1; i >= 0; --i) {
-		if (rcMapping.find(str[i]) != rcMapping.end()) {
-			res += rcMapping[str[i]];
-		} else {
-			std::string c;
-			c += str[i];
-			std::cout << "i: " << i << "str.size(): " << str.size() << "\n";
-			throw std::runtime_error("Cannot reverse-complement the following base: " + c);
-		}
+		assert(rcMapping[static_cast<unsigned char>(str[i])] != '#');
+		res += rcMapping[static_cast<unsigned char>(str[i])];
 	}
 	return res;
 }
