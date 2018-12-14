@@ -42,30 +42,30 @@ inline std::unordered_map<char, char> createRevcompMapping() {
 	return mapping;
 }
 
-inline std::unordered_map<char, std::unordered_set<char> > createAmbiguityMappings() {
-	std::unordered_map<char, std::unordered_set<char> > map;
-	map['A'] = {'A', 'R', 'W', 'M', 'D', 'V', 'H', 'X', 'N'};
-	map['T'] = {'T', 'U', 'Y', 'W', 'K', 'D', 'H', 'B', 'X', 'N'};
-	map['U'] = {'T', 'U', 'Y', 'W', 'K', 'D', 'H', 'B', 'X', 'N'};
-	map['C'] = {'C', 'Y', 'S', 'M', 'V', 'H', 'B', 'X', 'N'};
-	map['G'] = {'G', 'R', 'S', 'K', 'D', 'V', 'B', 'X', 'N'};
-	map['Y'] = {'C', 'T', 'U', 'Y', 'W', 'S', 'K', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['R'] = {'A', 'G', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['W'] = {'A', 'T', 'U', 'Y', 'R', 'W', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['S'] = {'G', 'C', 'Y', 'R', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['K'] = {'T', 'U', 'G', 'Y', 'R', 'W', 'S', 'K', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['M'] = {'C', 'A', 'Y', 'R', 'W', 'S', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['D'] = {'A', 'G', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['V'] = {'A', 'C', 'G', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['H'] = {'A', 'C', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['B'] = {'G', 'C', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['X'] = {'A', 'G', 'C', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
-	map['N'] = {'A', 'C', 'G', 'T', 'U', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'};
+inline std::vector<unsigned short int> createAmbiguityMappings() {
+	std::vector<unsigned short int> map(128, 0);
+	map[static_cast<unsigned char>('A')] = 0b1000;
+	map[static_cast<unsigned char>('T')] = 0b0001;
+	map[static_cast<unsigned char>('U')] = 0b0001;
+	map[static_cast<unsigned char>('C')] = 0b0100;
+	map[static_cast<unsigned char>('G')] = 0b0010;
+	map[static_cast<unsigned char>('Y')] = 0b0101;
+	map[static_cast<unsigned char>('R')] = 0b1010;
+	map[static_cast<unsigned char>('W')] = 0b1001;
+	map[static_cast<unsigned char>('S')] = 0b0110;
+	map[static_cast<unsigned char>('K')] = 0b0011;
+	map[static_cast<unsigned char>('M')] = 0b1100;
+	map[static_cast<unsigned char>('D')] = 0b1011;
+	map[static_cast<unsigned char>('V')] = 0b1110;
+	map[static_cast<unsigned char>('H')] = 0b1101;
+	map[static_cast<unsigned char>('B')] = 0b0111;
+	map[static_cast<unsigned char>('X')] = 0b1111;
+	map[static_cast<unsigned char>('N')] = 0b1111;
 	return map;
 }
 
 static std::unordered_map<char, char> rcMapping = createRevcompMapping();
-static std::unordered_map<char, std::unordered_set<char> > ambiMapping = createAmbiguityMappings();
+static std::vector<unsigned short int> ambiMapping = createAmbiguityMappings();
 
 inline bool ambiguousMatch(char a, char b) {
 	if (a == '$' || b == '$') {
@@ -74,7 +74,7 @@ inline bool ambiguousMatch(char a, char b) {
 	if (a == b) {
 		return true;
 	} else {
-		return (ambiMapping[a].find(b) != ambiMapping[a].end());
+		return (ambiMapping[static_cast<unsigned char>(a)] & ambiMapping[static_cast<unsigned char>(b)] != 0);
 	}
 }
 
