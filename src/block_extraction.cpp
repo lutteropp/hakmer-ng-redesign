@@ -23,7 +23,6 @@
 #include "block_extension.hpp"
 #include "dna_functions.hpp"
 #include "indexing/approx_matching.hpp"
-#include "seed_info.hpp"
 
 size_t posToTaxon(size_t pos, const std::vector<IndexedTaxonCoords>& taxonCoords, size_t concatSize, bool revComp) {
 	if (revComp && pos >= concatSize / 2) {
@@ -113,11 +112,9 @@ bool highComplexity(const std::string& seed, unsigned int Ncutoff, double lowCom
 	}
 }
 
-bool acceptSeedComplexity(size_t actSAPos, size_t matchCount, size_t k, size_t nTax, const std::vector<size_t>& SA,
-		PresenceChecker& presenceChecker, const std::vector<IndexedTaxonCoords>& taxonCoords, const std::string& T,
-		const Options& options) {
+bool acceptSeedComplexity(size_t actSAPos, size_t k, const IndexedConcatenatedSequence& concat, const Options& options) {
 	if (!options.lowComplexity) {
-		std::string seed = T.substr(SA[actSAPos], k);
+		std::string seed = concat.getConcatenatedSeq().substr(concat.getSuffixArray()[actSAPos], k);
 		if (!highComplexity(seed, k / 8, 1.0)) {
 			return false;
 		}
@@ -237,22 +234,24 @@ void trimSeededBlock(Seed& block, PresenceChecker& presenceChecker, const Option
 	assert(block.getTaxonIDsInBlock().size() == block.getNTaxInBlock());
 }
 
-ExtendedBlock trimmedExtendedBlock(const SeedInfo& seedInfo, const std::vector<std::pair<size_t, size_t>>& extraOccs,
+ExtendedBlock trimmedExtendedBlock(const Seed& oldSeed, const std::vector<std::pair<size_t, size_t>>& extraOccs,
 		const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, const Options& options) {
 	// make a new seed out of the extended block.
 	std::vector<size_t> taxonUsage(concat.nTax(), 0);
-	Seed seed(concat.nTax(), seedInfo);
-	for (size_t i = 0; i < seedInfo.n; ++i) {
-		size_t firstCoord = concat.getSuffixArray()[seedInfo.saPos + i];
-		size_t taxID = concat.posToTaxon(firstCoord);
-		size_t lastCoord = firstCoord + seedInfo.k - 1;
-		seed.addTaxon(taxID, firstCoord, lastCoord);
-		taxonUsage[taxID]++;
+	Seed seed(concat.nTax());
+
+	size_t k = oldSeed.getOriginalK();
+	for (size_t tID : oldSeed.getTaxonIDsInBlock()) {
+		size_t saPos = oldSeed.getSAPositions()[tID];
+		size_t firstCoord = concat.getSuffixArray()[saPos];
+		size_t lastCoord = firstCoord + k - 1;
+		seed.addTaxon(saPos, tID, firstCoord, lastCoord);
+		taxonUsage[tID]++;
 	}
 	for (size_t i = 0; i < extraOccs.size(); ++i) {
 		size_t taxID = concat.posToTaxon(extraOccs[i].first);
 		if (!seed.hasTaxon(taxID)) {
-			seed.addTaxon(taxID, extraOccs[i].first, extraOccs[i].second);
+			seed.addTaxon(std::numeric_limits<size_t>::max(),taxID, extraOccs[i].first, extraOccs[i].second);
 		}
 		taxonUsage[taxID]++;
 	}
@@ -266,7 +265,7 @@ ExtendedBlock trimmedExtendedBlock(const SeedInfo& seedInfo, const std::vector<s
 	trimSeededBlock(seed, presenceChecker, options);
 	trimSeededBlockExtra(seed, presenceChecker, options);
 	trivialExtensionPartial(seed, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-	return extendBlock(seed, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, seedInfo.k, options);
+	return extendBlock(seed, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, k, options);
 }
 
 double jukesCantorCorrection(double dist) {
@@ -308,32 +307,6 @@ double averageSubstitutionRate(const std::vector<std::string>& msa) {
 	return jukesCantorCorrection(subRate);
 }
 
-void addValidExtraOccs(const std::vector<std::pair<size_t, size_t> >& extraOccs, const IndexedConcatenatedSequence& concat,
-		const Options& options, Seed& newSeed, const ExtendedBlock& block) {
-	std::unordered_set<size_t> taxIDs;
-	for (size_t tID : block.getTaxonIDsInBlock()) {
-		taxIDs.insert(tID);
-	}
-	std::vector<size_t> taxUsage(concat.nTax(), 0);
-	for (size_t i = 0; i < extraOccs.size(); ++i) {
-		size_t taxID = posToTaxon(extraOccs[i].first, concat.getTaxonCoords(), concat.getConcatenatedSeq().size(),
-				options.reverseComplement);
-		taxUsage[taxID]++;
-		if (taxID < concat.nTax() && taxIDs.find(taxID) == taxIDs.end()) {
-			// if we are here, the occurrence is fine. This means work for us.
-			newSeed.addTaxon(taxID, extraOccs[i].first, extraOccs[i].second);
-			taxIDs.insert(taxID);
-		}
-	}
-	if (options.discardParalogMismatches) { // remove paralog mismatches again
-		for (size_t i = 0; i < concat.nTax(); ++i) {
-			if (taxUsage[i] > 1) {
-				newSeed.removeTaxon(i);
-			}
-		}
-	}
-}
-
 size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffer, const Options& options, SummaryStatistics& stats,
 		BlockWriter& writer, const IndexedConcatenatedSequence& concat, ApproximateMatcher& approxMatcher,
 		PresenceChecker& presenceChecker) {
@@ -347,11 +320,11 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 			double subRate = block.getSubRate();
 //#pragma omp critical
 			//		std::cout << "subRate: " << subRate << "\n";
-			size_t k = block.getMySeededBlock().mySeedInfo.k;
+			size_t k = block.getMySeededBlock().getOriginalK();
 			size_t maxMismatches = k * subRate;
 
 			if (maxMismatches > 0) { // augment the block with approximate matches
-				std::string pattern = concat.getConcatenatedSeq().substr(concat.getSuffixArray()[block.getMySeededBlock().mySeedInfo.saPos],
+				std::string pattern = concat.getConcatenatedSeq().substr(concat.getSuffixArray()[block.getMySeededBlock().getFirstSAPos()],
 						k);
 				std::vector<size_t> taxPresence(concat.nTax(), 0);
 				for (size_t tID : block.getTaxonIDsInBlock()) {
@@ -377,7 +350,7 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 #pragma omp critical
 			{
 				presenceChecker.freeExtendedBlock(block);
-				block = trimmedExtendedBlock(block.getMySeededBlock().mySeedInfo, extraOccs, concat, presenceChecker, options);
+				block = trimmedExtendedBlock(block.getMySeededBlock(), extraOccs, concat, presenceChecker, options);
 				if (block.getNTaxInBlock() >= options.minTaxaPerBlock) {
 					presenceChecker.reserveExtendedBlock(block);
 				}
@@ -399,23 +372,13 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 	return newlyAddedBlocks;
 }
 
-std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfoBuffer, const IndexedConcatenatedSequence& concat,
+std::vector<ExtendedBlock> processSeedBuffer(std::vector<Seed>& seedInfoBuffer, const IndexedConcatenatedSequence& concat,
 		PresenceChecker& presenceChecker, const Options& options, ApproximateMatcher& approxMatcher) {
 	std::vector<ExtendedBlock> extendedBlocks;
 
 #pragma omp parallel for
 	for (size_t i = 0; i < seedInfoBuffer.size(); ++i) {
-		SeedInfo seedInfo = seedInfoBuffer[i];
-		// make a SeededBlock out of the seedInfo
-		Seed block(concat.nTax(), seedInfo);
-		size_t sIdx = seedInfo.saPos;
-		size_t k = seedInfo.k;
-		size_t matchCount = seedInfo.n;
-		for (size_t i = sIdx; i < sIdx + matchCount; ++i) {
-			size_t firstPos = concat.getSuffixArray()[i];
-			size_t tID = concat.posToTaxon(firstPos);
-			block.addTaxon(tID, firstPos, firstPos + k - 1);
-		}
+		Seed block = seedInfoBuffer[i];
 
 		// first check if the current seed candidate is hopeless
 		trimSeededBlock(block, presenceChecker, options);
@@ -423,7 +386,7 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 			continue;
 		}
 
-		k = block.getSeedCoords(block.getTaxonIDsInBlock()[0]).size() + block.getSeedCoords(block.getTaxonIDsInBlock()[0]).leftGapSize
+		size_t k = block.getSeedCoords(block.getTaxonIDsInBlock()[0]).size() + block.getSeedCoords(block.getTaxonIDsInBlock()[0]).leftGapSize
 				+ block.getSeedCoords(block.getTaxonIDsInBlock()[0]).rightGapSize;
 
 		// check some little assertion...
@@ -468,69 +431,70 @@ std::vector<ExtendedBlock> processSeedInfoBuffer(std::vector<SeedInfo>& seedInfo
 	return extendedBlocks;
 }
 
-std::pair<size_t, size_t> findKAndNumExactMatches(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker,
-		size_t minK, const Options& options) {
-	std::pair<size_t, size_t> emptyPair = std::make_pair(0, 0);
+Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK,
+		const Options& options) {
+	Seed seed(concat.nTax());
 	size_t kStart = std::max(minK, concat.getLcpArray()[saPos] + 1);
 	if ((concat.getSuffixArray()[saPos] + kStart >= concat.getConcatenatedSeq().size())
 			|| (!presenceChecker.isFree(concat.getSuffixArray()[saPos], concat.getSuffixArray()[saPos] + kStart - 1))) {
-		return emptyPair;
+		return seed;
 	}
 
-// at least nMin next entries have to be included
-	std::unordered_set<size_t> taxIDs;
-	size_t minNeighborK = std::numeric_limits<size_t>::max();
-	for (size_t i = 0; i < options.minTaxaPerBlock; ++i) {
-		if (i > 0 && concat.getLcpArray()[saPos + i] < kStart) {
-			return emptyPair;
-		}
-		size_t tID = concat.posToTaxon(concat.getSuffixArray()[saPos + i]);
-		taxIDs.insert(tID);
-		if (i > 0) {
-			minNeighborK = std::min(minNeighborK, concat.getLcpArray()[saPos + i]);
+	std::vector<size_t> taxCounts(concat.nTax(), 0);
+	// at least nMin next entries have to be included
+	for (size_t i = 1; i < options.minTaxaPerBlock; ++i) {
+		size_t lcpVal = concat.getLcpArray()[saPos + i];
+		if (lcpVal < kStart) { // not enough occurrences found
+			return seed;
 		}
 	}
-	if (taxIDs.size() < options.minTaxaPerBlock) {
-		return emptyPair;
-	}
-	size_t actMatches = options.minTaxaPerBlock;
-// now, we are at a position where at least the minimum amount of taxa has been found. Let's check how much more we can go to the right without encountering any paralogs.
-	size_t newMinK = kStart;
-	for (size_t i = options.minTaxaPerBlock; i < concat.getSuffixArray().size() - saPos; ++i) {
-		if (concat.getLcpArray()[saPos + i] < kStart) {
+
+	// how much more can we go to the right without getting smaller than our kStart?
+	taxCounts[concat.posToTaxon(concat.getSuffixArray()[saPos])]++;
+	size_t lastIdx = saPos;
+	for (size_t sIdx = saPos + 1; sIdx < concat.getSuffixArray().size(); ++sIdx) {
+		if (concat.getLcpArray()[sIdx] < kStart) {
 			break;
+		} else {
+			taxCounts[concat.posToTaxon(concat.getSuffixArray()[sIdx])]++;
+			lastIdx = sIdx;
 		}
-		size_t tID = concat.posToTaxon(concat.getSuffixArray()[saPos + i]);
-		taxIDs.insert(tID);
-		if (taxIDs.size() != actMatches + 1) {
-			newMinK = concat.getLcpArray()[saPos + i] + 1;
-			break;
+	}
+	size_t nGood = 0;
+	for (size_t i = 0; i < concat.nTax(); ++i) {
+		if (taxCounts[i] == 1) {
+			nGood++;
 		}
-		actMatches++;
+	}
+	if (nGood < options.minTaxaPerBlock) { // not enough non-paralogous occurrences found
+		return seed;
 	}
 
-	if (minNeighborK < newMinK) {
-		return emptyPair;
-	}
-	size_t k = newMinK; // now, we just need to check how many matches we still have and what's their min value
-
-	size_t minValNewMatches = std::numeric_limits<size_t>::max();
-	size_t nMatches = 1;
-	for (size_t i = 1; i < concat.getSuffixArray().size() - saPos; ++i) {
-		if (concat.getLcpArray()[saPos + i] < k) {
-			break;
+	// Now, it gets interesting... what's the largest value for k we can use for the non-paralogous taxa we still have?
+	size_t k = std::numeric_limits<size_t>::max();
+	for (size_t i = saPos + 1; i <= lastIdx; ++i) {
+		if (taxCounts[concat.posToTaxon(concat.getSuffixArray()[i])] == 1) {
+			k = std::min(k, concat.getLcpArray()[i]);
 		}
-		nMatches++;
-		minValNewMatches = std::min(minValNewMatches, concat.getLcpArray()[saPos + i]);
 	}
-	k = minValNewMatches;
 
-	return std::make_pair(k, nMatches);
+	// Now, we add those taxa to the seed.
+	for (size_t i = saPos; i <= lastIdx; ++i) {
+		size_t taxID = concat.posToTaxon(concat.getSuffixArray()[i]);
+		if (taxCounts[taxID] == 1) {
+			size_t firstPos = concat.getSuffixArray()[i];
+			size_t lastPos = firstPos + k - 1;
+			seed.addTaxon(i, taxID, firstPos, lastPos);
+		}
+	}
+	seed.setFirstSAPos(saPos);
+
+	return seed;
 }
 
-std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK,
-		size_t maxK, const Options& options) {
-	std::vector<SeedInfo> res;
+std::vector<Seed> extractSeeds(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK, size_t maxK,
+		const Options& options) {
+	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
 
@@ -539,33 +503,22 @@ std::vector<SeedInfo> extractSeedInfos(const IndexedConcatenatedSequence& concat
 #pragma omp parallel for schedule(dynamic)
 	for (size_t sIdx = 0; sIdx < concat.getSuffixArray().size() - options.minTaxaPerBlock; ++sIdx) {
 		bool skip = false;
-		std::pair<size_t, size_t> p = findKAndNumExactMatches(sIdx, concat, presenceChecker, minK, options);
-		size_t k = p.first;
-		size_t matchCount = p.second;
-		if (k == 0) {
+
+		Seed seed = findSeed(sIdx, concat, presenceChecker, minK, options);
+		if (seed.getNTaxInBlock() == 0) {
 			skip = true;
 		}
 
 		if (!skip
-				&& acceptSeedComplexity(sIdx, matchCount, k, concat.nTax(), concat.getSuffixArray(), presenceChecker,
-						concat.getTaxonCoords(), concat.getConcatenatedSeq(), options)) {
-
-			// perform simple extension of the seed
-			Seed block(concat.nTax());
-			for (size_t idx = 0; idx < matchCount; ++idx) {
-				size_t firstPos = concat.getSuffixArray()[sIdx + idx];
-				size_t tID = concat.posToTaxon(firstPos);
-				block.addTaxon(tID, firstPos, firstPos + k - 1);
-			}
-
-			if (!canGoLeftAll(block, presenceChecker, concat.nTax())
-					|| !allLeftSame(block, concat.getConcatenatedSeq(), block.getTaxonIDsInBlock())) {
-				SeedInfo info(sIdx, k, matchCount);
+				&& acceptSeedComplexity(sIdx, seed.getAverageSeedSize(), concat, options)) {
+			if (!canGoLeftAll(seed, presenceChecker, concat.nTax())
+					|| !allLeftSame(seed, concat.getConcatenatedSeq(), seed.getTaxonIDsInBlock())) {
 #pragma omp critical
-				res.push_back(info);
+				res.push_back(seed);
 				if (options.verboseDebug) {
 #pragma omp critical
-					std::cout << "Pushing back a seeded occurrence with " << info.n << " taxa and seed size " << info.k << "\n";
+					std::cout << "Pushing back a seeded occurrence with " << seed.getNTaxInBlock() << " taxa and seed size "
+							<< seed.getAverageSeedSize() << "\n";
 				}
 			}
 		}
@@ -617,14 +570,15 @@ void printSeedSizeHistogram(const std::vector<std::pair<size_t, size_t> >& seedS
 	}
 }
 
-std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<SeedInfo>& seedInfos, const Options& options) {
+std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<Seed>& seeds, const Options& options) {
 	std::vector<std::pair<size_t, size_t> > res;
 	std::vector<size_t> seedSizes(1000, 0);
-	for (size_t i = 0; i < seedInfos.size(); ++i) {
-		if (seedInfos[i].k >= seedSizes.size()) {
-			seedSizes.resize(seedInfos[i].k + 1);
+	for (size_t i = 0; i < seeds.size(); ++i) {
+		size_t k = seeds[i].getAverageSeedSize();
+		if (k >= seedSizes.size()) {
+			seedSizes.resize(k + 1);
 		}
-		seedSizes[seedInfos[i].k]++;
+		seedSizes[k]++;
 	}
 	for (size_t i = 0; i < seedSizes.size(); ++i) {
 		if (seedSizes[i] > 0) {
@@ -635,47 +589,47 @@ std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<SeedInf
 	return res;
 }
 
-size_t selectAndProcessSeedInfos(const std::vector<SeedInfo>& seededBlockInfos, ApproximateMatcher& approxMatcher,
+size_t selectAndProcessSeeds(const std::vector<Seed>& seeds, ApproximateMatcher& approxMatcher,
 		const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer, SummaryStatistics& stats,
 		const Options& options, size_t minK, size_t maxK) {
 	size_t newlyAddedBlocks = 0;
-	std::vector<SeedInfo> buffer;
-	size_t lastN = seededBlockInfos[0].n;
-	buffer.push_back(seededBlockInfos[0]);
-	for (size_t i = 1; i < seededBlockInfos.size(); ++i) {
-		if (seededBlockInfos[i].n == lastN) {
-			if (seededBlockInfos[i].k >= minK && seededBlockInfos[i].k <= maxK) {
-				buffer.push_back(seededBlockInfos[i]);
+	std::vector<Seed> buffer;
+	size_t lastN = seeds[0].getNTaxInBlock();
+	buffer.push_back(seeds[0]);
+	for (size_t i = 1; i < seeds.size(); ++i) {
+		if (seeds[i].getNTaxInBlock() == lastN) {
+			if (seeds[i].getAverageSeedSize() >= minK && seeds[i].getAverageSeedSize() <= maxK) {
+				buffer.push_back(seeds[i]);
 			}
 		} else {
 			std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
-			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher);
+			std::vector<ExtendedBlock> extendedBlockBuffer = processSeedBuffer(buffer, concat, presenceChecker, options, approxMatcher);
 			std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
 			newlyAddedBlocks += processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher,
 					presenceChecker);
 			buffer.clear();
-			lastN = seededBlockInfos[i].n;
-			if (seededBlockInfos[i].k >= minK && seededBlockInfos[i].k <= maxK) {
-				buffer.push_back(seededBlockInfos[i]);
+			lastN = seeds[i].getNTaxInBlock();
+			if (seeds[i].getAverageSeedSize() >= minK && seeds[i].getAverageSeedSize() <= maxK) {
+				buffer.push_back(seeds[i]);
 			}
 		}
 	}
 // process the last buffer
 	std::cout << "Number of seeded blocks with " << lastN << " exact matches: " << buffer.size() << "\n";
-	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedInfoBuffer(buffer, concat, presenceChecker, options, approxMatcher);
+	std::vector<ExtendedBlock> extendedBlockBuffer = processSeedBuffer(buffer, concat, presenceChecker, options, approxMatcher);
 	std::cout << "Assembling " << extendedBlockBuffer.size() << " extended blocks with " << lastN << " exact taxa...\n";
 	newlyAddedBlocks += processExtendedBlockBuffer(extendedBlockBuffer, options, stats, writer, concat, approxMatcher, presenceChecker);
 	std::cout << "Newly added blocks: " << newlyAddedBlocks << "\n";
 	return newlyAddedBlocks;
 }
 
-void printHypotheticalBestCaseTaxonCoverage(const IndexedConcatenatedSequence& concat, const std::vector<SeedInfo>& seedInfos) {
+void printHypotheticalBestCaseTaxonCoverage(const IndexedConcatenatedSequence& concat, const std::vector<Seed>& seeds) {
 // if we would ignore overlaps and stuff like this
 	std::vector<size_t> taxUsage(concat.nTax(), 0);
-	for (size_t i = 0; i < seedInfos.size(); ++i) {
-		for (size_t j = 0; j < seedInfos[i].n; ++j) {
-			size_t tID = concat.posToTaxon(concat.getSuffixArray()[seedInfos[i].saPos + j]);
-			taxUsage[tID] += seedInfos[i].k;
+	for (size_t i = 0; i < seeds.size(); ++i) {
+		size_t k = seeds[i].getAverageSeedSize();
+		for (size_t tID : seeds[i].getTaxonIDsInBlock()) {
+			taxUsage[tID] += k;
 		}
 	}
 
@@ -693,22 +647,22 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	size_t initialMinK = minK;
 
 	std::cout << "Extracting seeded blocks...\n";
-	std::vector<SeedInfo> seededBlockInfos = extractSeedInfos(concat, seedingPresenceChecker, minK, maxK, options);
-	std::cout << "seeded block infos.size(): " << seededBlockInfos.size() << "\n";
+	std::vector<Seed> seeds = extractSeeds(concat, seedingPresenceChecker, minK, maxK, options);
+	std::cout << "seeded block infos.size(): " << seeds.size() << "\n";
 	std::cout << "Processing seeds...\n";
-	std::sort(seededBlockInfos.begin(), seededBlockInfos.end(), std::greater<SeedInfo>());
+	std::sort(seeds.begin(), seeds.end(), std::greater<Seed>());
 
 	std::vector<std::pair<size_t, size_t> > seedSizes;
-	seedSizes = countSeedSizes(seededBlockInfos, options);
+	seedSizes = countSeedSizes(seeds, options);
 	printSeedSizeHistogram(seedSizes);
-	printHypotheticalBestCaseTaxonCoverage(concat, seededBlockInfos);
+	printHypotheticalBestCaseTaxonCoverage(concat, seeds);
 
 	size_t newMinK = elbowMethod(seedSizes, options);
 	std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k than this value.\n";
 	minK = newMinK;
 	ApproximateMatcher approxMatcher(options.mismatchesOnly);
 
-	size_t newlyAddedBlocks = selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, options,
+	size_t newlyAddedBlocks = selectAndProcessSeeds(seeds, approxMatcher, concat, presenceChecker, writer, stats, options,
 			minK, maxK);
 	double seqDataUsed = stats.getAmountSeqDataUsed(concat.getSequenceDataSize());
 	while (seqDataUsed < options.minSeqDataUsage) {
@@ -717,7 +671,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 		size_t newMinK = std::max((size_t) initialMinK, (size_t) minK - 1);
 		if (newMinK != minK) {
 			std::cout << "Using new value for minK: " << newMinK << "\n";
-			selectAndProcessSeedInfos(seededBlockInfos, approxMatcher, concat, presenceChecker, writer, stats, options, newMinK, minK - 1);
+			selectAndProcessSeeds(seeds, approxMatcher, concat, presenceChecker, writer, stats, options, newMinK, minK - 1);
 			minK = newMinK;
 		} else {
 			std::cout << "Unfortunately, a smaller minK value makes not much sense. :-(\n";

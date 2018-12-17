@@ -5,25 +5,25 @@
  *      Author: Sarah Lutteropp
  */
 
-#include <stdexcept>
-#include <iostream>
-#include <limits>
-#include <algorithm>
-#include <cassert>
 #include "seed.hpp"
 
-Seed::Seed(size_t nTax, const SeedInfo& info) {
-	mySeedInfo = info;
-	seedCoords.resize(nTax);
-	k = 0;
-}
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include <stdexcept>
+#include <utility>
 
 Seed::Seed(size_t nTax) {
 	seedCoords.resize(nTax);
 	k = 0;
+	originalK = 0;
+	firstSAPos = 0;
+	saPositions.resize(nTax);
 }
 
-void Seed::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
+void Seed::addTaxon(size_t saPos, size_t taxID, size_t firstCoord, size_t lastCoord) {
 	if (taxID >= seedCoords.size()) {
 		throw std::runtime_error("Trying to add taxon ID that belongs to no taxon");
 	}
@@ -42,6 +42,9 @@ void Seed::addTaxon(size_t taxID, size_t firstCoord, size_t lastCoord) {
 
 	seedCoords[taxID].first = firstCoord;
 	seedCoords[taxID].second = lastCoord;
+	originalK = k;
+
+	saPositions[taxID] = saPos;
 }
 
 size_t Seed::getNTaxInBlock() const {
@@ -244,4 +247,20 @@ void Seed::removeGapRight(size_t taxonID) {
 
 std::vector<SimpleCoords> Seed::getSeedCoords() const {
 	return seedCoords;
+}
+
+size_t Seed::getOriginalK() const {
+	return originalK;
+}
+
+size_t Seed::getFirstSAPos() const {
+	return firstSAPos;
+}
+
+void Seed::setFirstSAPos(size_t pos) {
+	firstSAPos = pos;
+}
+
+std::vector<size_t> Seed::getSAPositions() const {
+	return saPositions;
 }
