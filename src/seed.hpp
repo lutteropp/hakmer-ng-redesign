@@ -61,6 +61,9 @@ public:
 	size_t getFirstSAPos() const;
 	void setFirstSAPos(size_t pos);
 	std::vector<size_t> getSAPositions() const;
+
+	void setSubRate(double rate);
+	double getSubRate() const;
 private:
 	void cleanTaxIDs();
 	std::vector<SimpleCoords> seedCoords;
@@ -69,4 +72,5 @@ private:
 	size_t k;
 	size_t originalK;
 	size_t firstSAPos;
+	double subRate;
 };

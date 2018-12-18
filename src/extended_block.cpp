@@ -20,7 +20,6 @@ ExtendedBlock::ExtendedBlock(const Seed& seededBlock, size_t nTax) :
 			rightFlankCoords[i].second = seededBlock.getSeedCoords(i).second;
 		}
 	}
-	subRate = 0;
 }
 
 void ExtendedBlock::removeTaxon(size_t tID) {
@@ -131,11 +130,4 @@ size_t ExtendedBlock::getSizeWithFlanks(size_t tID) const {
 
 const Seed& ExtendedBlock::getMySeededBlock() const {
 	return mySeededBlock;
-}
-
-void ExtendedBlock::setSubRate(double rate) {
-	subRate = rate;
-}
-double ExtendedBlock::getSubRate() const {
-	return subRate;
 }

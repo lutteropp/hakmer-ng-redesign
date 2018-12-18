@@ -251,7 +251,7 @@ ExtendedBlock trimmedExtendedBlock(const Seed& oldSeed, const std::vector<std::p
 	for (size_t i = 0; i < extraOccs.size(); ++i) {
 		size_t taxID = concat.posToTaxon(extraOccs[i].first);
 		if (!seed.hasTaxon(taxID)) {
-			seed.addTaxon(std::numeric_limits<size_t>::max(),taxID, extraOccs[i].first, extraOccs[i].second);
+			seed.addTaxon(std::numeric_limits<size_t>::max(), taxID, extraOccs[i].first, extraOccs[i].second);
 		}
 		taxonUsage[taxID]++;
 	}
@@ -277,6 +277,9 @@ double averageSubstitutionRate(const std::vector<std::string>& msa) {
 	std::vector<size_t> validSeqIndices;
 	for (size_t i = 0; i < msa.size(); ++i) {
 		for (size_t j = 0; j < msa[i].size(); ++j) {
+			if (std::find(validSeqIndices.begin(), validSeqIndices.end(), i) != validSeqIndices.end()) {
+				break;
+			}
 			if (msa[i][j] != '?' && msa[i][j] != '-') {
 				validSeqIndices.push_back(i);
 				break;
@@ -317,7 +320,7 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 		std::vector<std::pair<size_t, size_t> > extraOccs;
 
 		if (block.getNTaxInBlock() < concat.nTax()) {
-			double subRate = block.getSubRate();
+			double subRate = block.getMySeededBlock().getSubRate();
 //#pragma omp critical
 			//		std::cout << "subRate: " << subRate << "\n";
 			size_t k = block.getMySeededBlock().getOriginalK();
@@ -386,7 +389,8 @@ std::vector<ExtendedBlock> processSeedBuffer(std::vector<Seed>& seedInfoBuffer, 
 			continue;
 		}
 
-		size_t k = block.getSeedCoords(block.getTaxonIDsInBlock()[0]).size() + block.getSeedCoords(block.getTaxonIDsInBlock()[0]).leftGapSize
+		size_t k = block.getSeedCoords(block.getTaxonIDsInBlock()[0]).size()
+				+ block.getSeedCoords(block.getTaxonIDsInBlock()[0]).leftGapSize
 				+ block.getSeedCoords(block.getTaxonIDsInBlock()[0]).rightGapSize;
 
 		// check some little assertion...
@@ -407,17 +411,6 @@ std::vector<ExtendedBlock> processSeedBuffer(std::vector<Seed>& seedInfoBuffer, 
 
 			bool discardMe = (options.discardUninformativeBlocks && extendedBlock.getAverageLeftFlankSize() == 0
 					&& extendedBlock.getAverageRightFlankSize() == 0);
-			if (!discardMe) {
-				std::vector<std::string> msa = computeMSA(extendedBlock, concat.getConcatenatedSeq(), concat.nTax(), options);
-				if (block.getNTaxInBlock() < concat.nTax()) {
-					double subRate = averageSubstitutionRate(msa);
-					if (subRate > options.maxAvgSubstitutionRate) {
-						discardMe = true;
-					} else {
-						extendedBlock.setSubRate(subRate);
-					}
-				}
-			}
 
 			if (!discardMe) {
 #pragma omp critical
@@ -431,13 +424,93 @@ std::vector<ExtendedBlock> processSeedBuffer(std::vector<Seed>& seedInfoBuffer, 
 	return extendedBlocks;
 }
 
+void printMSA(const std::vector<std::string>& msa) {
+	std::cout << "block MSA:\n";
+	for (size_t i = 0; i < msa.size(); ++i) {
+		std::cout << msa[i] << "\n";
+	}
+}
+
+double estimateSubRate(const Seed& unextendedSeed, const IndexedConcatenatedSequence& concat, const Options& options) {
+	ExtendedBlock block(unextendedSeed, concat.nTax());
+	block.setLeftFlankSize(unextendedSeed.getOriginalK());
+	block.setRightFlankSize(unextendedSeed.getOriginalK());
+	std::vector<std::string> msa = computeMSA(block, concat.getConcatenatedSeq(), concat.nTax(), options);
+	printMSA(msa);
+	double subRate = averageSubstitutionRate(msa);
+	return subRate;
+}
+
+// Just assume ungapped MSA for subRate estimation here
+double estimateSubRateQuick(const Seed& unextendedSeed, const IndexedConcatenatedSequence& concat, const Options& options) {
+	size_t k = unextendedSeed.getOriginalK();
+	size_t nPairs = 0;
+	size_t nDiff = 0;
+	for (size_t tID : unextendedSeed.getTaxonIDsInBlock()) {
+		size_t firstA = unextendedSeed.getSeedCoords(tID).first;
+		size_t lastA = unextendedSeed.getSeedCoords(tID).second;
+		for (size_t tID2 : unextendedSeed.getTaxonIDsInBlock()) {
+			if (tID == tID2) {
+				continue;
+			}
+			size_t firstB = unextendedSeed.getSeedCoords(tID2).first;
+			size_t lastB = unextendedSeed.getSeedCoords(tID2).second;
+			for (size_t i = 1; i <= k; ++i) { // left flank
+				if (concat.getConcatenatedSeq()[firstA - i] == '$' || concat.getConcatenatedSeq()[firstB - i] == '$') {
+					break;
+				}
+				if (firstA < i || firstB < i) {
+					break;
+				}
+				nPairs++;
+				if (!ambiguousMatch(concat.getConcatenatedSeq()[firstA - i], concat.getConcatenatedSeq()[firstB - i])) {
+					nDiff++;
+				}
+			}
+			for (size_t i = 1; i <= k; ++i) { // right flank
+				if (concat.getConcatenatedSeq()[lastA + i] == '$' || concat.getConcatenatedSeq()[lastB + i] == '$') {
+					break;
+				}
+				if (lastA + i >= concat.getConcatSize() || lastB + i >= concat.getConcatSize()) {
+					break;
+				}
+				nPairs++;
+				if (!ambiguousMatch(concat.getConcatenatedSeq()[lastA + i], concat.getConcatenatedSeq()[lastB + i])) {
+					nDiff++;
+				}
+			}
+		}
+	}
+
+	for (size_t i = 0; i < unextendedSeed.getNTaxInBlock(); ++i) {
+		for (size_t j = i + 1; j < unextendedSeed.getNTaxInBlock(); ++j) {
+			nPairs += k;
+		}
+	}
+
+	//nPairs += k * unextendedSeed.getNTaxInBlock() * (unextendedSeed.getNTaxInBlock() - 1) / 2;
+	double subRate = (double) nDiff / nPairs;
+	subRate = jukesCantorCorrection(subRate);
+
+	/*if (subRate > options.maxAvgSubstitutionRate) {
+#pragma omp critical
+		{
+			double subRateNew = estimateSubRate(unextendedSeed, concat, options);
+			std::cout << "old: " << subRate << "; new: " << subRateNew << "\n";
+			subRate = subRateNew;
+		}
+	}*/
+
+	return subRate;
+}
+
 Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK,
 		const Options& options) {
-	Seed seed(concat.nTax());
+	Seed emptySeed(concat.nTax());
 	size_t kStart = std::max(minK, concat.getLcpArray()[saPos] + 1);
 	if ((concat.getSuffixArray()[saPos] + kStart >= concat.getConcatenatedSeq().size())
 			|| (!presenceChecker.isFree(concat.getSuffixArray()[saPos], concat.getSuffixArray()[saPos] + kStart - 1))) {
-		return seed;
+		return emptySeed;
 	}
 
 	std::vector<size_t> taxCounts(concat.nTax(), 0);
@@ -445,7 +518,7 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 	for (size_t i = 1; i < options.minTaxaPerBlock; ++i) {
 		size_t lcpVal = concat.getLcpArray()[saPos + i];
 		if (lcpVal < kStart) { // not enough occurrences found
-			return seed;
+			return emptySeed;
 		}
 	}
 
@@ -467,7 +540,7 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 		}
 	}
 	if (nGood < options.minTaxaPerBlock) { // not enough non-paralogous occurrences found
-		return seed;
+		return emptySeed;
 	}
 
 	// Now, it gets interesting... what's the largest value for k we can use for the non-paralogous taxa we still have?
@@ -478,6 +551,7 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 		}
 	}
 
+	Seed seed(concat.nTax());
 	// Now, we add those taxa to the seed.
 	for (size_t i = saPos; i <= lastIdx; ++i) {
 		size_t taxID = concat.posToTaxon(concat.getSuffixArray()[i]);
@@ -488,6 +562,15 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 		}
 	}
 	seed.setFirstSAPos(saPos);
+	double subRate = estimateSubRateQuick(seed, concat, options);
+	seed.setSubRate(subRate);
+
+//#pragma omp critical
+	//std::cout << "k: " << k << "; n: " << seed.getNTaxInBlock() << "; Estimated sub rate: " << subRate << "\n";
+
+	if ((options.discardUninformativeBlocks && subRate == 0) || subRate > options.maxAvgSubstitutionRate) {
+		return emptySeed;
+	}
 
 	return seed;
 }
@@ -509,8 +592,7 @@ std::vector<Seed> extractSeeds(const IndexedConcatenatedSequence& concat, Presen
 			skip = true;
 		}
 
-		if (!skip
-				&& acceptSeedComplexity(sIdx, seed.getAverageSeedSize(), concat, options)) {
+		if (!skip && acceptSeedComplexity(sIdx, seed.getAverageSeedSize(), concat, options)) {
 			if (!canGoLeftAll(seed, presenceChecker, concat.nTax())
 					|| !allLeftSame(seed, concat.getConcatenatedSeq(), seed.getTaxonIDsInBlock())) {
 #pragma omp critical
@@ -540,7 +622,7 @@ size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts
 // see https://www.linkedin.com/pulse/finding-optimal-number-clusters-k-means-through-elbow-asanka-perera/
 // see https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 // we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
-	static size_t minReasonableCount = 500;
+	static size_t minReasonableCount = 1000;
 	size_t lastIdx = seedSizeCounts.size() - 1;
 	while (seedSizeCounts[lastIdx].second < minReasonableCount && lastIdx > 0) {
 		lastIdx--;
@@ -589,9 +671,8 @@ std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<Seed>& 
 	return res;
 }
 
-size_t selectAndProcessSeeds(const std::vector<Seed>& seeds, ApproximateMatcher& approxMatcher,
-		const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer, SummaryStatistics& stats,
-		const Options& options, size_t minK, size_t maxK) {
+size_t selectAndProcessSeeds(const std::vector<Seed>& seeds, ApproximateMatcher& approxMatcher, const IndexedConcatenatedSequence& concat,
+		PresenceChecker& presenceChecker, BlockWriter& writer, SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK) {
 	size_t newlyAddedBlocks = 0;
 	std::vector<Seed> buffer;
 	size_t lastN = seeds[0].getNTaxInBlock();
@@ -662,8 +743,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	minK = newMinK;
 	ApproximateMatcher approxMatcher(options.mismatchesOnly);
 
-	size_t newlyAddedBlocks = selectAndProcessSeeds(seeds, approxMatcher, concat, presenceChecker, writer, stats, options,
-			minK, maxK);
+	size_t newlyAddedBlocks = selectAndProcessSeeds(seeds, approxMatcher, concat, presenceChecker, writer, stats, options, minK, maxK);
 	double seqDataUsed = stats.getAmountSeqDataUsed(concat.getSequenceDataSize());
 	while (seqDataUsed < options.minSeqDataUsage) {
 		std::cout << "Current percentage of sequence data used: " << seqDataUsed * 100

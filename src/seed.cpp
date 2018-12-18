@@ -21,6 +21,7 @@ Seed::Seed(size_t nTax) {
 	originalK = 0;
 	firstSAPos = 0;
 	saPositions.resize(nTax);
+	subRate = 0;
 }
 
 void Seed::addTaxon(size_t saPos, size_t taxID, size_t firstCoord, size_t lastCoord) {
@@ -263,4 +264,11 @@ void Seed::setFirstSAPos(size_t pos) {
 
 std::vector<size_t> Seed::getSAPositions() const {
 	return saPositions;
+}
+
+void Seed::setSubRate(double rate) {
+	subRate = rate;
+}
+double Seed::getSubRate() const {
+	return subRate;
 }

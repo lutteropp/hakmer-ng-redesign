@@ -42,6 +42,6 @@ public:
 
 	bool discardParalogMismatches = true;
 
-	double maxAvgSubstitutionRate = 0.25;
+	double maxAvgSubstitutionRate = 0.2;
 };
 
