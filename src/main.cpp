@@ -71,7 +71,6 @@ int main(int argc, char* argv[]) {
 			commandStr += " ";
 		}
 	}
-	std::cout << "Program called with the following arguments: " << commandStr << "\n";
 
 	Options options;
 	CLI::App app { "Program hakmer (\"homology aware k-mers\"): Reads a set of sequences with some homology between them\n"
@@ -108,6 +107,8 @@ int main(int argc, char* argv[]) {
 	if (!options.outpath.empty() && options.infopath.empty()) {
 		options.infopath = options.outpath + ".info";
 	}
+	std::cout << "Program called with the following arguments: " << commandStr << "\n";
+
 
 #ifdef WITH_OPENMP
 	if (nThreads > 0) {

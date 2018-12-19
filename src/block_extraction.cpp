@@ -623,6 +623,8 @@ size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts
 // see https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 // we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
 	static size_t minReasonableCount = 1000;
+	static size_t maxMinK = 42;
+
 	size_t lastIdx = seedSizeCounts.size() - 1;
 	while (seedSizeCounts[lastIdx].second < minReasonableCount && lastIdx > 0) {
 		lastIdx--;
@@ -642,7 +644,7 @@ size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts
 			maxDistIdx = i;
 		}
 	}
-	return seedSizeCounts[maxDistIdx].first;
+	return std::min(seedSizeCounts[maxDistIdx].first, maxMinK);
 }
 
 void printSeedSizeHistogram(const std::vector<std::pair<size_t, size_t> >& seedSizes) {
