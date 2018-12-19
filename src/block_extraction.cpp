@@ -326,6 +326,8 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 			size_t k = block.getMySeededBlock().getOriginalK();
 			size_t maxMismatches = k * subRate;
 
+			maxMismatches = 0; // TODO: Remove me again.
+
 			if (maxMismatches > 0) { // augment the block with approximate matches
 				std::string pattern = concat.getConcatenatedSeq().substr(concat.getSuffixArray()[block.getMySeededBlock().getFirstSAPos()],
 						k);
