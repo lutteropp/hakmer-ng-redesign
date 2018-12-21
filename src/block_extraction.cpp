@@ -493,13 +493,13 @@ double estimateSubRateQuick(const Seed& unextendedSeed, const IndexedConcatenate
 	subRate = jukesCantorCorrection(subRate);
 
 	/*if (subRate > options.maxAvgSubstitutionRate) {
-#pragma omp critical
-		{
-			double subRateNew = estimateSubRate(unextendedSeed, concat, options);
-			std::cout << "old: " << subRate << "; new: " << subRateNew << "\n";
-			subRate = subRateNew;
-		}
-	}*/
+	 #pragma omp critical
+	 {
+	 double subRateNew = estimateSubRate(unextendedSeed, concat, options);
+	 std::cout << "old: " << subRate << "; new: " << subRateNew << "\n";
+	 subRate = subRateNew;
+	 }
+	 }*/
 
 	return subRate;
 }
@@ -548,6 +548,15 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 	for (size_t i = saPos + 1; i <= lastIdx; ++i) {
 		if (taxCounts[concat.posToTaxon(concat.getSuffixArray()[i])] == 1) {
 			k = std::min(k, concat.getLcpArray()[i]);
+		}
+	}
+
+	// reject instances where the same seed size led to some taxa showing paralog occurrences
+	for (size_t i = saPos + 1; i <= lastIdx; ++i) {
+		if (taxCounts[concat.posToTaxon(concat.getSuffixArray()[i])] > 1) {
+			if (concat.getLcpArray()[i] >= k) {
+				return emptySeed;
+			}
 		}
 	}
 
