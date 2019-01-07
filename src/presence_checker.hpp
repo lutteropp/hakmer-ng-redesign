@@ -38,5 +38,4 @@ private:
 	std::vector<bool> freePos;
 	size_t nTax;
 	bool revComp;
-	size_t size;
 };

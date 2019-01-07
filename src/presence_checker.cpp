@@ -27,10 +27,6 @@ PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool
 			setTaken(i);
 		}
 	}
-	size = freePos.size();
-	if (size == 0) {
-		throw std::runtime_error("size really shouldn't be zero here");
-	}
 }
 
 PresenceChecker::PresenceChecker(const PresenceChecker& other) {
@@ -40,10 +36,6 @@ PresenceChecker::PresenceChecker(const PresenceChecker& other) {
 		this->freePos[i] = other.freePos[i];
 	}
 	this->nTax = other.nTax;
-	size = freePos.size();
-	if (size == 0) {
-		throw std::runtime_error("size is zero now.");
-	}
 }
 
 size_t PresenceChecker::mirrorCoord(size_t coord) const {
@@ -51,18 +43,15 @@ size_t PresenceChecker::mirrorCoord(size_t coord) const {
 	if (freePos.size() == 0) {
 		throw std::runtime_error("Why is freePos empty?");
 	}
-	if (size != freePos.size()) {
-		throw std::runtime_error("Why is size != freePos.size()?");
-	}
-	if (coord == 2 * size) {
+	if (coord == 2 * freePos.size()) {
 		throw std::runtime_error("The coord is 2*size");
 	}
-	if (revComp && coord >= size) {
-		coord = 2 * size - coord - 1; // TODO: This looks wrong.
+	if (revComp && coord >= freePos.size()) {
+		coord = 2 * freePos.size() - coord - 1; // TODO: This looks wrong.
 	}
-	if (coord >= size) {
+	if (coord >= freePos.size()) {
 		std::cout << "coordBefore: " << coordBefore << "\n";
-		std::cout << "size: " << size << "\n";
+		std::cout << "size: " << freePos.size() << "\n";
 		std::cout << "coordAfter: " << coord << "\n";
 		throw std::runtime_error("Why is coord >= size???");
 	}
