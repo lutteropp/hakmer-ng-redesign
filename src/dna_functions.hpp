@@ -11,6 +11,8 @@
 #include <cassert>
 #include <string>
 #include <vector>
+#include <iostream>
+#include <stdexcept>
 
 inline std::vector<char> createRevcompMapping() {
 	std::vector<char> map(128, '#');
@@ -90,6 +92,16 @@ inline bool ambiguousEqual(const std::string& s1, const std::string& s2) {
 inline std::string revComp(const std::string& str) {
 	std::string res;
 	for (int i = str.size() - 1; i >= 0; --i) {
+		if (static_cast<unsigned char>(str[i]) > rcMapping.size()) {
+			std::cout << str[i] << "\n";
+			throw std::runtime_error("Problematic base encountered!");
+		}
+
+		if (rcMapping[static_cast<unsigned char>(str[i])] == '#') {
+			std::cout << str[i] << "\n";
+			throw std::runtime_error("Problematic base encountered 2!");
+		}
+
 		assert(rcMapping[static_cast<unsigned char>(str[i])] != '#');
 		res += rcMapping[static_cast<unsigned char>(str[i])];
 	}
