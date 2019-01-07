@@ -93,9 +93,16 @@ std::pair<std::vector<size_t>, std::vector<size_t> > IndexedConcatenatedSequence
 }
 
 size_t IndexedConcatenatedSequence::posToTaxonInternal(size_t pos, bool revComp) const {
+	if (pos >= concatenatedSeq.size()) {
+		throw std::runtime_error("pos is too large");
+	}
 	if (revComp && pos >= concatenatedSeq.size() / 2) {
+		if (pos >= concatenatedSeq.size()) {
+			throw std::runtime_error("pos is too large");
+		}
 		pos = concatenatedSeq.size() - pos - 1;
 	}
+
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		if (taxonCoords[i].contains(pos)) {
 			return i;
