@@ -148,6 +148,10 @@ bool canGoLeftAll(const ExtendedBlock& block, const PresenceChecker& presenceChe
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
+			if (block.getTaxonCoordsWithoutFlanks(i).first < offset) {
+				canGo = false;
+				break;
+			}
 			if (!presenceChecker.isFree(block.getTaxonCoordsWithoutFlanks(i).first - offset)) {
 				canGo = false;
 				break;
