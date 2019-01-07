@@ -636,17 +636,27 @@ size_t elbowMethod(const std::vector<std::pair<size_t, size_t> >& seedSizeCounts
 // we need to find the point with the largest distance to the line from the first to the last point; this point corresponds to our chosen minK value.
 	static size_t minReasonableCount = 1000;
 
+	// find the entry with the highest count, this one will be at minIdx
+	size_t minIdx = 0;
+	for (size_t i = 1; i < seedSizeCounts.size(); ++i) {
+		if (seedSizeCounts[i].second > seedSizeCounts[minIdx].second) {
+			minIdx = i;
+		}
+	}
+
 	size_t lastIdx = seedSizeCounts.size() - 1;
-	while (seedSizeCounts[lastIdx].second < minReasonableCount && lastIdx > 0) {
+	while (seedSizeCounts[lastIdx].second < minReasonableCount && lastIdx > minIdx) {
 		lastIdx--;
 	}
+
 	int maxDist = 0;
-	size_t maxDistIdx = 0;
-	int x1 = seedSizeCounts[0].first;
-	int y1 = seedSizeCounts[0].second;
+	size_t maxDistIdx = minIdx;
+
+	int x1 = seedSizeCounts[minIdx].first;
+	int y1 = seedSizeCounts[minIdx].second;
 	int x2 = seedSizeCounts[lastIdx].first;
 	int y2 = seedSizeCounts[lastIdx].second;
-	for (size_t i = 1; i <= lastIdx; ++i) { // because the endpoints trivially have distance 0
+	for (size_t i = minIdx + 1; i <= lastIdx; ++i) { // because the endpoints trivially have distance 0
 		int x0 = seedSizeCounts[i].first;
 		int y0 = seedSizeCounts[i].second;
 		int d = std::abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
