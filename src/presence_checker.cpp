@@ -37,8 +37,17 @@ PresenceChecker::PresenceChecker(const PresenceChecker& other) {
 
 size_t PresenceChecker::mirrorCoord(size_t coord) const {
 	size_t coordBefore = coord;
+	if (freePos.size() == 0) {
+		throw std::runtime_error("Why is freePos.size() == 0???");
+	}
 	if (revComp && coord >= freePos.size()) {
 		coord = 2 * freePos.size() - coord - 1;
+	}
+	if (coord >= freePos.size()) {
+		std::cout << "coordBefore: " << coordBefore << "\n";
+		std::cout << "coord: " << coord << "\n";
+		std::cout << "freePos.size(): " << freePos.size() << "\n";
+		throw std::runtime_error("Coord is too large");
 	}
 	return coord;
 }
