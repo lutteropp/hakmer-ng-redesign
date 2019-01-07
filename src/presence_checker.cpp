@@ -10,6 +10,9 @@
 PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool revComp) :
 		revComp(revComp) {
 	size_t nSites = concat.getConcatSize();
+	if (nSites == 0) {
+		throw std::runtime_error("Why is nSites == 0?");
+	}
 	if (revComp) {
 		nSites /= 2;
 	}
