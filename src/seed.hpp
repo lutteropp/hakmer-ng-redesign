@@ -20,6 +20,7 @@ class Seed {
 public:
 	Seed(size_t nTax);
 	void addTaxon(size_t saPos, size_t taxID, size_t firstCoord, size_t lastCoord);
+	void blockTaxon(size_t taxID);
 	void removeTaxon(size_t taxID);
 	size_t getNTaxInBlock() const;
 	SimpleCoords getSeedCoords(size_t taxID) const;
@@ -64,11 +65,13 @@ public:
 
 	void setSubRate(double rate);
 	double getSubRate() const;
+	const std::vector<size_t> getBlockedTaxa() const;
 private:
 	void cleanTaxIDs();
 	std::vector<SimpleCoords> seedCoords;
 	std::vector<size_t> taxIDs;
 	std::vector<size_t> saPositions;
+	std::vector<size_t> blockedTaxa;
 	size_t k;
 	size_t originalK;
 	size_t firstSAPos;

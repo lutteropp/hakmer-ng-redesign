@@ -25,6 +25,12 @@ Seed::Seed(size_t nTax) {
 }
 
 void Seed::addTaxon(size_t saPos, size_t taxID, size_t firstCoord, size_t lastCoord) {
+	for (size_t i = 0; i < blockedTaxa.size(); ++i) {
+		if (blockedTaxa[i] == taxID) {
+			return;
+		}
+	}
+
 	if (taxID >= seedCoords.size()) {
 		throw std::runtime_error("Trying to add taxon ID that belongs to no taxon");
 	}
@@ -271,4 +277,12 @@ void Seed::setSubRate(double rate) {
 }
 double Seed::getSubRate() const {
 	return subRate;
+}
+
+void Seed::blockTaxon(size_t taxID) {
+	blockedTaxa.push_back(taxID);
+}
+
+const std::vector<size_t> Seed::getBlockedTaxa() const {
+	return blockedTaxa;
 }

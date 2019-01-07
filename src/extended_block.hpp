@@ -39,6 +39,7 @@ public:
 	std::vector<SimpleCoords> getLeftFlankCoords() const;
 	std::vector<SimpleCoords> getSeedCoords() const;
 	std::vector<SimpleCoords> getRightFlankCoords() const;
+	const std::vector<size_t> getBlockedTaxa() const;
 private:
 	Seed mySeededBlock;
 	std::vector<SimpleCoords> leftFlankCoords;

@@ -333,6 +333,9 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 				for (size_t tID : block.getTaxonIDsInBlock()) {
 					taxPresence[tID] += 2; // in order not to search for approx matches in the taxa we already have with exact matches
 				}
+				for (size_t tID : block.getBlockedTaxa()) {
+					taxPresence[tID] += 2;
+				}
 				// do it on a per-taxon basis
 
 				for (size_t taxonID = 0; taxonID < concat.nTax(); taxonID++) {
@@ -568,6 +571,8 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 			size_t firstPos = concat.getSuffixArray()[i];
 			size_t lastPos = firstPos + k - 1;
 			seed.addTaxon(i, taxID, firstPos, lastPos);
+		} else if (taxCounts[taxID] > 1) {
+			seed.blockTaxon(taxID);
 		}
 	}
 	seed.setFirstSAPos(saPos);
@@ -589,8 +594,6 @@ std::vector<Seed> extractSeeds(const IndexedConcatenatedSequence& concat, Presen
 	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
-
-	ApproximateMatcher approxMatcher(true);
 
 #pragma omp parallel for schedule(dynamic)
 	for (size_t sIdx = 0; sIdx < concat.getSuffixArray().size() - options.minTaxaPerBlock; ++sIdx) {

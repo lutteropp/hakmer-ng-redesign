@@ -131,3 +131,7 @@ size_t ExtendedBlock::getSizeWithFlanks(size_t tID) const {
 const Seed& ExtendedBlock::getMySeededBlock() const {
 	return mySeededBlock;
 }
+
+const std::vector<size_t> ExtendedBlock::getBlockedTaxa() const {
+	return mySeededBlock.getBlockedTaxa();
+}
