@@ -37,7 +37,9 @@ size_t estimateMinK(const IndexedConcatenatedSequence& concat) {
 }
 
 void matrixCallback(Options& options) {
+	std::cout << "before read concat\n";
 	IndexedConcatenatedSequence concat = readConcat(options);
+	std::cout << "after read concat\n";
 	if (concat.isProtein()) {
 		options.reverseComplement = false;
 	}
