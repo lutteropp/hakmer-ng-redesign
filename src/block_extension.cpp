@@ -20,7 +20,7 @@ bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, siz
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
-			if (!presenceChecker.isFree(block.getSeedCoords(i).first - 1)) {
+			if (block.getSeedCoords(i).first == 0 || !presenceChecker.isFree(block.getSeedCoords(i).first - 1)) {
 				canGo = false;
 				break;
 			}
@@ -29,11 +29,11 @@ bool canGoLeftAll(const Seed& block, const PresenceChecker& presenceChecker, siz
 	return canGo;
 }
 
-bool canGoRightAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax) {
+bool canGoRightAll(const Seed& block, const PresenceChecker& presenceChecker, size_t nTax, size_t concatSize) {
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
-			if (!presenceChecker.isFree(block.getSeedCoords(i).second + 1)) {
+			if (block.getSeedCoords(i).second + 1 == concatSize || !presenceChecker.isFree(block.getSeedCoords(i).second + 1)) {
 				canGo = false;
 				break;
 			}
@@ -43,8 +43,14 @@ bool canGoRightAll(const Seed& block, const PresenceChecker& presenceChecker, si
 }
 
 bool allLeftSame(const Seed& seededBlock, const std::string& T, const std::vector<size_t>& taxIDs) {
+	if (seededBlock.getSeedCoords(taxIDs[0]).first == 0) {
+		return false;
+	}
 	char leftChar = T[seededBlock.getSeedCoords(taxIDs[0]).first - 1];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
+		if (seededBlock.getSeedCoords(taxIDs[i]).first == 0) {
+			return false;
+		}
 		char actChar = T[seededBlock.getSeedCoords(taxIDs[i]).first - 1];
 		if (!ambiguousMatch(actChar, leftChar))
 			return false;
@@ -53,8 +59,14 @@ bool allLeftSame(const Seed& seededBlock, const std::string& T, const std::vecto
 }
 
 bool allRightSame(const Seed& seededBlock, const std::string& T, const std::vector<size_t>& taxIDs) {
+	if (seededBlock.getSeedCoords(taxIDs[0]).second + 1 >= T.size()) {
+		return false;
+	}
 	char rightChar = T[seededBlock.getSeedCoords(taxIDs[0]).second + 1];
 	for (size_t i = 1; i < taxIDs.size(); ++i) {
+		if (seededBlock.getSeedCoords(taxIDs[i]).second + 1 >= T.size()) {
+			return false;
+		}
 		char actChar = T[seededBlock.getSeedCoords(taxIDs[i]).second + 1];
 		if (!ambiguousMatch(actChar, rightChar))
 			return false;
@@ -105,7 +117,7 @@ void trivialExtensionPartial(Seed& seededBlock, const std::string& T, PresenceCh
 		rightok = 0;
 		std::vector<size_t> taxIDsToRemove;
 		for (size_t tID : taxIDsRight) {
-			if (presenceChecker.isFree(seededBlock.getSeedCoords(tID).second + 1)) {
+			if (seededBlock.getSeedCoords(tID).second + 1 < T.size() && presenceChecker.isFree(seededBlock.getSeedCoords(tID).second + 1)) {
 				rightok++;
 			} else {
 				taxIDsToRemove.push_back(tID);
