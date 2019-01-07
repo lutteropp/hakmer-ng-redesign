@@ -39,7 +39,7 @@ PresenceChecker::PresenceChecker(const PresenceChecker& other) {
 
 bool PresenceChecker::isFree(size_t coord) const {
 	if (revComp && coord >= size) {
-		coord = size - coord - 1;
+		coord = 2*size - coord - 1; // TODO: This looks wrong.
 	}
 	if (coord >= size) {
 		return false;
@@ -59,14 +59,14 @@ bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) const {
 
 void PresenceChecker::setTaken(size_t coord) {
 	if (revComp && coord >= size) {
-		coord = size - coord - 1;
+		coord = 2*size - coord - 1;
 	}
 	freePos[coord] = false;
 }
 
 void PresenceChecker::setFree(size_t coord) {
 	if (revComp && coord >= size) {
-		coord = size - coord - 1;
+		coord = 2*size - coord - 1;
 	}
 	freePos[coord] = true;
 }
