@@ -38,6 +38,9 @@ PresenceChecker::PresenceChecker(const PresenceChecker& other) {
 	}
 	this->nTax = other.nTax;
 	size = freePos.size();
+	if (size == 0) {
+		throw std::runtime_error("size is zero now.");
+	}
 }
 
 size_t PresenceChecker::mirrorCoord(size_t coord) const {
