@@ -110,8 +110,6 @@ int main(int argc, char* argv[]) {
 	}
 	std::cout << "Program called with the following arguments: " << commandStr << "\n";
 
-	options.reverseComplement = false;
-
 #ifdef WITH_OPENMP
 	if (nThreads > 0) {
 		omp_set_num_threads(nThreads);
