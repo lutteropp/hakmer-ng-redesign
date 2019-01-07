@@ -28,6 +28,9 @@ PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool
 		}
 	}
 	size = freePos.size();
+	if (size == 0) {
+		throw std::runtime_error("size really shouldn't be zero here");
+	}
 }
 
 PresenceChecker::PresenceChecker(const PresenceChecker& other) {
