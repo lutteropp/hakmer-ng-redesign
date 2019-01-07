@@ -62,6 +62,7 @@ void reportCallback(const Options& options) {
 }
 
 int main(int argc, char* argv[]) {
+	std::cout << "THIS LINE SHOULD ALWAYS BE PRINTED\n";
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 	std::string commandStr = "";
