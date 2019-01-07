@@ -51,6 +51,9 @@ size_t PresenceChecker::mirrorCoord(size_t coord) const {
 	if (freePos.size() == 0) {
 		throw std::runtime_error("Why is freePos empty?");
 	}
+	if (size != freePos.size()) {
+		throw std::runtime_error("Why is size != freePos.size()?");
+	}
 	if (coord == 2 * size) {
 		throw std::runtime_error("The coord is 2*size");
 	}
