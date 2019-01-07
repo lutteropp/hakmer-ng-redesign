@@ -37,15 +37,26 @@ PresenceChecker::PresenceChecker(const PresenceChecker& other) {
 	size = freePos.size();
 }
 
-bool PresenceChecker::isFree(size_t coord) const {
+size_t PresenceChecker::mirrorCoord(size_t coord) const {
+	size_t coordBefore = coord;
+	if (coord == 2 * size) {
+		throw std::runtime_error("The coord is 2*size");
+	}
 	if (revComp && coord >= size) {
-		coord = 2*size - coord - 1; // TODO: This looks wrong.
+		coord = 2 * size - coord - 1; // TODO: This looks wrong.
 	}
 	if (coord >= size) {
-		return false;
-	} else {
-		return freePos[coord];
+		std::cout << "coordBefore: " << coordBefore << "\n";
+		std::cout << "size: " << size << "\n";
+		std::cout << "coordAfter: " << coord << "\n";
+		throw std::runtime_error("Why is coord >= size???");
 	}
+	return coord;
+}
+
+bool PresenceChecker::isFree(size_t coord) const {
+	coord = mirrorCoord(coord);
+	return freePos[coord];
 }
 
 bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) const {
@@ -58,16 +69,12 @@ bool PresenceChecker::isFree(size_t firstCoord, size_t lastCoord) const {
 }
 
 void PresenceChecker::setTaken(size_t coord) {
-	if (revComp && coord >= size) {
-		coord = 2*size - coord - 1;
-	}
+	coord = mirrorCoord(coord);
 	freePos[coord] = false;
 }
 
 void PresenceChecker::setFree(size_t coord) {
-	if (revComp && coord >= size) {
-		coord = 2*size - coord - 1;
-	}
+	coord = mirrorCoord(coord);
 	freePos[coord] = true;
 }
 

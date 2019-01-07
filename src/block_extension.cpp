@@ -145,11 +145,12 @@ bool canGoLeftAll(const ExtendedBlock& block, const PresenceChecker& presenceChe
 	return canGo;
 }
 
-bool canGoRightAll(const ExtendedBlock& block, const PresenceChecker& presenceChecker, size_t nTax, size_t offset) {
+bool canGoRightAll(const ExtendedBlock& block, const PresenceChecker& presenceChecker, size_t concatSize, size_t nTax, size_t offset) {
 	bool canGo = true;
 	for (size_t i = 0; i < nTax; ++i) {
 		if (block.hasTaxon(i)) {
-			if (!presenceChecker.isFree(block.getTaxonCoordsWithoutFlanks(i).second + offset)) {
+			size_t coord = block.getTaxonCoordsWithoutFlanks(i).second + offset;
+			if (coord >= concatSize || !presenceChecker.isFree(coord)) {
 				canGo = false;
 				break;
 			}
@@ -167,7 +168,7 @@ size_t findPerfectFlankSize(ExtendedBlock& block, size_t nTax, const PresenceChe
 	size_t finalFlankSize = 0;
 	for (size_t i = 1; i <= flankWidth; ++i) {
 		if (directionRight) {
-			if (!canGoRightAll(block, presenceChecker, nTax, i)) {
+			if (!canGoRightAll(block, presenceChecker, T.size(), nTax, i)) {
 				break;
 			}
 		} else {
@@ -214,7 +215,7 @@ void extendBlockPartial(ExtendedBlock& block, const std::string& T, size_t nTax,
 			} else {
 				coord = block.getTaxonCoordsWithFlanks(tID).second + 1;
 			}
-			if (presenceChecker.isFree(coord)) {
+			if (coord < T.size() && presenceChecker.isFree(coord)) {
 				leftok++;
 			} else {
 				taxIDsToRemove.push_back(tID);

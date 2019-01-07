@@ -34,6 +34,7 @@ public:
 	bool isFineWithoutSeed(const ExtendedBlock& block);
 	bool isFine(const Seed& block);
 private:
+	size_t mirrorCoord(size_t coord) const;
 	std::vector<bool> freePos;
 	size_t nTax;
 	bool revComp;
