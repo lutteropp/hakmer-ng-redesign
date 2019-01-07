@@ -10,9 +10,6 @@
 PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool revComp) :
 		revComp(revComp) {
 	size_t nSites = concat.getConcatSize();
-	if (nSites == 0) {
-		throw std::runtime_error("Why is nSites == 0?");
-	}
 	if (revComp) {
 		nSites /= 2;
 	}
@@ -40,20 +37,8 @@ PresenceChecker::PresenceChecker(const PresenceChecker& other) {
 
 size_t PresenceChecker::mirrorCoord(size_t coord) const {
 	size_t coordBefore = coord;
-	if (freePos.size() == 0) {
-		throw std::runtime_error("Why is freePos empty?");
-	}
-	if (coord == 2 * freePos.size()) {
-		throw std::runtime_error("The coord is 2*size");
-	}
 	if (revComp && coord >= freePos.size()) {
-		coord = 2 * freePos.size() - coord - 1; // TODO: This looks wrong.
-	}
-	if (coord >= freePos.size()) {
-		std::cout << "coordBefore: " << coordBefore << "\n";
-		std::cout << "size: " << freePos.size() << "\n";
-		std::cout << "coordAfter: " << coord << "\n";
-		throw std::runtime_error("Why is coord >= size???");
+		coord = 2 * freePos.size() - coord - 1;
 	}
 	return coord;
 }
