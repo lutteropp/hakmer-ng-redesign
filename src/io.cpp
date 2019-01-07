@@ -248,7 +248,7 @@ IndexedConcatenatedSequence readConcat(Options& options) {
 
 	if (options.reverseComplement) {
 		// reverse complement the entire concat
-		concat += revComp(concat);
+		//concat += revComp(concat); //TODO: Add this back
 	}
 
 	IndexedConcatenatedSequence res(concat, coords, protein, options);
