@@ -35,14 +35,22 @@ public:
 	void increaseTaxonCoordLeft(size_t taxID);
 	bool operator <(const Seed& str) const {
 		if (taxIDs.size() == str.taxIDs.size()) {
-			return k < str.k;
+			if (subRate == str.subRate) {
+				return k < str.k;
+			} else {
+				return subRate > str.subRate;
+			}
 		} else {
 			return taxIDs.size() < str.taxIDs.size();
 		}
 	}
 	bool operator >(const Seed& str) const {
 		if (taxIDs.size() == str.taxIDs.size()) {
-			return k > str.k;
+			if (subRate == str.subRate) {
+				return k > str.k;
+			} else {
+				return subRate < str.subRate;
+			}
 		} else {
 			return taxIDs.size() > str.taxIDs.size();
 		}
