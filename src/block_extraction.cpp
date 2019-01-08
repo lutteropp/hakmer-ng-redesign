@@ -24,8 +24,6 @@
 #include "dna_functions.hpp"
 #include "indexing/approx_matching.hpp"
 
-#include "external/fswm/Fswm.hpp"
-
 size_t posToTaxon(size_t pos, const std::vector<IndexedTaxonCoords>& taxonCoords, size_t concatSize, bool revComp) {
 	if (revComp && pos >= concatSize / 2) {
 		pos = concatSize - pos - 1;
@@ -510,7 +508,7 @@ double estimateSubRateQuick(const Seed& unextendedSeed, const IndexedConcatenate
 }
 
 Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK,
-		const Options& options, double maxAvgSubstitutionRate) {
+		const Options& options) {
 	Seed emptySeed(concat.nTax());
 	size_t kStart = std::max(minK, concat.getLcpArray()[saPos] + 1);
 	if ((concat.getSuffixArray()[saPos] + kStart >= concat.getConcatenatedSeq().size())
@@ -584,7 +582,7 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 //#pragma omp critical
 	//std::cout << "k: " << k << "; n: " << seed.getNTaxInBlock() << "; Estimated sub rate: " << subRate << "\n";
 
-	if ((options.discardUninformativeBlocks && subRate == 0) || subRate > maxAvgSubstitutionRate) {
+	if ((options.discardUninformativeBlocks && subRate == 0) || subRate > options.maxAvgSubstitutionRate) {
 		return emptySeed;
 	}
 
@@ -592,7 +590,7 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 }
 
 std::vector<Seed> extractSeeds(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK, size_t maxK,
-		const Options& options, double maxAvgSubstitutionRate) {
+		const Options& options) {
 	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
@@ -601,7 +599,7 @@ std::vector<Seed> extractSeeds(const IndexedConcatenatedSequence& concat, Presen
 	for (size_t sIdx = 0; sIdx < concat.getSuffixArray().size() - options.minTaxaPerBlock; ++sIdx) {
 		bool skip = false;
 
-		Seed seed = findSeed(sIdx, concat, presenceChecker, minK, options, maxAvgSubstitutionRate);
+		Seed seed = findSeed(sIdx, concat, presenceChecker, minK, options);
 		if (seed.getNTaxInBlock() == 0) {
 			skip = true;
 		}
@@ -747,35 +745,13 @@ void printHypotheticalBestCaseTaxonCoverage(const IndexedConcatenatedSequence& c
 	std::cout << "\n";
 }
 
-double harmonicMean(const std::vector<double>& values) {
-	double sum = 0;
-	for (size_t i = 0; i < values.size(); ++i) {
-		sum += (1.0 / values[i]);
-	}
-	return 1.0 / (sum / values.size());
-}
-
-double avgSubRate(const std::string& fileName) {
-	std::vector<std::vector<double> > pairwiseDist = estimatePairwiseDistances(fileName);
-	std::vector<double> vals;
-	for (size_t i = 0; i < pairwiseDist.size(); ++i) {
-		for (size_t j = i + 1; j < pairwiseDist.size(); ++j) {
-			vals.push_back(pairwiseDist[i][j]);
-		}
-	}
-	return harmonicMean(vals);
-}
-
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK) {
 	PresenceChecker seedingPresenceChecker(presenceChecker);
 	size_t initialMinK = minK;
 
-	double genomeSubRate = avgSubRate(options.filepath);
-	std::cout << "Average substitution rate in this dataset: " << genomeSubRate << "\n";
-
 	std::cout << "Extracting seeded blocks...\n";
-	std::vector<Seed> seeds = extractSeeds(concat, seedingPresenceChecker, minK, maxK, options, genomeSubRate);
+	std::vector<Seed> seeds = extractSeeds(concat, seedingPresenceChecker, minK, maxK, options);
 	std::cout << "seeded block infos.size(): " << seeds.size() << "\n";
 	std::cout << "Processing seeds...\n";
 	std::sort(seeds.begin(), seeds.end(), std::greater<Seed>());

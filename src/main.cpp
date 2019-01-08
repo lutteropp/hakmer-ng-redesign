@@ -27,6 +27,8 @@
 
 #include "indexing/suffix_array_fm.hpp"
 
+#include "external/fswm/Fswm.hpp"
+
 size_t estimateMinK(const IndexedConcatenatedSequence& concat) {
 	// as in Mauve
 	double sum = 0;
@@ -98,6 +100,8 @@ int main(int argc, char* argv[]) {
 	app.add_option("-o,--outpath", options.outpath, "Path to the output file to be written."); //->required();
 	app.add_option("-i,--info,--infopath", options.infopath, "Path to the optional run-information file to be written.");
 
+	app.add_option("--subrate,--subRate,--rate", options.maxAvgSubstitutionRate, "Maximum average substitution rate - please insert the harmonic mean of average pairwise genome distances here.", true);
+
 	app.add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
 	app.add_option("-s,--minSeqData,--minSeqUsage", options.minSeqDataUsage,
 			"Minimum percentage of sequence data to be used. Has to be a value between 0 and 1. If less sequence data has been used, minimum k-mer seed size gets reduced.",
@@ -108,6 +112,10 @@ int main(int argc, char* argv[]) {
 		options.infopath = options.outpath + ".info";
 	}
 	std::cout << "Program called with the following arguments: " << commandStr << "\n";
+
+	double genomeSubRate = avgSubRate(options.filepath);
+	std::cout << "Average substitution rate in this dataset: " << genomeSubRate << "\n";
+	options.maxAvgSubstitutionRate = genomeSubRate;
 
 #ifdef WITH_OPENMP
 	if (nThreads > 0) {
