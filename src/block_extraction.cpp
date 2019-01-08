@@ -324,7 +324,7 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 //#pragma omp critical
 	//		std::cout << "subRate: " << subRate << "\n";
 			size_t k = block.getMySeededBlock().getOriginalK();
-			size_t maxMismatches = k * subRate;
+			size_t maxMismatches = std::ceil(k * subRate);
 			maxMismatches = std::min(maxMismatches, options.maxMismatches);
 
 			if (maxMismatches > 0) { // augment the block with approximate matches
