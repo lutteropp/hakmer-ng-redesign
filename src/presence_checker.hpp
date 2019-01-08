@@ -36,6 +36,7 @@ public:
 private:
 	size_t mirrorCoord(size_t coord) const;
 	std::vector<bool> freePos;
+	std::vector<size_t> alwaysTaken;
 	size_t nTax;
 	bool revComp;
 };

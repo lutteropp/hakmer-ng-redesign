@@ -325,7 +325,7 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 			double subRate = options.maxErrorRate;
 
 //#pragma omp critical
-	//		std::cout << "subRate: " << subRate << "\n";
+			//		std::cout << "subRate: " << subRate << "\n";
 			size_t k = block.getMySeededBlock().getOriginalK();
 			size_t maxMismatches = std::ceil(k * subRate);
 			maxMismatches = std::min(maxMismatches, options.maxMismatches);
@@ -359,7 +359,7 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 		if (block.getNTaxInBlock() >= options.minTaxaPerBlock) {
 #pragma omp critical
 			{
-				presenceChecker.freeExtendedBlock(block);
+				presenceChecker.freeExtendedBlock(block); // TODO: Here is the bug!!! Because we also free the $ positions!!!
 				block = trimmedExtendedBlock(block.getMySeededBlock(), extraOccs, concat, presenceChecker, options);
 				if (block.getNTaxInBlock() >= options.minTaxaPerBlock) {
 					presenceChecker.reserveExtendedBlock(block);
@@ -373,7 +373,12 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 					newlyAddedBlocks++;
 					stats.updateSummaryStatistics(block, concat.nTax());
 					if (!options.outpath.empty()) {
-						writer.writeTemporaryBlockMSA(msa, concat.nTax());
+						try {
+							writer.writeTemporaryBlockMSA(msa, concat.nTax());
+						} catch (std::runtime_error& e) {
+							//cout << e.what() << "\n";
+							throw e;
+						}
 					}
 				}
 			}

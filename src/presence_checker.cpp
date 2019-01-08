@@ -22,6 +22,7 @@ PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool
 	for (size_t i = 0; i < nSites; ++i) {
 		if (concat.getConcatenatedSeq()[i] == '$') {
 			setTaken(i);
+			alwaysTaken.push_back(i);
 		}
 	}
 }
@@ -31,6 +32,10 @@ PresenceChecker::PresenceChecker(const PresenceChecker& other) {
 	this->freePos.resize(other.freePos.size());
 	for (size_t i = 0; i < other.freePos.size(); ++i) {
 		this->freePos[i] = other.freePos[i];
+	}
+	this->alwaysTaken.resize(other.alwaysTaken.size());
+	for (size_t i = 0; i < other.alwaysTaken.size(); ++i) {
+		this->alwaysTaken[i] = other.alwaysTaken[i];
 	}
 	this->nTax = other.nTax;
 }
@@ -112,6 +117,9 @@ void PresenceChecker::freeExtendedBlock(const ExtendedBlock& block) {
 			std::pair<size_t, size_t> coords = block.getTaxonCoordsWithFlanks(i);
 			setFree(coords.first, coords.second);
 		}
+	}
+	for (size_t i = 0; i < alwaysTaken.size(); ++i) {
+		setTaken(alwaysTaken[i]);
 	}
 }
 bool PresenceChecker::isFine(const ExtendedBlock& block) {

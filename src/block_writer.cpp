@@ -36,8 +36,8 @@ void printBlockMSA(ExtendedBlock& block, const std::vector<std::string>& msa) {
 
 void BlockWriter::writeTemporaryBlockMSA(ExtendedBlock& block, const std::string& T, size_t nTax, const Options& options) {
 	std::vector<std::string> msa = computeMSA(block, T, nTax, options);
-/*#pragma omp critical
-	printBlockMSA(block, msa);*/
+	/*#pragma omp critical
+	 printBlockMSA(block, msa);*/
 #pragma omp critical
 	for (size_t i = 0; i < nTax; ++i) {
 		tempMSAFiles[i] << msa[i];
@@ -45,11 +45,23 @@ void BlockWriter::writeTemporaryBlockMSA(ExtendedBlock& block, const std::string
 }
 
 void BlockWriter::writeTemporaryBlockMSA(const std::vector<std::string>& msa, size_t nTax) {
+	// check the MSA for bad '$' symbol
+	for (size_t i = 0; i < msa.size(); ++i) {
+		for (size_t j = 0; j < msa[i].size(); ++j) {
+			if (msa[i][j] == '$') {
+				std::cout << "block MSA:\n";
+				for (size_t i = 0; i < msa.size(); ++i) {
+					std::cout << msa[i] << "\n";
+				}
+				throw std::runtime_error("Encountered bad base in block MSA: '$'");
+			}
+		}
+	}
+
 	for (size_t i = 0; i < nTax; ++i) {
 		tempMSAFiles[i] << msa[i];
 	}
 }
-
 
 std::string slurp(std::ifstream& in) {
 	std::stringstream sstr;
