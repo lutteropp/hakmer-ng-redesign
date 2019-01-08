@@ -626,7 +626,7 @@ std::vector<Seed> extractSeeds(const IndexedConcatenatedSequence& concat, Presen
 				}
 			}
 		}
-		double progress = (double) 100 * sIdx / concat.getSuffixArray().size(); // TODO: Fix this, this looks kinda wrong in parallel mode
+		double progress = (double) 100 * sIdx / concat.getSuffixArray().size();
 		if (progress > lastP + 1) {
 #pragma omp critical
 			{
@@ -735,25 +735,6 @@ std::vector<std::pair<size_t, size_t> > estimateSeedSizes(const IndexedConcatena
 	}
 
 	return resSizes;
-}
-
-std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<Seed>& seeds, const Options& options) {
-	std::vector<std::pair<size_t, size_t> > res;
-	std::vector<size_t> seedSizes(1000, 0);
-	for (size_t i = 0; i < seeds.size(); ++i) {
-		size_t k = seeds[i].getAverageSeedSize();
-		if (k >= seedSizes.size()) {
-			seedSizes.resize(k + 1);
-		}
-		seedSizes[k]++;
-	}
-	for (size_t i = 0; i < seedSizes.size(); ++i) {
-		if (seedSizes[i] > 0) {
-			std::pair<size_t, size_t> p = std::make_pair(i, seedSizes[i]);
-			res.push_back(p);
-		}
-	}
-	return res;
 }
 
 size_t selectAndProcessSeeds(const std::vector<Seed>& seeds, ApproximateMatcher& approxMatcher, const IndexedConcatenatedSequence& concat,

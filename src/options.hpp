@@ -41,7 +41,7 @@ public:
 	bool discardParalogMismatches = true;
 
 	double maxAvgSubstitutionRate = 0.3;
-	double maxErrorRate = 0.05;
+	double maxErrorRate = 0.1;
 	size_t maxMismatches = std::numeric_limits<size_t>::max();
 };
 
