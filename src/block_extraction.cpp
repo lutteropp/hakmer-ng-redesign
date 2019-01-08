@@ -320,7 +320,10 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 		std::vector<std::pair<size_t, size_t> > extraOccs;
 
 		if (block.getNTaxInBlock() < concat.nTax()) {
-			double subRate = std::min(block.getMySeededBlock().getSubRate(), options.maxErrorRate);
+			//double subRate = std::min(block.getMySeededBlock().getSubRate(), options.maxErrorRate);
+
+			double subRate = options.maxErrorRate;
+
 //#pragma omp critical
 	//		std::cout << "subRate: " << subRate << "\n";
 			size_t k = block.getMySeededBlock().getOriginalK();
@@ -577,7 +580,8 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 		}
 	}
 	seed.setFirstSAPos(saPos);
-	double subRate = estimateSubRateQuick(seed, concat, options);
+	//double subRate = estimateSubRateQuick(seed, concat, options);
+	double subRate = options.maxAvgSubstitutionRate;
 	seed.setSubRate(subRate);
 
 //#pragma omp critical
