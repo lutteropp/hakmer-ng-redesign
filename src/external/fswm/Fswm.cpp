@@ -112,7 +112,7 @@ std::vector<std::vector<double> > estimatePairwiseDistances(const std::string& f
 	std::vector<std::vector<double> > DMat(sequences.size(), std::vector<double>(sequences.size(), 0));
 	Seed::init();
 	omp_set_dynamic(0);
-	//omp_set_num_threads(threads);
+	omp_set_num_threads(threads);
 	//omp_set_nested(1);
 	if (sequences.size() < 2) {
 		std::cerr << "there must be at least 2 sequences" << std::endl;
