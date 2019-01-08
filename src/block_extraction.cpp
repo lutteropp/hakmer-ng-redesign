@@ -24,6 +24,8 @@
 #include "dna_functions.hpp"
 #include "indexing/approx_matching.hpp"
 
+#include "external/fswm/Fswm.hpp"
+
 size_t posToTaxon(size_t pos, const std::vector<IndexedTaxonCoords>& taxonCoords, size_t concatSize, bool revComp) {
 	if (revComp && pos >= concatSize / 2) {
 		pos = concatSize - pos - 1;
@@ -745,10 +747,32 @@ void printHypotheticalBestCaseTaxonCoverage(const IndexedConcatenatedSequence& c
 	std::cout << "\n";
 }
 
+double harmonicMean(const std::vector<double>& values) {
+	double sum = 0;
+	for (size_t i = 0; i < values.size(); ++i) {
+		sum += (1.0 / values[i]);
+	}
+	return 1.0 / (sum / values.size());
+}
+
+double avgSubRate(const std::string& fileName) {
+	std::vector<std::vector<double> > pairwiseDist = estimatePairwiseDistances(fileName);
+	std::vector<double> vals;
+	for (size_t i = 0; i < pairwiseDist.size(); ++i) {
+		for (size_t j = i + 1; j < pairwiseDist.size(); ++j) {
+			vals.push_back(pairwiseDist[i][j]);
+		}
+	}
+	return harmonicMean(vals);
+}
+
 void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, BlockWriter& writer,
 		SummaryStatistics& stats, const Options& options, size_t minK, size_t maxK) {
 	PresenceChecker seedingPresenceChecker(presenceChecker);
 	size_t initialMinK = minK;
+
+	double genomeSubRate = avgSubRate(options.filepath);
+	std::cout << "Average substitution rate in this dataset: " << genomeSubRate << "\n";
 
 	std::cout << "Extracting seeded blocks...\n";
 	std::vector<Seed> seeds = extractSeeds(concat, seedingPresenceChecker, minK, maxK, options);
