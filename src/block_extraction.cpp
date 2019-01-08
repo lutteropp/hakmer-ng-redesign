@@ -320,7 +320,7 @@ size_t processExtendedBlockBuffer(std::vector<ExtendedBlock>& extendedBlockBuffe
 		std::vector<std::pair<size_t, size_t> > extraOccs;
 
 		if (block.getNTaxInBlock() < concat.nTax()) {
-			double subRate = block.getMySeededBlock().getSubRate();
+			double subRate = std::min(block.getMySeededBlock().getSubRate(), options.maxErrorRate);
 //#pragma omp critical
 	//		std::cout << "subRate: " << subRate << "\n";
 			size_t k = block.getMySeededBlock().getOriginalK();
