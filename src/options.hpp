@@ -44,6 +44,6 @@ public:
 
 	double maxAvgSubstitutionRate = 0.3;
 	double maxErrorRate = 0.1;
-	size_t maxMismatches = 8;
+	size_t maxMismatches = 3;
 };
 
