@@ -510,7 +510,7 @@ double estimateSubRateQuick(const Seed& unextendedSeed, const IndexedConcatenate
 }
 
 Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK,
-		const Options& options) {
+		const Options& options, double maxAvgSubstitutionRate) {
 	Seed emptySeed(concat.nTax());
 	size_t kStart = std::max(minK, concat.getLcpArray()[saPos] + 1);
 	if ((concat.getSuffixArray()[saPos] + kStart >= concat.getConcatenatedSeq().size())
@@ -584,7 +584,7 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 //#pragma omp critical
 	//std::cout << "k: " << k << "; n: " << seed.getNTaxInBlock() << "; Estimated sub rate: " << subRate << "\n";
 
-	if ((options.discardUninformativeBlocks && subRate == 0) || subRate > options.maxAvgSubstitutionRate) {
+	if ((options.discardUninformativeBlocks && subRate == 0) || subRate > maxAvgSubstitutionRate) {
 		return emptySeed;
 	}
 
@@ -592,7 +592,7 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 }
 
 std::vector<Seed> extractSeeds(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK, size_t maxK,
-		const Options& options) {
+		const Options& options, double maxAvgSubstitutionRate) {
 	std::vector<Seed> res;
 	size_t actSAPos = 0;
 	double lastP = 0;
@@ -601,7 +601,7 @@ std::vector<Seed> extractSeeds(const IndexedConcatenatedSequence& concat, Presen
 	for (size_t sIdx = 0; sIdx < concat.getSuffixArray().size() - options.minTaxaPerBlock; ++sIdx) {
 		bool skip = false;
 
-		Seed seed = findSeed(sIdx, concat, presenceChecker, minK, options);
+		Seed seed = findSeed(sIdx, concat, presenceChecker, minK, options, maxAvgSubstitutionRate);
 		if (seed.getNTaxInBlock() == 0) {
 			skip = true;
 		}
@@ -775,7 +775,7 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	std::cout << "Average substitution rate in this dataset: " << genomeSubRate << "\n";
 
 	std::cout << "Extracting seeded blocks...\n";
-	std::vector<Seed> seeds = extractSeeds(concat, seedingPresenceChecker, minK, maxK, options);
+	std::vector<Seed> seeds = extractSeeds(concat, seedingPresenceChecker, minK, maxK, options, genomeSubRate);
 	std::cout << "seeded block infos.size(): " << seeds.size() << "\n";
 	std::cout << "Processing seeds...\n";
 	std::sort(seeds.begin(), seeds.end(), std::greater<Seed>());

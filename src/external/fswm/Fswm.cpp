@@ -112,13 +112,13 @@ std::vector<std::vector<double> > estimatePairwiseDistances(const std::string& f
 	std::vector<std::vector<double> > DMat(sequences.size(), std::vector<double>(sequences.size(), 0));
 	Seed::init();
 	omp_set_dynamic(0);
-	omp_set_num_threads(threads);
+	//omp_set_num_threads(threads);
 	//omp_set_nested(1);
 	if (sequences.size() < 2) {
 		std::cerr << "there must be at least 2 sequences" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	//std::cout << "start sorting" << std::endl;
+	std::cout << "start sorting" << std::endl;
 #pragma omp parallel for schedule(runtime)
 	for (int i = 0; i < sequences.size(); i++) {
 		if (sequences[i].getSequence().size() < 1000) {
@@ -133,19 +133,19 @@ std::vector<std::vector<double> > estimatePairwiseDistances(const std::string& f
 		sequences[i].sortNextBits(seed);
 		sequences[i].sortNextBitsRev(seed);
 	}
-	//std::cout << "starting pairwise distance calculation" << std::endl;
+	std::cout << "starting pairwise distance calculation" << std::endl;
 	int number = (sequences.size() * (sequences.size() - 1)) / 2;
 	int cnt = 1;
 	//#pragma omp parallel for  num_threads(10)
 	for (int i = 0; i < sequences.size(); i++) {
 		for (int j = i + 1; j < sequences.size(); j++) {
-			//std::cout << cnt++ << "/" << number << "\r";
-			//std::cout.flush();
+			std::cout << cnt++ << "/" << number << "\r";
+			std::cout.flush();
 			DMat[i][j] = sequences[i].compareSequences(sequences[j], seed, threads, threshold);
 			DMat[j][i] = DMat[i][j];
 		}
 	}
-	//std::cout << std::endl << "done" << std::endl;
+	std::cout << std::endl << "done" << std::endl;
 	return DMat;
 }
 
