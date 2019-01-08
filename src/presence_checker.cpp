@@ -29,14 +29,8 @@ PresenceChecker::PresenceChecker(const IndexedConcatenatedSequence& concat, bool
 
 PresenceChecker::PresenceChecker(const PresenceChecker& other) {
 	this->revComp = other.revComp;
-	this->freePos.resize(other.freePos.size());
-	for (size_t i = 0; i < other.freePos.size(); ++i) {
-		this->freePos[i] = other.freePos[i];
-	}
-	this->alwaysTaken.resize(other.alwaysTaken.size());
-	for (size_t i = 0; i < other.alwaysTaken.size(); ++i) {
-		this->alwaysTaken[i] = other.alwaysTaken[i];
-	}
+	this->freePos = other.freePos;
+	this->alwaysTaken = other.alwaysTaken;
 	this->nTax = other.nTax;
 }
 
