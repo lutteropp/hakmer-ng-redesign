@@ -103,9 +103,6 @@ int main(int argc, char* argv[]) {
 	app.add_option("-q, --maxMismatches", options.maxMismatches, "Maximum number of allowed mismatches - used for augmenting the seeds with mismatches.", true);
 
 	app.add_option("--minTaxa", options.minTaxaPerBlock, "Minimum number of taxa per block.", true);
-	app.add_option("-s,--minSeqData,--minSeqUsage", options.minSeqDataUsage,
-			"Minimum percentage of sequence data to be used. Has to be a value between 0 and 1. If less sequence data has been used, minimum k-mer seed size gets reduced.",
-			true);
 
 	CLI11_PARSE(app, argc, argv);
 	if (!options.outpath.empty() && options.infopath.empty()) {

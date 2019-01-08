@@ -25,8 +25,6 @@ public:
 	bool redo = false;
 	size_t minTaxaPerBlock = 4;
 
-	double minSeqDataUsage = 0.01; // minimum amount of overall sequence data to be used, default value: 1 %
-
 	// internal parameters
 	bool proteinData = false;
 	bool verboseDebug = false;

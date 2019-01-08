@@ -685,6 +685,58 @@ void printSeedSizeHistogram(const std::vector<std::pair<size_t, size_t> >& seedS
 	}
 }
 
+std::vector<std::pair<size_t, size_t> > estimateSeedSizes(const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker,
+		size_t minK, size_t maxK, const Options& options) {
+	std::vector<std::pair<size_t, size_t> > resSizes;
+	std::vector<size_t> seedSizes(1000, 0);
+
+	size_t actSAPos = 0;
+	double lastP = 0;
+
+#pragma omp parallel for schedule(dynamic)
+	for (size_t sIdx = 0; sIdx < concat.getSuffixArray().size() - options.minTaxaPerBlock; ++sIdx) {
+		bool skip = false;
+
+		Seed seed = findSeed(sIdx, concat, presenceChecker, minK, options);
+		if (seed.getNTaxInBlock() == 0) {
+			skip = true;
+		}
+
+		if (!skip && acceptSeedComplexity(sIdx, seed.getAverageSeedSize(), concat, options)) {
+			if (!canGoLeftAll(seed, presenceChecker, concat.nTax())
+					|| !allLeftSame(seed, concat.getConcatenatedSeq(), seed.getTaxonIDsInBlock())) {
+				size_t k = seed.getAverageSeedSize();
+#pragma omp critical
+				{
+					if (k >= seedSizes.size()) {
+						seedSizes.resize(k + 1);
+					}
+					seedSizes[k]++;
+				}
+			}
+		}
+		double progress = (double) 100 * sIdx / concat.getSuffixArray().size();
+		if (progress > lastP + 1) {
+#pragma omp critical
+			{
+				if (progress > lastP + 1) {
+					std::cout << progress << " %\n";
+					lastP = progress;
+				}
+			}
+		}
+	}
+
+	for (size_t i = 0; i < seedSizes.size(); ++i) {
+		if (seedSizes[i] > 0) {
+			std::pair<size_t, size_t> p = std::make_pair(i, seedSizes[i]);
+			resSizes.push_back(p);
+		}
+	}
+
+	return resSizes;
+}
+
 std::vector<std::pair<size_t, size_t> > countSeedSizes(const std::vector<Seed>& seeds, const Options& options) {
 	std::vector<std::pair<size_t, size_t> > res;
 	std::vector<size_t> seedSizes(1000, 0);
@@ -760,38 +812,24 @@ void extractExtendedBlocks(const IndexedConcatenatedSequence& concat, PresenceCh
 	PresenceChecker seedingPresenceChecker(presenceChecker);
 	size_t initialMinK = minK;
 
+	std::cout << "Estimating seed sizes...\n";
+	std::vector<std::pair<size_t, size_t> > seedSizes = estimateSeedSizes(concat, presenceChecker, minK, maxK, options);
+	printSeedSizeHistogram(seedSizes);
+	size_t newMinK = elbowMethod(seedSizes, options);
+	seedSizes.clear();
+	seedSizes.shrink_to_fit();
+	std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k than this value.\n";
+	minK = newMinK;
+
 	std::cout << "Extracting seeded blocks...\n";
 	std::vector<Seed> seeds = extractSeeds(concat, seedingPresenceChecker, minK, maxK, options);
 	std::cout << "seeded block infos.size(): " << seeds.size() << "\n";
 	std::cout << "Processing seeds...\n";
 	std::sort(seeds.begin(), seeds.end(), std::greater<Seed>());
-
-	std::vector<std::pair<size_t, size_t> > seedSizes;
-	seedSizes = countSeedSizes(seeds, options);
-	printSeedSizeHistogram(seedSizes);
-	printHypotheticalBestCaseTaxonCoverage(concat, seeds);
-
-	size_t newMinK = elbowMethod(seedSizes, options);
-	std::cout << "New chosen minK by using the elbow method: " << newMinK << ". Ignoring all seeds with smaller k than this value.\n";
-	minK = newMinK;
 	ApproximateMatcher approxMatcher(options.mismatchesOnly);
 
 	size_t newlyAddedBlocks = selectAndProcessSeeds(seeds, approxMatcher, concat, presenceChecker, writer, stats, options, minK, maxK);
 	double seqDataUsed = stats.getAmountSeqDataUsed(concat.getSequenceDataSize());
-	while (seqDataUsed < options.minSeqDataUsage) {
-		std::cout << "Current percentage of sequence data used: " << seqDataUsed * 100
-				<< " %. This is too low. Trying to find more blocks with lower minimum kmer size.\n";
-		size_t newMinK = std::max((size_t) initialMinK, (size_t) minK - 1);
-		if (newMinK != minK) {
-			std::cout << "Using new value for minK: " << newMinK << "\n";
-			selectAndProcessSeeds(seeds, approxMatcher, concat, presenceChecker, writer, stats, options, newMinK, minK - 1);
-			minK = newMinK;
-		} else {
-			std::cout << "Unfortunately, a smaller minK value makes not much sense. :-(\n";
-			break;
-		}
-		seqDataUsed = stats.getAmountSeqDataUsed(concat.getSequenceDataSize());
-	}
 	std::cout << "seqDataUsed: " << seqDataUsed << "\n";
 
 // TODO: Remove me again, this is just out of curiosity
