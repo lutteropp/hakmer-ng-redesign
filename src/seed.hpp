@@ -34,6 +34,14 @@ public:
 	void decreaseTaxonCoordRight(size_t taxID);
 	void increaseTaxonCoordLeft(size_t taxID);
 	bool operator <(const Seed& str) const {
+		if (k >= 42 && str.k < 42) {
+			// this is always smaller
+			return 0;
+		} else if (str.k >= 42 && k < 42) {
+			// this is always larger
+			return 1;
+		}
+
 		if (taxIDs.size() == str.taxIDs.size()) {
 			if (subRate == str.subRate) {
 				return k < str.k;
@@ -45,6 +53,14 @@ public:
 		}
 	}
 	bool operator >(const Seed& str) const {
+		if (k >= 42 && str.k < 42) {
+			// this is always larger
+			return 1;
+		} else if (str.k >= 42 && k < 42) {
+			// this is always smaller
+			return 0;
+		}
+
 		if (taxIDs.size() == str.taxIDs.size()) {
 			if (subRate == str.subRate) {
 				return k > str.k;
