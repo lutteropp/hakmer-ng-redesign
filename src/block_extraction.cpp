@@ -563,6 +563,12 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 		}
 	}
 
+	// Shrink k back such that we are not longer than the text
+	for (size_t i = saPos; i <= lastIdx; ++i) {
+		size_t taxID = concat.posToTaxon(concat.getSuffixArray()[i]);
+		k = std::min(k, concat.getConcatSize() - concat.getSuffixArray()[i] - 1);
+	}
+
 	// reject instances where the same seed size led to some taxa showing paralog occurrences
 	for (size_t i = saPos + 1; i <= lastIdx; ++i) {
 		if (taxCounts[concat.posToTaxon(concat.getSuffixArray()[i])] > 1) {
