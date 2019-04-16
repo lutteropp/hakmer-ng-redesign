@@ -236,6 +236,16 @@ void trimSeededBlock(Seed& block, PresenceChecker& presenceChecker, const Option
 
 ExtendedBlock trimmedExtendedBlock(const Seed& oldSeed, const std::vector<std::pair<size_t, size_t>>& extraOccs,
 		const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, const Options& options) {
+	// ensure that the old seed does not contain a $ sign
+	for (size_t i = 0; i < oldSeed.getTaxonIDsInBlock().size(); ++i) {
+		for (size_t j = oldSeed.getSeedCoords(oldSeed.getTaxonIDsInBlock()[i]).first;
+				j <= oldSeed.getSeedCoords(oldSeed.getTaxonIDsInBlock()[i]).second; ++j) {
+			if (concat.getConcatenatedSeq()[j] == '$') {
+				throw std::runtime_error("Encountered a $ sign in the old seed before trimmings!");
+			}
+		}
+	}
+
 	// make a new seed out of the extended block.
 	std::vector<size_t> taxonUsage(concat.nTax(), 0);
 	Seed seed(concat.nTax());
@@ -262,10 +272,66 @@ ExtendedBlock trimmedExtendedBlock(const Seed& oldSeed, const std::vector<std::p
 			}
 		}
 	}
+
+	// ensure that the new seed does not contain a $ sign
+	for (size_t i = 0; i < seed.getTaxonIDsInBlock().size(); ++i) {
+		for (size_t j = seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).first;
+				j <= seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).second; ++j) {
+			if (concat.getConcatenatedSeq()[j] == '$') {
+				throw std::runtime_error("Encountered a $ sign in the new seed before trimmings!");
+			}
+		}
+	}
+
 	trimSeededBlock(seed, presenceChecker, options);
+
+	// ensure that the new seed does not contain a $ sign
+	for (size_t i = 0; i < seed.getTaxonIDsInBlock().size(); ++i) {
+		for (size_t j = seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).first;
+				j <= seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).second; ++j) {
+			if (concat.getConcatenatedSeq()[j] == '$') {
+				throw std::runtime_error("Encountered a $ sign in the seed after trimming 1!");
+			}
+		}
+	}
+
 	trimSeededBlockExtra(seed, presenceChecker, options);
+
+	// ensure that the new seed does not contain a $ sign
+	for (size_t i = 0; i < seed.getTaxonIDsInBlock().size(); ++i) {
+		for (size_t j = seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).first;
+				j <= seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).second; ++j) {
+			if (concat.getConcatenatedSeq()[j] == '$') {
+				throw std::runtime_error("Encountered a $ sign in the seed after trimming 2!");
+			}
+		}
+	}
+
 	trivialExtensionPartial(seed, concat.getConcatenatedSeq(), presenceChecker, concat.nTax(), options);
-	return extendBlock(seed, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, k, options);
+
+	// ensure that the new seed does not contain a $ sign
+	for (size_t i = 0; i < seed.getTaxonIDsInBlock().size(); ++i) {
+		for (size_t j = seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).first;
+				j <= seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).second; ++j) {
+			if (concat.getConcatenatedSeq()[j] == '$') {
+				throw std::runtime_error("Encountered a $ sign in the seed after trivial extension!");
+			}
+		}
+	}
+
+	ExtendedBlock res = extendBlock(seed, concat.getConcatenatedSeq(), concat.nTax(), presenceChecker, k, options);
+
+	// ensure that the extended block does not contain a $ sign
+	for (size_t i = 0; i < res.getTaxonIDsInBlock().size(); ++i) {
+		for (size_t j = res.getTaxonCoordsWithFlanks(res.getTaxonIDsInBlock()[i]).first;
+				j <= res.getTaxonCoordsWithFlanks(res.getTaxonIDsInBlock()[i]).second; ++j) {
+			if (concat.getConcatenatedSeq()[j] == '$') {
+				throw std::runtime_error("Encountered a $ sign after computing extended block!");
+			}
+		}
+	}
+
+	return res;
 }
 
 double jukesCantorCorrection(double dist) {
@@ -519,7 +585,7 @@ double estimateSubRateQuick(const Seed& unextendedSeed, const IndexedConcatenate
 Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceChecker& presenceChecker, size_t minK,
 		const Options& options) {
 	Seed emptySeed(concat.nTax());
-	size_t kStart = std::max(minK, concat.getLcpArray()[saPos] + 1);
+	size_t kStart = minK; //std::max(minK, concat.getLcpArray()[saPos] + 1);
 	if ((concat.getSuffixArray()[saPos] + kStart >= concat.getConcatenatedSeq().size())
 			|| (!presenceChecker.isFree(concat.getSuffixArray()[saPos], concat.getSuffixArray()[saPos] + kStart - 1))) {
 		return emptySeed;
@@ -557,16 +623,19 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 
 	// Now, it gets interesting... what's the largest value for k we can use for the non-paralogous taxa we still have?
 	size_t k = std::numeric_limits<size_t>::max();
+	size_t lastCheckedPos = saPos;
 	for (size_t i = saPos + 1; i <= lastIdx; ++i) {
-		if (taxCounts[concat.posToTaxon(concat.getSuffixArray()[i])] == 1) {
-			k = std::min(k, concat.getLcpArray()[i]);
+		size_t taxID = concat.posToTaxon(concat.getSuffixArray()[i]);
+		if (taxCounts[taxID] == 1) { // I think that here was the problem... we were skipping some suffix array positions!
+			for (size_t j = lastCheckedPos + 1; j <= i; ++j) {
+				k = std::min(k, concat.getLcpArray()[j]);
+			}
+			lastCheckedPos = i;
 		}
 	}
 
-	// Shrink k back such that we are not longer than the text
-	for (size_t i = saPos; i <= lastIdx; ++i) {
-		size_t taxID = concat.posToTaxon(concat.getSuffixArray()[i]);
-		k = std::min(k, concat.getConcatSize() - concat.getSuffixArray()[i] - 1);
+	if (k < minK) {
+		return emptySeed;
 	}
 
 	// reject instances where the same seed size led to some taxa showing paralog occurrences
@@ -594,6 +663,18 @@ Seed findSeed(size_t saPos, const IndexedConcatenatedSequence& concat, PresenceC
 	//double subRate = estimateSubRateQuick(seed, concat, options);
 	double subRate = options.maxAvgSubstitutionRate;
 	seed.setSubRate(subRate);
+
+	/*
+	// ensure that the newly discovered seed does not contain a $ sign
+	for (size_t i = 0; i < seed.getTaxonIDsInBlock().size(); ++i) {
+		for (size_t j = seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).first;
+				j <= seed.getSeedCoords(seed.getTaxonIDsInBlock()[i]).second; ++j) {
+			if (concat.getConcatenatedSeq()[j] == '$') {
+				throw std::runtime_error("Encountered a $ sign in the extracted seed!");
+			}
+		}
+	}
+	*/
 
 //#pragma omp critical
 	//std::cout << "k: " << k << "; n: " << seed.getNTaxInBlock() << "; Estimated sub rate: " << subRate << "\n";

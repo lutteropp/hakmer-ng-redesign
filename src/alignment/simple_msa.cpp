@@ -6,6 +6,7 @@
  */
 
 #include <stdexcept>
+#include <iostream>
 
 #include "simple_msa.hpp"
 #include "msa_wrapper.hpp"
@@ -61,15 +62,72 @@ std::vector<std::string> computeMSA(const std::vector<SimpleCoords>& seqCoords, 
 }
 
 std::vector<std::string> computeMSA(const ExtendedBlock& block, const std::string& T, size_t nTax, const Options& options) {
+	/*
+	// check the block again, just to be super sure
+	for (size_t i = 0; i < block.getTaxonIDsInBlock().size(); ++i) {
+		for (size_t j = block.getTaxonCoordsWithFlanks(block.getTaxonIDsInBlock()[i]).first;
+				j <= block.getTaxonCoordsWithFlanks(block.getTaxonIDsInBlock()[i]).second; ++j) {
+			if (T[j] == '$') {
+				throw std::runtime_error("Encountered a $ sign before calling MSA!");
+			}
+		}
+	}*/
+
 	std::vector<std::string> res;
 	std::vector<std::string> leftFlankMSA = computeMSA(block.getLeftFlankCoords(), T);
+
+	/*
+	// check the leftFlankMSA for bad '$' symbol
+	for (size_t i = 0; i < leftFlankMSA.size(); ++i) {
+		for (size_t j = 0; j < leftFlankMSA[i].size(); ++j) {
+			if (leftFlankMSA[i][j] == '$') {
+				std::cout << "leftFlank MSA:\n";
+				for (size_t i = 0; i < leftFlankMSA.size(); ++i) {
+					std::cout << leftFlankMSA[i] << "\n";
+				}
+				throw std::runtime_error("Encountered bad base in block leftFlankMSA: '$'");
+			}
+		}
+	}*/
+
 	std::vector<std::string> seedMSA;
 	if (options.mismatchesOnly) {
 		seedMSA = prepareSeqs(block.getSeedCoords(), T);
 	} else {
 		seedMSA = computeMSA(block.getSeedCoords(), T);
 	}
+
+	/*
+	// check the seedMSA for bad '$' symbol
+	for (size_t i = 0; i < seedMSA.size(); ++i) {
+		for (size_t j = 0; j < seedMSA[i].size(); ++j) {
+			if (seedMSA[i][j] == '$') {
+				std::cout << "seed MSA:\n";
+				for (size_t i = 0; i < seedMSA.size(); ++i) {
+					std::cout << seedMSA[i] << "\n";
+				}
+				throw std::runtime_error("Encountered bad base in block seedMSA: '$'");
+			}
+		}
+	}
+	*/
+
 	std::vector<std::string> rightFlankMSA = computeMSA(block.getRightFlankCoords(), T);
+
+	/*
+	// check the rightFlankMSA for bad '$' symbol
+	for (size_t i = 0; i < rightFlankMSA.size(); ++i) {
+		for (size_t j = 0; j < rightFlankMSA[i].size(); ++j) {
+			if (rightFlankMSA[i][j] == '$') {
+				std::cout << "rightFlank MSA:\n";
+				for (size_t i = 0; i < rightFlankMSA.size(); ++i) {
+					std::cout << rightFlankMSA[i] << "\n";
+				}
+				throw std::runtime_error("Encountered bad base in block rightFlankMSA: '$'");
+			}
+		}
+	}
+	*/
 
 	for (size_t i = 0; i < nTax; ++i) {
 		res.push_back(leftFlankMSA[i] + seedMSA[i] + rightFlankMSA[i]);

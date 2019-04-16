@@ -29,6 +29,7 @@ public:
 	bool contains(size_t pos) const;
 	IndexedTaxonCoords(const std::string& label, const std::vector<std::string>& contigs, size_t coordOffset);
 	size_t getTotalLength() const;
+	size_t getContigID(size_t pos) const;
 };
 
 // TODO: Re-integrate external indexing via FM index

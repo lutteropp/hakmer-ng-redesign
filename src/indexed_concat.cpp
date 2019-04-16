@@ -51,6 +51,15 @@ bool IndexedTaxonCoords::contains(size_t pos) const {
 	return false;
 }
 
+size_t IndexedTaxonCoords::getContigID(size_t pos) const {
+	for (size_t i = 0; i < contigCoords.size(); ++i) {
+		if (pos >= contigCoords[i].first && pos <= contigCoords[i].second) {
+			return i;
+		}
+	}
+	throw std::runtime_error("The given position does not belong to this taxon");
+}
+
 size_t longestCommonPrefix(const std::string& seq, size_t start1, size_t start2) {
 	size_t res = 0;
 	for (size_t i = 0; i < seq.size(); ++i) {
@@ -108,7 +117,7 @@ size_t IndexedConcatenatedSequence::posToTaxonInternal(size_t pos, bool revComp)
 			return i;
 		}
 	}
-	return std::numeric_limits<uint16_t>::infinity();
+	return std::numeric_limits < uint16_t > ::infinity();
 }
 
 IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq, const std::vector<IndexedTaxonCoords>& coords,
@@ -120,6 +129,11 @@ IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq,
 		sa.buildSuffixArray(seq, seq.size(), options);
 		suffixArray = sa.getSA();
 		lcpArray = sa.getLCP();
+
+		/*bool lcpOK = sa.checkLCP(seq);
+		 if (!lcpOK) {
+		 throw std::runtime_error("THE LCP IS NOT OKAY!");
+		 }*/
 	}
 
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
@@ -149,6 +163,34 @@ IndexedConcatenatedSequence::IndexedConcatenatedSequence(const std::string& seq,
 #pragma omp parallel for schedule(dynamic)
 	for (size_t i = 0; i < taxonCoords.size(); ++i) {
 		perTaxonArrays[i] = shrinkArrays(i);
+	}
+
+	// fix the lcp array using the taxon coords...
+#pragma omp parallel for schedule(dynamic)
+	for (size_t i = 0; i < lcpArray.size(); ++i) {
+		if (lcpArray[i] == 0) continue;
+		size_t firstPos = suffixArray[i];
+		if (seq[firstPos] == '$') {
+			lcpArray[i] = 0;
+			continue;
+		}
+		size_t taxID = posToTaxon(firstPos);
+		size_t lastPos = taxonCoords[taxID].getContigCoords(taxonCoords[taxID].getContigID(firstPos)).second;
+		size_t maxLCP = lastPos + 1 - firstPos;
+		lcpArray[i] = std::min(lcpArray[i], maxLCP);
+		// it also cannot be longer than the sequence before...
+		if (i > 0) {
+			size_t firstPos2 = suffixArray[i - 1];
+			if (seq[firstPos2] == '$') {
+				lcpArray[i] = 0;
+				continue;
+			}
+
+			size_t taxID2 = posToTaxon(firstPos2);
+			size_t lastPos2 = taxonCoords[taxID2].getContigCoords(taxonCoords[taxID2].getContigID(firstPos2)).second;
+			size_t maxLCP2 = lastPos2 + 1 - firstPos2;
+			lcpArray[i] = std::min(lcpArray[i], maxLCP2);
+		}
 	}
 }
 
@@ -200,4 +242,3 @@ bool IndexedConcatenatedSequence::isProtein() const {
 size_t IndexedConcatenatedSequence::posToTaxon(size_t pos) const {
 	return posToTaxonArray[pos];
 }
-
